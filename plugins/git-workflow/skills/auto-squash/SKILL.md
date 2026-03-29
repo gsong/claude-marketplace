@@ -19,6 +19,7 @@ Distribute uncommitted changes across the current branch's commits via fixup, cr
    - The branch with the fewest commits ahead of the merge-base is the likely parent
    - On ties, consult `git reflog show HEAD` for a `checkout: moving from <parent> to <current>` entry to disambiguate
    - Fall back to `main` if inference is ambiguous or fails
+   - **Always confirm**: Show the inferred base branch to the user and ask for confirmation before proceeding — getting this wrong means fixup commits target the wrong history
 2. **Fork point**: `git merge-base HEAD <base-branch>` — if this fails or returns no result (e.g., on the base branch itself), skip to step 5 and treat all changes as new commits
 3. **Branch commits**: `git log --oneline <fork-point>..HEAD` — if empty (HEAD equals fork point), skip to step 5 and treat all changes as new commits
 4. **Uncommitted changes**: `git status --porcelain` to list all modified, untracked, and deleted files

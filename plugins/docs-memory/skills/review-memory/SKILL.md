@@ -7,6 +7,11 @@ description: Use when the user wants to review, audit, or optimize their project
 
 Analyze the project-level CLAUDE.md file for effectiveness and token efficiency.
 
+## Setup
+
+1. Read `.claude/CLAUDE.md` (the project-level file to analyze)
+2. Read `~/.claude/CLAUDE.md` (the global file) — this is needed to accurately assess what is "redundant with global instructions" vs. genuinely project-specific
+
 ## Analysis Framework
 
 Evaluate `.claude/CLAUDE.md` across these dimensions:

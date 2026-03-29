@@ -27,11 +27,9 @@ Each agent receives the following prompt (fill in `{PLUGIN_NAME}`, `{PLUGIN_DIR}
 > Analyze the plugin `{PLUGIN_NAME}` at `{PLUGIN_DIR}` (current version: `{CURRENT_VERSION}`) to determine if a version bump is needed.
 >
 > **Step 1 — Find the version anchor commit:**
-> Run: `git log -S '"version"' --format="%H" -- {PLUGIN_DIR}/.claude-plugin/plugin.json`
-> Take the first SHA from the output (most recent commit that changed the version string).
-> If this command returns empty output, use the SHA of the commit that created the file:
-> Run: `git log --diff-filter=A --format="%H" -- {PLUGIN_DIR}/.claude-plugin/plugin.json`
-> If both commands return empty output, report: bump = "none", reasoning = "Plugin has no git history yet."
+> Run: `git log --format="%H" -- {PLUGIN_DIR}/.claude-plugin/plugin.json`
+> Take the first SHA from the output (most recent commit that touched plugin.json).
+> If the command returns empty output, report: bump = "none", reasoning = "Plugin has no git history yet."
 >
 > **Step 2 — Get changes since the anchor:**
 > Run: `git diff {SHA}..HEAD -- {PLUGIN_DIR}/`

@@ -1,8 +1,6 @@
 ---
 name: codex-review
 description: Code review a pull request using parallel Codex agents. Use when the user asks for a Codex code review, wants a GPT-based review, or invokes /codex-review.
-allowed-tools: Bash(gh pr view:*), Bash(gh pr diff:*), Bash(codex exec:*), Bash(git rev-parse:*)
-disable-model-invocation: false
 ---
 
 # Codex Code Review
