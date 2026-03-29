@@ -4,13 +4,12 @@
     "name": "George Song"
   },
   "metadata": {
-    "description": "George Song's Claude Code plugins for git workflows, documentation, Codex integration, and utilities",
-    "pluginRoot": "./plugins"
+    "description": "George Song's Claude Code plugins for git workflows, documentation, Codex integration, and utilities"
   },
   "plugins": [
     {
       "name": "git-workflow",
-      "source": "git-workflow",
+      "source": "./plugins/git-workflow",
       "description": "Git commit, PR review, worktree, auto-squash, and GitHub project management commands",
       "author": { "name": "George Song" },
       "category": "development",
@@ -18,7 +17,7 @@
     },
     {
       "name": "docs-memory",
-      "source": "docs-memory",
+      "source": "./plugins/docs-memory",
       "description": "AI documentation bootstrapping, review, and session memory management",
       "author": { "name": "George Song" },
       "category": "productivity",
@@ -26,7 +25,7 @@
     },
     {
       "name": "codex-tools",
-      "source": "codex-tools",
+      "source": "./plugins/codex-tools",
       "description": "OpenAI Codex CLI integration for parallel PR reviews and headless task delegation",
       "author": { "name": "George Song" },
       "category": "development",
@@ -34,7 +33,7 @@
     },
     {
       "name": "utilities",
-      "source": "utilities",
+      "source": "./plugins/utilities",
       "description": "Date calculator, dependency upgrades, and GitHub Actions security auditing",
       "author": { "name": "George Song" },
       "category": "productivity",
