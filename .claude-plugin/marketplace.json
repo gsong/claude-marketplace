@@ -34,10 +34,26 @@
     {
       "name": "utilities",
       "source": "./plugins/utilities",
-      "description": "Date calculator, dependency upgrades, and GitHub Actions security auditing",
+      "description": "General-purpose utilities for Claude Code",
       "author": { "name": "George Song" },
       "category": "productivity",
-      "keywords": ["date", "dependencies", "security", "zizmor"]
+      "keywords": ["date", "utilities"]
+    },
+    {
+      "name": "repo-maintenance",
+      "source": "./plugins/repo-maintenance",
+      "description": "Dependency upgrades and CI/CD security auditing for project repositories",
+      "author": { "name": "George Song" },
+      "category": "development",
+      "keywords": [
+        "dependencies",
+        "pnpm",
+        "security",
+        "zizmor",
+        "maintenance",
+        "github-actions",
+        "actions-up"
+      ]
     }
   ]
 }
