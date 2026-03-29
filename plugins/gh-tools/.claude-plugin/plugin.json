@@ -1,0 +1,12 @@
+{
+  "name": "gh-tools",
+  "description": "GitHub CLI PR review, comment posting, triage, and project management commands",
+  "version": "1.0.0",
+  "author": {
+    "name": "George Song"
+  },
+  "homepage": "https://github.com/gsong/claude-marketplace",
+  "repository": "https://github.com/gsong/claude-marketplace",
+  "license": "MIT",
+  "keywords": ["github", "gh", "pr", "review", "project"]
+}

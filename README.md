@@ -12,15 +12,25 @@ Add the marketplace, then install plugins individually:
 
 ## Plugins
 
-### git-workflow
+### git-tools
 
-Git commit, PR review, worktree, auto-squash, and GitHub project management skills.
+Git commit, worktree, and auto-squash skills.
 
 ```
-/plugin install git-workflow@gsong-marketplace
+/plugin install git-tools@gsong-marketplace
 ```
 
-**Skills:** `commit`, `pr-review`, `post-pr-comments`, `triage-review`, `auto-squash`, `worktree`, `github-project-manager`
+**Skills:** `commit`, `worktree`, `auto-squash`
+
+### gh-tools
+
+GitHub CLI PR review, comment posting, triage, and project management skills.
+
+```
+/plugin install gh-tools@gsong-marketplace
+```
+
+**Skills:** `pr-review`, `post-pr-comments`, `triage-review`, `github-project-manager`
 
 ### docs-memory
 

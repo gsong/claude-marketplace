@@ -4,16 +4,24 @@
     "name": "George Song"
   },
   "metadata": {
-    "description": "George Song's Claude Code plugins for git workflows, documentation, Codex integration, and utilities"
+    "description": "George Song's Claude Code plugins for git, GitHub, documentation, Codex integration, and utilities"
   },
   "plugins": [
     {
-      "name": "git-workflow",
-      "source": "./plugins/git-workflow",
-      "description": "Git commit, PR review, worktree, auto-squash, and GitHub project management commands",
+      "name": "git-tools",
+      "source": "./plugins/git-tools",
+      "description": "Git commit, worktree, and auto-squash commands",
       "author": { "name": "George Song" },
       "category": "development",
-      "keywords": ["git", "pr", "review", "commit", "worktree"]
+      "keywords": ["git", "commit", "worktree", "auto-squash"]
+    },
+    {
+      "name": "gh-tools",
+      "source": "./plugins/gh-tools",
+      "description": "GitHub CLI PR review, comment posting, triage, and project management commands",
+      "author": { "name": "George Song" },
+      "category": "development",
+      "keywords": ["github", "gh", "pr", "review", "project"]
     },
     {
       "name": "docs-memory",
