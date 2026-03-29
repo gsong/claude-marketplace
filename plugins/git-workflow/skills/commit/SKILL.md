@@ -16,17 +16,19 @@ You are tasked with committing changes in the current project repository. Follow
 
 ## Process
 
-1. Run `git status` and `git diff` to understand all changes
-2. Analyze changes and group them logically:
+1. Run `git status`, `git diff`, and `git diff --cached` to understand all changes (staged and unstaged)
+2. Run lint and typecheck commands if available (check `package.json` scripts, `Makefile`, etc.)
+   - Fix any issues before proceeding
+3. Analyze changes and group them logically:
    - New features (feat:)
    - Bug fixes (fix:)
    - Documentation updates (docs:)
    - Code refactoring (refactor:)
    - Tests (test:)
    - Maintenance tasks (chore:)
-3. Create separate commits for each logical group
-4. Write clear, concise commit messages focusing on "why" not "what"
-5. Verify commits with `git log` and `git status`
+4. Create separate commits for each logical group
+5. Write clear, concise commit messages focusing on "why" not "what"
+6. Verify commits with `git log` and `git status`
 
 ## Commit Message Format
 
@@ -38,12 +40,12 @@ Optional longer explanation of what changed and why.
 
 ## Examples
 
-- `feat: add user authentication system`
-- `fix: resolve memory leak in connection pool`
-- `docs: update API documentation for new endpoints`
-- `refactor: extract utility functions to separate module`
-- `test: add integration tests for payment flow`
-- `chore: update dependencies to latest versions`
+- `feat: support OAuth login for enterprise SSO requirement`
+- `fix: prevent connection pool exhaustion under concurrent load`
+- `docs: clarify rate limiting behavior for API consumers`
+- `refactor: simplify payment module for upcoming multi-currency support`
+- `test: cover payment edge cases that caused prod incidents`
+- `chore: upgrade deps to resolve security advisories`
 
 ## Important Notes
 

@@ -46,13 +46,17 @@ Examples:
 
 ## Step 3: Check for Conflicts
 
-List the contents of `.worktrees/` directory and check if the proposed directory name exists.
+1. Create `.worktrees/` directory if it doesn't exist: `mkdir -p .worktrees`
+2. List the contents of `.worktrees/` directory and check if the proposed directory name exists
+3. Check if the branch name already exists: `git branch --list {branch-name}`
 
-If it exists, intelligently resolve:
+**If directory name conflicts**, intelligently resolve:
 
 - Try a variation: `shadow-btn` → `btn-shadow` or `details-btn`
 - Try appending a number: `shadow-btn` → `shadow-btn2`
 - Keep it short and sensible
+
+**If branch name already exists**, use `git worktree add` without `-b` to check out the existing branch instead of creating a new one.
 
 ## Step 4: Create Worktree and Setup
 
@@ -61,7 +65,10 @@ Execute the following commands as separate, discrete operations:
 1. Create the worktree:
 
 ```bash
+# New branch:
 git worktree add -b {branch-name} .worktrees/{short-dir-name}
+# Existing branch:
+git worktree add .worktrees/{short-dir-name} {branch-name}
 ```
 
 2. If `.env` exists in the project root, copy it to the new worktree:

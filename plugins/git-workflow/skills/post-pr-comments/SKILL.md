@@ -62,11 +62,12 @@ After the user selects findings to post, ask (via AskUserQuestion):
    ```json
    {
      "path": "{path}",
-     "line": "{line}",
+     "line": {line},
      "body": "{body}"
    }
    ```
 
+   `line` must be an integer (not a string). `start_line` must also be an integer if present.
    Include `start_line` only if it was present in the finding.
    Include `side` only if it was present in the finding (omitting defaults to `RIGHT`).
 

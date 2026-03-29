@@ -12,7 +12,9 @@ Capture a succinct summary of the current session's work to enable future Claude
 1. **Ask the user for a topic/title** describing what was accomplished (e.g., "commodity-based routing", "auth system refactor")
 
 2. **Analyze recent work:**
-   - Run `git status` and `git diff` to see changes
+   - Run `git status` and `git diff` to see unstaged changes
+   - Run `git log --oneline -10` to see recent commits in this session
+   - If changes are already committed, use `git diff HEAD~N` (where N covers the session's commits) to see the full scope
    - Identify key files modified
    - Understand the scope of changes
 
@@ -81,9 +83,5 @@ Capture a succinct summary of the current session's work to enable future Claude
 - Duplicate information available elsewhere
 - Write paragraphs when bullets suffice
 - Include implementation details that are self-evident
-
-## Example
-
-See `ai-swap/commodity-based-routing.md` for reference.
 
 The goal is maximum effectiveness per token: future Claude should understand the session's context, key decisions, and be able to continue work without re-discovering everything.

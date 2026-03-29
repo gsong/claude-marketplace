@@ -21,47 +21,34 @@ Create a specialized agent for managing GitHub project board operations using a 
 
 ## Process
 
-### 1. Validate Environment and Parse URL
-
-First, verify the project setup:
+### 1. Validate Environment
 
 - Check if current directory is a git repository
 - Verify GitHub CLI (`gh`) is available and authenticated
-- Parse the project URL to extract owner and project number
-- Ensure .claude/agents/ directory exists or can be created
+- If no URL in `$ARGUMENTS`: show "Usage: /github-project-manager <project-url>" and stop
 
-### 2. Extract Project Information from URL
+### 2. Parse URL and Extract Project Info
 
-From the URL `$1`, extract:
+From `$ARGUMENTS`, extract owner and project number.
 
-- Organization/owner name
-- Project number
+Supported URL formats:
 
-URL format: `https://github.com/orgs/[OWNER]/projects/[NUMBER]`
+- `https://github.com/orgs/[OWNER]/projects/[NUMBER]` (organization projects)
+- `https://github.com/users/[OWNER]/projects/[NUMBER]` (personal projects)
+
+```bash
+# Parse owner and project number from URL (handles both orgs/ and users/)
+PROJECT_URL="$ARGUMENTS"
+OWNER=$(echo "$PROJECT_URL" | sed -n 's|https://github.com/\(orgs\|users\)/\([^/]*\)/projects/.*|\2|p')
+PROJECT_NUMBER=$(echo "$PROJECT_URL" | sed -n 's|.*/projects/\([0-9]*\).*|\1|p')
+```
+
+If either value is empty, show "Invalid GitHub project URL format" and stop.
 
 ### 3. Fetch Project Details via GitHub CLI
 
-Use GitHub CLI to automatically retrieve:
-
 ```bash
 # Get project details
-gh project view [PROJECT_NUMBER] --owner [OWNER] --format json
-
-# Get project fields (to find status field)
-gh project field-list [PROJECT_NUMBER] --owner [OWNER] --format json
-```
-
-### 4. Parse Project Information
-
-Extract the required information from GitHub CLI responses:
-
-```bash
-# Parse owner and project number from URL
-PROJECT_URL="$1"
-OWNER=$(echo "$PROJECT_URL" | sed -n 's|https://github.com/orgs/\([^/]*\)/projects/.*|\1|p')
-PROJECT_NUMBER=$(echo "$PROJECT_URL" | sed -n 's|.*/projects/\([0-9]*\).*|\1|p')
-
-# Get project ID and details
 PROJECT_DATA=$(gh project view "$PROJECT_NUMBER" --owner "$OWNER" --format json)
 PROJECT_ID=$(echo "$PROJECT_DATA" | jq -r '.id')
 PROJECT_TITLE=$(echo "$PROJECT_DATA" | jq -r '.title')
@@ -70,35 +57,17 @@ PROJECT_TITLE=$(echo "$PROJECT_DATA" | jq -r '.title')
 FIELDS_DATA=$(gh project field-list "$PROJECT_NUMBER" --owner "$OWNER" --format json)
 STATUS_FIELD=$(echo "$FIELDS_DATA" | jq -r '.[] | select(.name == "Status")')
 STATUS_FIELD_ID=$(echo "$STATUS_FIELD" | jq -r '.id')
-
-# Get status options
 STATUS_OPTIONS=$(echo "$STATUS_FIELD" | jq -r '.options[] | "- **\(.name):** `\(.id)`"')
 STATUS_MAPPINGS=$(echo "$STATUS_FIELD" | jq -r '.options[] | "- \"\(.name | ascii_downcase)\" → `\(.id)`"')
 ```
 
-### 5. Create Agent Configuration
+### 4. Generate Agent
 
-Generate a github-project-manager.md file in .claude/agents/ with the extracted information:
-
-The agent will include:
-
-- Project-specific IDs and configuration
-- Pre-configured GitHub CLI commands
-- Status mappings from the actual project
-- Ready-to-use functions for issue management
-
-### 6. Implementation Steps
-
-1. Parse the project URL argument (`$1`)
-2. Validate the current directory is a git repository
-3. Verify GitHub CLI is available and authenticated
-4. Extract owner and project number from URL
-5. Fetch project details using GitHub CLI
-6. Parse project ID, status field ID, and status options
-7. Create .claude/agents/ directory if it doesn't exist
-8. Generate the agent configuration with fetched details
-9. Write the file to .claude/agents/github-project-manager.md
-10. Confirm creation and provide usage instructions
+1. Create `.claude/agents/` directory if it doesn't exist
+2. If `github-project-manager.md` already exists, ask for confirmation before overwriting
+3. Generate the agent file with extracted project IDs, status mappings, and pre-configured commands
+4. Write to `.claude/agents/github-project-manager.md`
+5. Confirm creation and provide usage instructions
 
 ## Important Guidelines
 
@@ -144,7 +113,7 @@ You are a specialized agent for managing GitHub project board operations for the
 
 ## Project Details
 
-- **Project URL:** https://github.com/orgs/[owner]/projects/[number]
+- **Project URL:** [actual project URL from $ARGUMENTS]
 - **Project ID:** `[actual-project-id]`
 - **Status Field ID:** `[actual-status-field-id]`
 
