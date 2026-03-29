@@ -1,3 +1,8 @@
+---
+name: pnpm-upgrade-dependencies
+description: Use when the user asks to upgrade, update, or bump pnpm project dependencies, or wants to check for outdated packages in a pnpm workspace. Also use when the user invokes /pnpm-upgrade-dependencies.
+---
+
 # Upgrade project dependencies
 
 1. **Switch to upgrade branch**: `git checkout feat/upg-dependencies`

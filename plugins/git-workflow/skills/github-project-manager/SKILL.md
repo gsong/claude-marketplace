@@ -1,3 +1,8 @@
+---
+name: github-project-manager
+description: Use when the user wants to create a specialized agent for managing a GitHub project board, or when the user invokes /github-project-manager with a project URL.
+---
+
 # GitHub Project Manager
 
 Create a specialized agent for managing GitHub project board operations using a GitHub project URL.

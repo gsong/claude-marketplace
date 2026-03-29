@@ -1,3 +1,8 @@
+---
+name: auto-squash
+description: Use when the user wants to distribute uncommitted changes across existing branch commits via fixup and auto-squash, or when the user invokes /auto-squash.
+---
+
 # Smart fixup and auto-squash
 
 Distribute uncommitted changes across the current branch's commits via fixup, creating new commits for anything that doesn't match. Accepts an optional base branch argument: `$ARGUMENTS`

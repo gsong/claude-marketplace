@@ -2,9 +2,9 @@
 
 AI documentation bootstrapping, review, and session memory management for Claude Code.
 
-## Commands
+## Skills
 
-| Command                            | Description                                                     |
+| Skill                              | Description                                                     |
 | ---------------------------------- | --------------------------------------------------------------- |
 | `/docs-memory:init-docs-ai`        | Bootstrap a `docs-ai/` directory for AI-optimized documentation |
 | `/docs-memory:review-docs-ai`      | Review documentation using coordinated agent teams              |

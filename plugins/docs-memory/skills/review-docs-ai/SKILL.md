@@ -1,3 +1,8 @@
+---
+name: review-docs-ai
+description: Use when the user wants to review, audit, or improve AI-optimized documentation, or coordinate an agent team to verify and edit docs-ai files. Also use when the user invokes /review-docs-ai.
+---
+
 # Review Docs AI
 
 Review and edit all AI-optimized documentation using an agent team for coordinated, high-accuracy results.

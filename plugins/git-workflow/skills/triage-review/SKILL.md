@@ -1,3 +1,8 @@
+---
+name: triage-review
+description: Use when the user wants to investigate and triage code review findings for a PR, or when the user invokes /triage-review with a PR number. Requires running /pr-review first.
+---
+
 # Triage Review
 
 Investigate and triage code review findings for $ARGUMENTS.

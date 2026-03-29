@@ -1,3 +1,8 @@
+---
+name: init-docs-ai
+description: Use when the user wants to bootstrap or initialize AI-optimized documentation for a project, set up a docs-ai directory, or create a docs-lookup agent. Also use when the user invokes /init-docs-ai.
+---
+
 # Initialize Docs AI
 
 Bootstrap a `docs-ai/` directory structure for Claude Code documentation lookups.
