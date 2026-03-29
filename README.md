@@ -42,15 +42,25 @@ OpenAI Codex CLI integration for parallel PR reviews and headless task delegatio
 
 **Skills:** `codex-review`, `run-codex`
 
+### repo-maintenance
+
+Dependency upgrades and CI/CD security auditing for project repositories.
+
+```
+/plugin install repo-maintenance@gsong-marketplace
+```
+
+**Skills:** `pnpm-upgrade-dependencies`, `pnpm-upgrade`, `zizmor-audit`, `gha-upgrade`
+
 ### utilities
 
-Date calculator, dependency upgrades, and GitHub Actions security auditing.
+General-purpose utilities for Claude Code.
 
 ```
 /plugin install utilities@gsong-marketplace
 ```
 
-**Skills:** `date-calculator`, `pnpm-upgrade-dependencies`, `zizmor-audit`
+**Skills:** `date-calculator`
 
 ## License
 
