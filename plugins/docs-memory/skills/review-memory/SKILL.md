@@ -1,3 +1,8 @@
+---
+name: review-memory
+description: Use when the user wants to review, audit, or optimize their project-level CLAUDE.md file for effectiveness and token efficiency. Also use when the user invokes /review-memory.
+---
+
 # Review Project Memory
 
 Analyze the project-level CLAUDE.md file for effectiveness and token efficiency.

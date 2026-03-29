@@ -1,3 +1,8 @@
+---
+name: commit
+description: Use when the user wants to commit changes with conventional commit format, or when the user invokes /commit.
+---
+
 # Commit Changes
 
 You are tasked with committing changes in the current project repository. Follow these guidelines:

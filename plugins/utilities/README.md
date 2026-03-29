@@ -8,12 +8,8 @@ General-purpose utilities for Claude Code — date calculations, dependency mana
 | ----------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------- |
 | `date-calculator` | "calculate date", "what date was", "days ago/from now" | Calculate dates and datetimes from natural language using BSD date commands (macOS) |
 
-## Commands
-
-| Command                           | Description                                           |
-| --------------------------------- | ----------------------------------------------------- |
-| `/utilities:upgrade-dependencies` | Upgrade project dependencies using pnpm               |
-| `/utilities:zizmor-audit`         | Run zizmor security audit on GitHub Actions workflows |
+| `pnpm-upgrade-dependencies` | "upgrade dependencies", "update packages", "bump dependencies" | Upgrade project dependencies using pnpm |
+| `zizmor-audit` | "zizmor", "audit GitHub Actions", "security audit workflows" | Run zizmor security audit on GitHub Actions workflows |
 
 ## Prerequisites
 

@@ -1,3 +1,8 @@
+---
+name: zizmor-audit
+description: Use when the user asks to run a security audit on GitHub Actions workflows, check CI/CD pipeline security, scan for workflow vulnerabilities, or use zizmor. Also use when the user invokes /zizmor-audit.
+---
+
 # Zizmor Security Audit
 
 Run a security audit of GitHub Actions workflows using zizmor, a static analysis tool that identifies vulnerabilities, misconfigurations, and best-practice violations in CI/CD pipelines.

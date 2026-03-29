@@ -1,3 +1,8 @@
+---
+name: worktree
+description: Use when the user wants to create a new git worktree with intelligent branch naming and directory setup, or when the user invokes /worktree.
+---
+
 # Create Git Worktree
 
 You are tasked with creating a new git worktree with intelligent branch naming and directory setup.

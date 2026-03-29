@@ -1,3 +1,8 @@
+---
+name: pr-review
+description: Use when the user wants a comprehensive code review for a GitHub pull request, or when the user invokes /pr-review with a PR number.
+---
+
 # PR Review
 
 Perform a comprehensive code review for PR #$ARGUMENTS

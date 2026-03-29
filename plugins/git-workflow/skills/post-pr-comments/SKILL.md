@@ -1,3 +1,8 @@
+---
+name: post-pr-comments
+description: Use when the user wants to post code-level review comments to a GitHub PR as a pending review, or when the user invokes /post-pr-comments. Requires running /pr-review first to generate findings.
+---
+
 # Post PR Comments
 
 Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.

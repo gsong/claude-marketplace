@@ -1,3 +1,8 @@
+---
+name: save-session-memory
+description: Use when the user wants to save, capture, or record a summary of the current session's work for future Claude Code sessions. Also use when the user invokes /save-session-memory.
+---
+
 # Save Project Memory
 
 Capture a succinct summary of the current session's work to enable future Claude Code sessions to understand what was done and continue debugging or enhancement.

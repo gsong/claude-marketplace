@@ -14,13 +14,13 @@ Add the marketplace, then install plugins individually:
 
 ### git-workflow
 
-Git commit, PR review, worktree, auto-squash, and GitHub project management commands.
+Git commit, PR review, worktree, auto-squash, and GitHub project management skills.
 
 ```
 /plugin install git-workflow@gsong-marketplace
 ```
 
-**Commands:** `commit`, `pr-review`, `post-pr-comments`, `triage-review`, `auto-squash`, `worktree`, `github-project-manager`
+**Skills:** `commit`, `pr-review`, `post-pr-comments`, `triage-review`, `auto-squash`, `worktree`, `github-project-manager`
 
 ### docs-memory
 
@@ -30,7 +30,7 @@ AI documentation bootstrapping, review, and session memory management.
 /plugin install docs-memory@gsong-marketplace
 ```
 
-**Commands:** `init-docs-ai`, `review-docs-ai`, `save-session-memory`, `review-memory`
+**Skills:** `init-docs-ai`, `review-docs-ai`, `save-session-memory`, `review-memory`
 
 ### codex-tools
 
@@ -50,7 +50,7 @@ Date calculator, dependency upgrades, and GitHub Actions security auditing.
 /plugin install utilities@gsong-marketplace
 ```
 
-**Skills:** `date-calculator` | **Commands:** `upgrade-dependencies`, `zizmor-audit`
+**Skills:** `date-calculator`, `pnpm-upgrade-dependencies`, `zizmor-audit`
 
 ## License
 
