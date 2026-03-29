@@ -1,0 +1,12 @@
+{
+  "name": "git-tools",
+  "description": "Git commit, worktree, and auto-squash commands",
+  "version": "1.0.0",
+  "author": {
+    "name": "George Song"
+  },
+  "homepage": "https://github.com/gsong/claude-marketplace",
+  "repository": "https://github.com/gsong/claude-marketplace",
+  "license": "MIT",
+  "keywords": ["git", "commit", "worktree", "auto-squash"]
+}
