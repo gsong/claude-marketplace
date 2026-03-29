@@ -1,0 +1,12 @@
+{
+  "name": "utilities",
+  "description": "Date calculator, dependency upgrades, and GitHub Actions security auditing",
+  "version": "1.0.0",
+  "author": {
+    "name": "George Song"
+  },
+  "homepage": "https://github.com/gsong/claude-marketplace",
+  "repository": "https://github.com/gsong/claude-marketplace",
+  "license": "MIT",
+  "keywords": ["date", "dependencies", "security", "zizmor"]
+}
