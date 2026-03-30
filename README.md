@@ -12,26 +12,6 @@ Add the marketplace, then install plugins individually:
 
 ## Plugins
 
-### git-tools
-
-Git commit, worktree, and auto-squash skills.
-
-```
-/plugin install git-tools@gsong-marketplace
-```
-
-**Skills:** `commit`, `worktree`, `auto-squash`
-
-### gh-tools
-
-GitHub CLI PR review, comment posting, triage, and project management skills.
-
-```
-/plugin install gh-tools@gsong-marketplace
-```
-
-**Skills:** `pr-review`, `post-pr-comments`, `triage-review`, `github-project-manager`
-
 ### ai-docs
 
 Full lifecycle AI documentation for Claude Code projects: bootstrap, lookup, update, check, and audit.
@@ -61,6 +41,26 @@ OpenAI Codex CLI integration for parallel PR reviews and headless task delegatio
 ```
 
 **Skills:** `codex-review`, `run-codex`
+
+### gh-tools
+
+GitHub CLI PR review, comment posting, triage, and project management skills.
+
+```
+/plugin install gh-tools@gsong-marketplace
+```
+
+**Skills:** `pr-review`, `post-pr-comments`, `triage-review`, `github-project-manager`
+
+### git-tools
+
+Git commit, worktree, and auto-squash skills.
+
+```
+/plugin install git-tools@gsong-marketplace
+```
+
+**Skills:** `commit`, `worktree`, `auto-squash`
 
 ### repo-maintenance
 
