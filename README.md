@@ -32,15 +32,25 @@ GitHub CLI PR review, comment posting, triage, and project management skills.
 
 **Skills:** `pr-review`, `post-pr-comments`, `triage-review`, `github-project-manager`
 
-### docs-memory
+### ai-docs
 
-AI documentation bootstrapping, review, and session memory management.
+AI documentation bootstrapping and review for Claude Code projects.
 
 ```
-/plugin install docs-memory@gsong-marketplace
+/plugin install ai-docs@gsong-marketplace
 ```
 
-**Skills:** `init-docs-ai`, `review-docs-ai`, `save-session-memory`, `review-memory`
+**Skills:** `init-docs-ai`, `review-docs-ai`
+
+### ai-memory
+
+Session memory and project instruction management for Claude Code.
+
+```
+/plugin install ai-memory@gsong-marketplace
+```
+
+**Skills:** `save-session-memory`, `review-memory`
 
 ### codex-tools
 

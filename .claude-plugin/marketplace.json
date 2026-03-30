@@ -4,32 +4,24 @@
     "name": "George Song"
   },
   "metadata": {
-    "description": "George Song's Claude Code plugins for git, GitHub, documentation, Codex integration, and utilities"
+    "description": "George Song's Claude Code plugins for git, GitHub, documentation, session memory, Codex integration, repo maintenance, and utilities"
   },
   "plugins": [
     {
-      "name": "git-tools",
-      "source": "./plugins/git-tools",
-      "description": "Git commit, worktree, and auto-squash commands",
-      "author": { "name": "George Song" },
-      "category": "development",
-      "keywords": ["git", "commit", "worktree", "auto-squash"]
-    },
-    {
-      "name": "gh-tools",
-      "source": "./plugins/gh-tools",
-      "description": "GitHub CLI PR review, comment posting, triage, and project management commands",
-      "author": { "name": "George Song" },
-      "category": "development",
-      "keywords": ["github", "gh", "pr", "review", "project"]
-    },
-    {
-      "name": "docs-memory",
-      "source": "./plugins/docs-memory",
-      "description": "AI documentation bootstrapping, review, and session memory management",
+      "name": "ai-docs",
+      "source": "./plugins/ai-docs",
+      "description": "Full lifecycle AI documentation for Claude Code projects: bootstrap, lookup, update, check, and audit",
       "author": { "name": "George Song" },
       "category": "productivity",
-      "keywords": ["docs", "documentation", "memory", "session"]
+      "keywords": ["docs", "documentation", "ai"]
+    },
+    {
+      "name": "ai-memory",
+      "source": "./plugins/ai-memory",
+      "description": "Session memory and project instruction management for Claude Code",
+      "author": { "name": "George Song" },
+      "category": "productivity",
+      "keywords": ["memory", "session", "instructions"]
     },
     {
       "name": "codex-tools",
@@ -40,12 +32,20 @@
       "keywords": ["codex", "openai", "review", "delegation"]
     },
     {
-      "name": "utilities",
-      "source": "./plugins/utilities",
-      "description": "General-purpose utilities for Claude Code",
+      "name": "gh-tools",
+      "source": "./plugins/gh-tools",
+      "description": "GitHub CLI PR review, comment posting, triage, and project management commands",
       "author": { "name": "George Song" },
-      "category": "productivity",
-      "keywords": ["date", "utilities"]
+      "category": "development",
+      "keywords": ["github", "gh", "pr", "review", "project"]
+    },
+    {
+      "name": "git-tools",
+      "source": "./plugins/git-tools",
+      "description": "Git commit, worktree, and auto-squash commands",
+      "author": { "name": "George Song" },
+      "category": "development",
+      "keywords": ["git", "commit", "worktree", "auto-squash"]
     },
     {
       "name": "repo-maintenance",
@@ -62,6 +62,14 @@
         "github-actions",
         "actions-up"
       ]
+    },
+    {
+      "name": "utilities",
+      "source": "./plugins/utilities",
+      "description": "General-purpose utilities for Claude Code",
+      "author": { "name": "George Song" },
+      "category": "productivity",
+      "keywords": ["date", "utilities"]
     }
   ]
 }
