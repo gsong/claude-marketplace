@@ -34,13 +34,13 @@ GitHub CLI PR review, comment posting, triage, and project management skills.
 
 ### ai-docs
 
-AI documentation bootstrapping and review for Claude Code projects.
+Full lifecycle AI documentation for Claude Code projects: bootstrap, lookup, update, check, and audit.
 
 ```
 /plugin install ai-docs@gsong-marketplace
 ```
 
-**Skills:** `init-docs-ai`, `review-docs-ai`
+**Skills:** `docs-ai-init`, `docs-ai-lookup`, `docs-ai-update`, `docs-ai-check`, `docs-ai-audit`
 
 ### ai-memory
 
