@@ -1,6 +1,6 @@
 ---
 name: init-docs-ai
-description: Use when the user wants to bootstrap or initialize AI-optimized documentation for a project, set up a docs-ai directory, or create a docs-lookup agent. Also use when the user invokes /init-docs-ai.
+description: Use when the user wants to bootstrap or initialize AI-optimized documentation for a project, or set up a docs-ai directory. Also use when the user invokes /init-docs-ai.
 ---
 
 # Initialize Docs AI
@@ -9,7 +9,7 @@ Bootstrap a `docs-ai/` directory structure for Claude Code documentation lookups
 
 ## Goal
 
-Create AI-optimized documentation structure that enables effective Claude Code assistance via a docs-lookup subagent.
+Create AI-optimized documentation structure that enables effective Claude Code assistance via the docs-lookup skill.
 
 ## Process
 
@@ -83,78 +83,18 @@ docs-ai/
 - Brief prompts/examples for what content belongs in each section
 - File::Symbol reference examples where appropriate (e.g., `app/utils/foo.ts::barFunction`)
 
-### 6. Create docs-lookup Agent
+### 6. Update README.md Map
 
-Create `.claude/agents/docs-lookup.md` with template:
+Follow the canonical README.md format. Load the format specification:
 
-```markdown
----
-name: docs-lookup
-description: MANDATORY documentation lookup agent. MUST use BEFORE: (1) any refactoring, (2) UI changes, (3) adding new features, (4) state management changes. Use proactively when uncertain about patterns.
-tools: Bash, Glob, Grep, Read, WebFetch, WebSearch
-model: sonnet
----
+!`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-ai-readme-format.md"`
 
-You are a documentation lookup specialist for the [PROJECT_NAME] codebase.
+Populate `docs-ai/README.md` following this format exactly:
 
-## Your Process
-
-1. **Always Start Here**: Read `docs-ai/README.md` first - it's the documentation map
-2. **Topic-Based Lookup**: Based on the question, read 1-2 relevant docs
-3. **Supplement with Code Search**: If docs don't answer, use ast-grep/ripgrep
-4. **Extract Only What's Needed**: Pull specific, actionable information
-
-## Your Output Format
-
-**Direct Answer**: [Concise how-to with file::Symbol references]
-
-**Key Files**: [Specific files with ::Symbol references]
-
-**Pattern**: [Code pattern to follow with example]
-
-**See Also**: [Related doc sections]
-
-## Critical Rules
-
-- Be concise and actionable
-- Always provide file::Symbol references (e.g., `app/utils/foo.ts::barFunction`)
-- If docs don't have the answer, search codebase and say so
-- Focus on "how to do X" not "what X is"
-```
-
-### 7. Update README.md Map
-
-Populate `docs-ai/README.md` with:
-
-- Task-based index using recommended categories
-- All documentation section with heading outlines for each doc (like Claude Code's map format):
-
-```markdown
-**Core:**
-
-- [architecture.md](./architecture.md) - Tech stack and system design
-  - Technology Choices
-  - Directory Structure
-  - Key Architectural Decisions
-```
-
-### 8. Update .claude/CLAUDE.md (Optional)
-
-Ask user if they want to add pre-flight checklist to `.claude/CLAUDE.md`:
-
-```markdown
-## ⚠️ PRE-FLIGHT CHECKLIST - READ BEFORE EVERY TASK
-
-Before starting ANY coding task, you MUST explicitly check this list:
-
-- [ ] **Is this a refactoring task?** → **USE docs-lookup**
-- [ ] **Is this a UI change?** → **USE docs-lookup**
-- [ ] **Is this a new feature?** → **USE docs-lookup**
-- [ ] **Is this a state change?** → **USE docs-lookup**
-- [ ] **Am I uncertain about patterns?** → **USE docs-lookup**
-
-**If you checked ANY box above:** You MUST invoke the docs-lookup subagent BEFORE writing code.
-```
+- Start with header linking to quick-reference.md
+- Add the Reference Convention section
+- Create the "By Topic" section with categorized tables
+- Every created doc file must appear in exactly one category table
 
 ## Output
 
@@ -164,13 +104,10 @@ After completion, show:
 2. **Files created**: List with line counts
 3. **Next steps**:
    - **Fill in TODO sections** in each doc with actual project information
-   - **Run `/review-docs-ai`** to evaluate completeness and refine content (this will check for missing docs, extraneous docs, and optimize existing ones)
+   - **Run `/ai-docs:review-docs-ai`** to evaluate completeness and refine content
    - **Update README.md** headings as docs evolve
-   - **Test docs-lookup agent**: Invoke it with a test question about the project
 
 ## Execution Notes
 
 - Create all files using Write tool
-- If .claude/ directory doesn't exist, create it
-- If .claude/agents/ doesn't exist, create it
-- Preserve any existing .claude/CLAUDE.md content when adding checklist
+- Do not create .claude/agents/ or modify .claude/CLAUDE.md — the plugin handles docs-lookup and reminders via its built-in skill and hook
