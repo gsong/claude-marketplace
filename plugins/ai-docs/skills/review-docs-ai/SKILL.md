@@ -39,12 +39,16 @@ You are the **team lead**. Use delegate mode (Shift+Tab) during Phase 2 to stay 
    - **Redundancy**: Find overlapping content that should be consolidated
    - **Extraneous docs**: Identify docs that don't match current codebase reality
    - **README.md accuracy**: Verify the documentation map accurately reflects available docs and their headings
+   - **README.md format compliance**: Verify README.md follows the canonical format:
+
+     !`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-ai-readme-format.md"`
 
    Analyst messages the lead with:
    - **Files to add**: List with rationale
    - **Files to remove**: List with rationale
    - **Files to consolidate**: Merge suggestions with rationale
    - **README.md updates needed**: Sections to add/remove/reorganize
+   - **README.md format issues**: Deviations from canonical format that need fixing
 
 2. **Present recommendations**: Show the analyst's findings to the user and ask for approval before proceeding
 3. **Apply structural changes**: Create/remove/consolidate files per approved recommendations. The analyst stays alive for Phase 2.
