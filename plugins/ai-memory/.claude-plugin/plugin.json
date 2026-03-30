@@ -1,0 +1,12 @@
+{
+  "name": "ai-memory",
+  "description": "Session memory and project instruction management for Claude Code",
+  "version": "1.0.0",
+  "author": {
+    "name": "George Song"
+  },
+  "homepage": "https://github.com/gsong/claude-marketplace",
+  "repository": "https://github.com/gsong/claude-marketplace",
+  "license": "MIT",
+  "keywords": ["memory", "session", "instructions"]
+}
