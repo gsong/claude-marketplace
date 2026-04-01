@@ -1,6 +1,6 @@
 ---
-name: commit
-description: Use when the user wants to commit changes with conventional commit format, or when the user invokes /commit.
+name: gs:git-tools:commit
+description: Use when the user wants to commit changes with conventional commit format, or when the user invokes /gs:git-tools:commit.
 ---
 
 # Commit Changes

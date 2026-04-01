@@ -1,6 +1,6 @@
 ---
-name: auto-squash
-description: Use when the user wants to distribute uncommitted changes across existing branch commits via fixup and auto-squash, or when the user invokes /auto-squash.
+name: gs:git-tools:auto-squash
+description: Use when the user wants to distribute uncommitted changes across existing branch commits via fixup and auto-squash, or when the user invokes /gs:git-tools:auto-squash.
 ---
 
 # Smart fixup and auto-squash

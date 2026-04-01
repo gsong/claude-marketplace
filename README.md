@@ -80,7 +80,7 @@ General-purpose utilities for Claude Code.
 /plugin install utilities@gsong-marketplace
 ```
 
-**Skills:** `date-calculator`
+**Skills:** `/gs:utilities:date`
 
 ## License
 

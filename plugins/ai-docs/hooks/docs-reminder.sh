@@ -59,7 +59,7 @@ if [[ $TOTAL_DOCS -gt 0 && $STUB_DOCS -gt 0 ]]; then
   STUB_RATIO=$((STUB_DOCS * 100 / TOTAL_DOCS))
   if [[ $STUB_RATIO -ge 60 ]]; then
     touch "$COOLDOWN_FILE"
-    echo "${WARNING}docs-ai/ exists but most docs need content. Consider running /ai-docs:docs-ai-update or editing docs manually before relying on lookups."
+    echo "${WARNING}docs-ai/ exists but most docs need content. Consider running /gs:ai-docs:update or editing docs manually before relying on lookups."
     exit 0
   fi
 fi
@@ -67,4 +67,4 @@ fi
 # Mark cooldown so we don't remind again this session
 touch "$COOLDOWN_FILE"
 
-echo "${WARNING}Before writing or modifying code, use Skill(\"docs-ai-lookup\", \"your question\") to check project conventions. Skip for: conversation, trivial fixes, topics already looked up this session, or git/shell operations."
+echo "${WARNING}Before writing or modifying code, use Skill(\"gs:ai-docs:lookup\", \"your question\") to check project conventions. Skip for: conversation, trivial fixes, topics already looked up this session, or git/shell operations."
