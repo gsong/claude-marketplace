@@ -4,12 +4,12 @@ Repository maintenance skills for Claude Code — dependency upgrades and CI/CD 
 
 ## Skills
 
-| Skill                       | Trigger                                                        | Description                                           |
-| --------------------------- | -------------------------------------------------------------- | ----------------------------------------------------- |
-| `pnpm-upgrade-dependencies` | "upgrade dependencies", "update packages", "bump dependencies" | Upgrade project dependencies using pnpm               |
-| `pnpm-upgrade`              | "upgrade pnpm", "update pnpm version", "bump pnpm"             | Upgrade pnpm version references across the project    |
-| `zizmor-audit`              | "zizmor", "audit GitHub Actions", "security audit workflows"   | Run zizmor security audit on GitHub Actions workflows |
-| `gha-upgrade`               | "upgrade actions", "update GitHub Actions", "gha upgrade"      | Upgrade GitHub Actions dependencies using actions-up  |
+| Skill                           | Trigger                                                        | Description                                           |
+| ------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------- |
+| `gs:repo-maintenance:pnpm-deps` | "upgrade dependencies", "update packages", "bump dependencies" | Upgrade project dependencies using pnpm               |
+| `gs:repo-maintenance:pnpm`      | "upgrade pnpm", "update pnpm version", "bump pnpm"             | Upgrade pnpm version references across the project    |
+| `gs:repo-maintenance:zizmor`    | "zizmor", "audit GitHub Actions", "security audit workflows"   | Run zizmor security audit on GitHub Actions workflows |
+| `gs:repo-maintenance:gha`       | "upgrade actions", "update GitHub Actions", "gha upgrade"      | Upgrade GitHub Actions dependencies using actions-up  |
 
 ## Prerequisites
 

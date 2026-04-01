@@ -1,6 +1,6 @@
 ---
-name: worktree
-description: Use when the user wants to create a new git worktree with intelligent branch naming and directory setup, or when the user invokes /worktree.
+name: gs:git-tools:worktree
+description: Use when the user wants to create a new git worktree with intelligent branch naming and directory setup, or when the user invokes /gs:git-tools:worktree.
 ---
 
 # Create Git Worktree

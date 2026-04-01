@@ -4,10 +4,10 @@ Session memory and project instruction management for Claude Code.
 
 ## Skills
 
-| Skill                            | Description                                              |
-| -------------------------------- | -------------------------------------------------------- |
-| `/ai-memory:save-session-memory` | Capture session work summary for future sessions         |
-| `/ai-memory:review-memory`       | Analyze CLAUDE.md for effectiveness and token efficiency |
+| Skill                  | Description                                              |
+| ---------------------- | -------------------------------------------------------- |
+| `/gs:ai-memory:save`   | Capture session work summary for future sessions         |
+| `/gs:ai-memory:review` | Analyze CLAUDE.md for effectiveness and token efficiency |
 
 ## Installation
 

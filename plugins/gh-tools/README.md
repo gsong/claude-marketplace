@@ -4,12 +4,12 @@ GitHub CLI workflow skills for Claude Code.
 
 ## Skills
 
-| Skill                    | Trigger                                        | Description                                       |
-| ------------------------ | ---------------------------------------------- | ------------------------------------------------- |
-| `pr-review`              | "review PR", "code review"                     | Comprehensive PR code review with parallel agents |
-| `post-pr-comments`       | "post review comments", "post PR comments"     | Post review findings as GitHub PR comments        |
-| `triage-review`          | "triage review", "investigate review findings" | Investigate and triage code review findings       |
-| `github-project-manager` | "project board", "GitHub project"              | Create agents for GitHub project board management |
+| Skill                         | Trigger                                        | Description                                       |
+| ----------------------------- | ---------------------------------------------- | ------------------------------------------------- |
+| `gs:gh-tools:review`          | "review PR", "code review"                     | Comprehensive PR code review with parallel agents |
+| `gs:gh-tools:post-comments`   | "post review comments", "post PR comments"     | Post review findings as GitHub PR comments        |
+| `gs:gh-tools:triage`          | "triage review", "investigate review findings" | Investigate and triage code review findings       |
+| `gs:gh-tools:project-manager` | "project board", "GitHub project"              | Create agents for GitHub project board management |
 
 ## Prerequisites
 
@@ -17,7 +17,7 @@ GitHub CLI workflow skills for Claude Code.
 
 ### For PR review skills
 
-The `pr-review` skill depends on external plugins:
+The `gs:gh-tools:review` skill depends on external plugins:
 
 - `superpowers` — provides the `code-reviewer` agent
 - `code-review` — provides the `code-review` skill
