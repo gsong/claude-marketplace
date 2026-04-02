@@ -1,19 +1,18 @@
 ---
 name: gs:codex-tools:review
-description: Code review a pull request using parallel Codex agents. Use when the user asks for a Codex code review, wants a GPT-based review, or invokes /gs:codex-tools:review.
+description: Code review a pull request using parallel Codex adversarial reviews. Use when the user asks for a Codex code review, wants a GPT-based review, or invokes /gs:codex-tools:review.
 ---
 
 # Codex Code Review
 
-Review a pull request using OpenAI's Codex CLI via parallel agents.
+Review a pull request using 3 parallel Codex adversarial reviews, each with a
+specialized focus area.
 
 ## Arguments
 
 - **Required:** PR number (first positional argument)
 - **Optional flags:**
-  - `--model <model>` — Codex model (default: `gpt-5.4`)
-  - `--effort <level>` — Reasoning effort: low, medium, high, xhigh (default: `high`)
-  - `--threshold <number>` — Confidence display threshold (default: `50`)
+  - `--model <model>` — Codex model (passed through to adversarial-review)
 
 ## Process
 
@@ -23,104 +22,138 @@ Follow these steps precisely:
 
 Run these directly (no subagents):
 
-1. `gh pr view <number> --json state,additions,deletions,title,body,author` — check eligibility:
+1. `gh pr view <number> --json state,additions,deletions,title,body,author,comments,labels,baseRefName` — check eligibility:
    - If closed → stop
    - If < 5 lines changed → stop
    - Drafts ARE allowed
-2. `gh pr diff <number>` — save the full diff
-3. Glob for CLAUDE.md files: check project root + directories containing modified files. Collect **file paths only** (not contents — Codex will read them itself).
-4. Extract the list of modified file paths from the diff.
+2. Parse the PR body and comments for issue references:
+   - **GitHub issues:** `#123` or full GitHub issue URLs → resolve via `gh issue view <number> --json title,body`
+   - **Other references** (Linear URLs, Jira IDs, etc.): include the raw reference text in the context block. Instruct agents to resolve using available skills/tools if present.
+   - If resolution fails for any reference, include the raw text and move on.
+3. Build a **PR context block** to prepend to each agent's focus text:
 
-### Step 2: Parallel Codex Review
-
-Launch **3 parallel agents** (using the Agent tool). Each agent:
-
-1. Constructs a Codex prompt using the template below
-2. Runs: `codex exec -m <model> -c model_reasoning_effort="<effort>" -s read-only --ephemeral "<prompt>"`
-3. Parses the Codex output into structured JSON findings
-4. Returns the findings
-
-**Codex prompt template:**
-
-All agent prompts follow this structure. Only embed context that Codex cannot access itself — Codex has read-only access to all project files and can run read-only commands like `git log` and `git blame`.
-
-```
-You are reviewing PR #<number> (<title>) in <repo>.
+<!-- prettier-ignore -->
+```text
+PR #<number>: "<title>"
 Author: <author>
-
-## Your Role
-<agent-specific role — see below>
-
-## PR Diff
-<full diff from gh pr diff>
-
-## Modified Files
-<list of file paths extracted from diff>
-
-## Project Rules
-<if CLAUDE.md files found>
-The following CLAUDE.md files contain project rules. Read them yourself:
-<list of file paths>
-<else>
-No CLAUDE.md files found.
-<endif>
-
-## Instructions
-- You have read-only access to all project files. Read any file you need for context.
-- Only flag issues in lines modified by this PR.
-- Assign each issue a confidence score (0-100):
-  - 0: False positive, pre-existing issue, or doesn't hold up to scrutiny
-  - 25: Might be real but could be false positive. Stylistic issues not in CLAUDE.md.
-  - 50: Verified real but possibly a nitpick or rare in practice
-  - 75: Very likely real, impacts functionality or explicitly required in CLAUDE.md
-  - 100: Confirmed, will happen frequently, evidence directly supports it
-- For CLAUDE.md issues: read the file and verify the rule actually exists before flagging.
-- Return each issue as a JSON object on its own line:
-  {"file": "<path>", "lines": "<start>-<end>", "category": "<cat>", "confidence": <0-100>, "description": "<desc>"}
-- If no issues: return {"no_issues": true}
-
-## What NOT to flag
-- Pre-existing issues not introduced in this PR
-- Issues a linter, typechecker, or compiler would catch
-- Pedantic nitpicks a senior engineer wouldn't mention
-- Formatting, import ordering, or type annotation issues
-- Intentional functionality changes
-- General code quality unless explicitly required in CLAUDE.md
-- Issues called out in CLAUDE.md but silenced in code (e.g. lint-ignore comments)
+Description: <body, truncated to ~500 chars if long>
+Labels: <labels>
+PR Comments: <conversation comments, truncated>
+Referenced Issues:
+- #<gh-issue>: <title> — <body summary>
+- <external-ref>: (agent should resolve using available tools)
 ```
 
-**The 3 agent roles:**
+4. Check out the PR branch locally:
 
-- **Agent A — CLAUDE.md + Code Comments Compliance:** "Audit the changes for compliance with the CLAUDE.md rules listed below. Read each CLAUDE.md file yourself and only flag violations that are specifically and directly called out. CLAUDE.md is guidance for writing code — not all rules apply during review. Also check that code comments in the modified files are still accurate after the changes. Flag cases where comments are now stale or misleading."
+```bash
+gh pr checkout <number>
+```
 
-- **Agent B — Bug Scan + Git History:** "Scan the diff for bugs — focus on obvious issues with real impact, not nitpicks. Also run `git log` and `git blame` on the modified files to check for historical context: reverted patterns, repeated mistakes, or regressions. Ignore likely false positives."
+5. Determine the base ref from the PR metadata (`baseRefName` from the `gh pr view` output).
 
-- **Agent C — Test Quality:** "Evaluate any test files in the diff for quality and value. For each test, check: (1) Does it assert meaningful behavior, or is it testing something trivial (e.g., trivial getters/setters, re-testing framework behavior)? Flag low-value tests. (2) Are there existing tests in the codebase that already cover the same path? Run `grep` or read test files in the same directory to check for integration tests that already verify this behavior. Flag duplicates. (3) Are unit tests justified, or would an integration test better verify the overall behavior? Unit tests are fine for complex standalone logic, but prefer integration tests for verifying end-to-end behavior. (4) Flag tests that exist only to increase coverage without catching real bugs — these are a net negative. If no test files are in the diff, return {\"no_issues\": true}."
+6. Resolve the codex companion script path:
 
-### Step 3: Output Results
+```bash
+find ~/.claude/plugins/cache -name "codex-companion.mjs" -path "*/codex/*" | sort -V | tail -1
+```
+
+If no path is found, stop with: "Error: codex plugin not installed. Run `/codex:setup` first."
+
+### Step 2: Parallel Agent Dispatch
+
+Launch **3 parallel agents** (using the Agent tool, `subagent_type: "general-purpose"`). Pass each agent:
+
+- The resolved companion script path from Step 1.6
+- The base ref from Step 1.5
+- The PR context block
+- Its agent-specific focus text
+- The `--model` flag if one was passed to the skill
+
+Each agent:
+
+1. Writes its full focus text (PR context block + agent-specific focus) to a temp file
+2. Invokes adversarial-review via Bash using the companion script path:
+
+```bash
+node "<companion-path>" adversarial-review --base <base-ref> --wait -- "$(cat <temp-file>)"
+```
+
+- `--wait` ensures foreground execution (no interactive prompts)
+- `--` separates flags from focus text to prevent misparse
+- If `--model` was passed, add it before `--`: `--model <model>`
+
+3. Captures the structured JSON output (verdict, findings, next_steps)
+4. For any external issue references encountered, attempts resolution using available skills/tools
+5. Returns the parsed findings
+
+**The 3 agent roles and focus text:**
+
+**Agent A — Correctness & Safety:**
+
+Prepend the PR context block, then:
+
+> Focus on logical correctness: off-by-one errors, null/undefined paths, type coercion bugs, boundary conditions, error handling gaps, and security boundaries (injection, auth bypass, data exposure). Trace data flow through changed functions.
+
+**Agent B — Concurrency, State & Integration:**
+
+Prepend the PR context block, then:
+
+> Focus on state management, race conditions, resource lifecycle (leaks, dangling references, unclosed handles), API contract violations, backwards compatibility breaks, and how changes interact with code outside the diff. Check git history for reverted patterns or repeated mistakes in modified files.
+
+**Agent C — Test & Specification Integrity:**
+
+Prepend the PR context block, then:
+
+> Focus on whether tests verify the claimed behavior change, whether assertions are meaningful or tautological, whether edge cases from the implementation are covered, and whether existing tests or code comments are now stale or misleading due to the changes.
+
+### Step 3: Result Aggregation
+
+After all 3 agents return:
+
+1. **Collect** — each agent returns structured JSON with `verdict`, `summary`, `findings[]`, and `next_steps[]`. The findings schema:
+
+```json
+{
+  "severity": "critical | high | medium | low",
+  "title": "finding title",
+  "body": "description of the issue",
+  "file": "path/to/file",
+  "line_start": 10,
+  "line_end": 20,
+  "confidence": 0,
+  "recommendation": "concrete fix suggestion"
+}
+```
+
+2. **Deduplicate** — if two agents flag the same file + overlapping line range, merge into one finding. Keep the higher severity. Combine descriptions, noting which agent perspectives caught it.
+3. **Overall verdict** — `needs-attention` if any agent returns `needs-attention`; `approve` only if all three approve.
+4. **Sort** — by severity (critical → high → medium → low), then confidence descending.
+
+### Step 4: Output Results
 
 **Terminal output:**
 
-Display results grouped by confidence tier, filtered by `--threshold`:
+Display all findings grouped by severity:
 
-```
+<!-- prettier-ignore -->
+```text
 ## Codex Code Review — PR #<number>
 
 ### Summary
 <PR title + brief description>
 
-### Issues Found (N total, M shown above threshold)
+### Issues Found (N total)
 
-**High Confidence (80+)**
+**Critical / High**
 
-1. [<category>] <file>:<lines> — <description> (confidence: <score>)
+1. [<severity>/<agent>] <file>:<lines> — <title> (confidence: <score>)
+   <body>
+   Recommendation: <recommendation>
 
-**Medium Confidence (50-79)**
+**Medium / Low**
 
-2. [<category>] <file>:<lines> — <description> (confidence: <score>)
-
-**Below Threshold**
-N issues hidden (below confidence <threshold>). See full report.
+2. [<severity>/<agent>] <file>:<lines> — <title> (confidence: <score>)
 
 ### No Issues From
 - <list agents that found nothing>
@@ -128,22 +161,23 @@ N issues hidden (below confidence <threshold>). See full report.
 
 If no issues found at all:
 
-```
+<!-- prettier-ignore -->
+```text
 ## Codex Code Review — PR #<number>
 
-No issues found. Checked for bugs, CLAUDE.md compliance, and test quality using Codex.
+No issues found. Checked correctness, integration safety, and test quality
+using 3 parallel Codex adversarial reviews.
 ```
 
 **Markdown report:**
 
-Write the full report (all findings regardless of threshold) to `ai-swap/pr-review-<number>/codex-review.md` using the Write tool.
+Write the full report (all findings) to `ai-swap/pr-review-<number>/codex-review.md` using the Write tool. Include agent source for each finding.
 
 ## Notes
 
 - Use `gh` to interact with GitHub, not web fetch
 - Do not check build signal or attempt to build/typecheck
-- All Codex invocations use `--ephemeral` to avoid persisting sessions
-- All Codex invocations use `-s read-only` sandbox mode
-- **Do NOT pre-read source files or CLAUDE.md contents to embed in the Codex prompt.** Codex runs in `read-only` sandbox mode and can read files itself. Only embed the PR diff (from GitHub, which Codex cannot access) and tell Codex to read everything else.
-- Shell-escape prompts properly when passing to `codex exec`
+- **Do not auto-apply fixes.** Present findings and let the user decide what to fix.
+- **Do not pre-read source files to embed in prompts.** Codex reads files itself via the companion script's read-only sandbox. Only pass the PR context (which Codex can't access from GitHub) and the focus text.
+- All adversarial-review invocations use `--wait` for foreground execution
 - Make a todo list first to track progress through the steps
