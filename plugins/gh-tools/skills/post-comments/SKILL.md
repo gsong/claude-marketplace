@@ -57,13 +57,13 @@ After the user selects findings to post, ask (via AskUserQuestion):
 
 ## Step 6: Post Review
 
-1. Build the comments array from approved findings. Each comment object:
+1. Build the comments array from approved findings. Each comment's `body` MUST be prefixed with the severity tag in square brackets, e.g. `[nit] {body}`, `[must-fix] {body}`, `[should-fix] {body}`. Each comment object:
 
    ```json
    {
      "path": "{path}",
      "line": {line},
-     "body": "{body}"
+     "body": "[{severity}] {body}"
    }
    ```
 
