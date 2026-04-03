@@ -1,13 +1,13 @@
 # codex-tools
 
-OpenAI Codex CLI integration for Claude Code — parallel PR reviews and headless task delegation.
+OpenAI Codex CLI integration for Claude Code — parallel PR reviews and task delegation via codex:rescue runtime.
 
 ## Skills
 
 | Skill                   | Trigger                                                                          | Description                                                                                              |
 | ----------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `gs:codex-tools:review` | "Codex code review", "GPT-based review", `/gs:codex-tools:review`                | Launch 3 parallel Codex adversarial reviews for a PR — correctness, integration safety, and test quality |
-| `gs:codex-tools:run`    | "run Codex", "use Codex CLI", "second opinion from Codex", `/gs:codex-tools:run` | Run Codex CLI in headless mode to delegate tasks or get a second opinion                                 |
+| `gs:codex-tools:run`    | "run Codex", "use Codex CLI", "second opinion from Codex", `/gs:codex-tools:run` | Delegate tasks to Codex via codex:rescue runtime                                                         |
 
 ## Prerequisites
 

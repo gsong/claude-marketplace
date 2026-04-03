@@ -3,9 +3,9 @@ name: gs:codex-tools:run
 description: Use when the user asks to run Codex, use Codex CLI, get a second opinion from Codex, or delegate a task to OpenAI's Codex agent. Also use when the user invokes /gs:codex-tools:run.
 ---
 
-# Run Codex CLI
+# Run Codex
 
-Run OpenAI's Codex CLI in headless mode (`codex exec`) from within Claude Code.
+Delegate tasks to OpenAI's Codex agent through the codex:rescue runtime.
 
 ## Process
 
@@ -22,9 +22,8 @@ Use `AskUserQuestion` to collect:
 
 **Sandbox mode** — ask the access level:
 
-- `read-only` — can only read files (Recommended)
-- `workspace-write` — can write to workspace
-- `danger-full-access` — unrestricted (use with caution)
+- `read-only` — Codex can only read files (Recommended for review/diagnosis/research)
+- `write` — Codex can modify files (for implementation/fix tasks)
 
 ### 2. Get the prompt
 
@@ -42,28 +41,24 @@ Before executing, gather and embed any context Codex will need:
 
 The prompt Codex receives should be **self-contained** — it should make sense to someone who can only read the prompt text and the project source code, with no other context.
 
-### 4. Execute
+### 4. Delegate to Codex
 
-Run via Bash:
+Use the Agent tool to hand the task to Codex:
 
-```
-codex exec -m gpt-5.4 -c model_reasoning_effort="<level>" -s <sandbox> --ephemeral "<prompt>"
-```
+- Set `subagent_type` to `"codex:codex-rescue"`
+- Pass the assembled self-contained prompt as the agent prompt
+- If the user chose non-default effort, append `--effort <level>` as a CLI flag (not in the prompt text — rescue passes it through to the companion script's argument parser)
+- If the user chose `write` sandbox mode, the rescue agent adds `--write` by default — no action needed
+- If the user chose `read-only`, clearly state the read-only intent in the prompt (e.g., "this is a read-only task, no edits") so rescue omits `--write`
+- For complex or long-running tasks, set `run_in_background: true`
 
-Key flags:
+Do NOT shell out to `codex exec` directly.
 
-- `-m` sets the model
-- `-s` sets sandbox policy
-- `--ephemeral` prevents session persistence to disk
-- The prompt should be shell-escaped properly
+### 5. Present results
 
-### 5. Interpret results
+After rescue returns:
 
-Use the `Agent` tool to analyze the Codex output in context. The subagent should:
-
-- Read the Codex output and any files it referenced or modified
-- Compare Codex's suggestions against the actual codebase
-- Summarize findings: what Codex found, whether its suggestions are valid, and any caveats
-- If Codex proposed code changes, evaluate correctness and highlight anything questionable
-
-This gives the user a synthesized view rather than raw output.
+- Summarize what Codex found or did
+- If Codex proposed code changes, list modified files and evaluate correctness
+- If Codex flagged issues, present them clearly
+- If rescue returned empty or failed, inform the user and offer to retry
