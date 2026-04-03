@@ -215,4 +215,4 @@ After all issues have been triaged, read the `pr` field from the JSON file and o
 **Final findings in JSON:** {count of findings array}
 **JSON file:** {json_path}
 
-Run `/c:post-pr-comments {pr}` to review and post these as GitHub PR comments.
+Run `/gs:gh-tools:post-comments {pr}` to review and post these as GitHub PR comments.
