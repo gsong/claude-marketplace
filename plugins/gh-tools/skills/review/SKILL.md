@@ -7,37 +7,81 @@ description: Use when the user wants a comprehensive code review for a GitHub pu
 
 Perform a comprehensive code review for PR #$ARGUMENTS
 
-**All output goes to `ai-swap/pr-review-$ARGUMENTS/` - never post comments to GitHub directly.**
+**All output goes to `ai-swap/pr-review-$ARGUMENTS/` — never post comments to GitHub directly.**
 
 ## Phase 1: Setup
 
 1. Checkout the PR branch: `gh pr checkout $ARGUMENTS`
-2. Get PR metadata: `gh pr view $ARGUMENTS --json title,body,files,additions,deletions`
+2. Get PR metadata: `gh pr view $ARGUMENTS --json title,body,files,additions,deletions,headRefOid`
+3. Get repo name: `gh repo view --json nameWithOwner --jq .nameWithOwner`
+4. Get PR diff: `gh pr diff $ARGUMENTS`
+5. Store all of the above — you will pass metadata to review agents and everything to the synthesis agent.
 
-## Phase 2: Initial Reviews (parallel)
+## Phase 2: Reviews (parallel)
 
-Launch these two agents in parallel. **Agents return findings only - do not write to files.**
+Launch these two agents **in a single message** so they run in parallel.
 
-1. **superpowers:code-reviewer agent** (Task tool)
-   - Prompt: "Review PR #$ARGUMENTS. Return your findings as structured output. Do not write to any files. Do not post comments to GitHub."
+Both agents receive this preamble at the top of their prompt:
 
-2. **/code-review:code-review skill** (Skill tool)
-   - Run: `/code-review:code-review $ARGUMENTS`
+> **CRITICAL: Do NOT post comments, reviews, or any content to the GitHub PR. Do NOT use `gh pr comment`, `gh api` to create reviews, or any other mechanism to write to the PR. Do NOT write to any files. Your ONLY job is to analyze the code and return your findings as text output.**
 
-Wait for both to complete before proceeding.
+### Agent 1: superpowers:code-reviewer (Agent tool)
 
-## Phase 3: Synthesis
+- `subagent_type`: `superpowers:code-reviewer`
+- Prompt must include:
+  - The no-posting preamble above
+  - PR metadata (title, body, file list with additions/deletions)
+  - "Review PR #$ARGUMENTS. Focus on: architecture, design patterns, maintainability, and testing philosophy. Return your findings as structured text. For each finding include: file path, line number(s), severity (must-fix / should-fix / nit), and description."
 
-**You (the orchestrator) write the final report.** Do not delegate this step.
+### Agent 2: feature-dev:code-reviewer (Agent tool)
 
-1. Read the findings returned by both agents
-2. Deduplicate issues (same issue from multiple agents = one item)
-3. Categorize by severity and actionability
-4. Write the consolidated report to `ai-swap/pr-review-$ARGUMENTS/review.md`
+- `subagent_type`: `feature-dev:code-reviewer`
+- Note: this agent type lacks Bash access — it physically cannot run `gh` commands or post to GitHub.
+- Prompt must include:
+  - The no-posting preamble above
+  - PR metadata (title, body, file list with additions/deletions)
+  - "Review PR #$ARGUMENTS. The PR branch is already checked out — read the local files directly. Focus on: bugs, logic errors, security vulnerabilities, code quality, and adherence to project conventions. Return your findings as structured text. For each finding include: file path, line number(s), severity (must-fix / should-fix / nit), confidence score (0-100), and description."
 
-## Output Format
+Wait for both agents to complete before proceeding.
 
-The final report must contain:
+## Phase 3: Synthesis (single agent)
+
+Launch one agent (Agent tool) to write the final report and structured JSON. Pass it everything it needs in the prompt — this agent starts with a clean context.
+
+- `subagent_type`: `general-purpose`
+
+### Synthesis agent prompt
+
+Include ALL of the following in the agent's prompt:
+
+1. A synthesis-specific preamble: **"CRITICAL: Do NOT post comments, reviews, or any content to the GitHub PR. Do NOT use `gh pr comment`, `gh api` to create reviews, or any other mechanism to write to the PR. Do NOT run any `gh` commands. You MUST write output files under `ai-swap/` as instructed below — that is your primary job."**
+2. PR number: $ARGUMENTS
+3. Head SHA, repo name, and full PR diff (from Phase 1)
+4. Full text output from Agent 1 (superpowers:code-reviewer findings)
+5. Full text output from Agent 2 (feature-dev:code-reviewer findings)
+6. The review focus areas (below)
+7. The output format specs (below)
+8. The hard gate (below)
+
+#### Review focus areas
+
+- User-facing behavior correctness
+- Maintainability
+- Testing philosophy (minimize mocks, test real implementations)
+- Test quality and value:
+  - Flag tests that don't assert meaningful behavior (e.g., testing trivial getters/setters, re-testing framework behavior)
+  - Flag tests that duplicate coverage already provided by other tests in the codebase — check for existing integration tests that already cover the path
+  - Prefer integration tests that verify overall behavior over unit tests, unless the unit has complex standalone logic worth isolating
+  - Tests that only exist to bump coverage without catching real bugs should be flagged for removal
+
+Skip praise and lengthy analysis — actionable items only.
+
+#### Instructions for the synthesis agent
+
+1. **Filter and organize only.** Do not introduce new findings — your job is to deduplicate, categorize, and map the agents' findings. Use the review focus areas above as a lens for prioritization, not as a prompt for new analysis.
+2. **Deduplicate:** Merge findings that describe the same issue from both agents into one item. Keep the higher severity.
+3. **Categorize** by severity and actionability.
+4. **Write `ai-swap/pr-review-$ARGUMENTS/review.md`** using this template:
 
 ```markdown
 # PR #$ARGUMENTS Review
@@ -56,28 +100,24 @@ The final report must contain:
 
 ### superpowers:code-reviewer
 
-<!-- Summary of findings -->
+<!-- Summary of findings from Agent 1 -->
 
-### /code-review:code-review
+### feature-dev:code-reviewer
 
-<!-- Summary of findings -->
+<!-- Summary of findings from Agent 2 -->
 ```
 
-## Phase 4: Structured JSON Output
+4. **Use the PR metadata provided in the prompt** (head SHA, repo name, and diff — all fetched by the orchestrator in Phase 1). Do NOT run any `gh` commands.
 
-After writing the markdown report, also produce a machine-readable JSON file for `/gs:gh-tools:post-comments`.
-
-1. Get the current PR head SHA: `gh pr view $ARGUMENTS --json headRefOid --jq .headRefOid`
-2. Get the repo in `owner/repo` format: `gh repo view --json nameWithOwner --jq .nameWithOwner`
-3. Get the PR diff: `gh pr diff $ARGUMENTS`
-4. For each finding across **all** sections of the markdown report — include anything that has not been actively disproven. Only exclude findings that are confirmed false positives or duplicates of another included finding. Do not exclude findings just because they scored below a threshold or were categorized as low-severity — if the issue is real, include it:
+5. **Map findings to diff positions.** For each finding across all sections of the markdown report — include anything that has not been actively disproven. Only exclude findings that are confirmed false positives or duplicates of another included finding. Do not exclude findings just because they scored below a threshold or were categorized as low-severity — if the issue is real, include it:
    - Identify the `path` (file path relative to repo root)
    - Identify the `line` (end line in the new version of the file) and optional `start_line` (for multi-line ranges)
    - Verify both `line` and `start_line` fall within a diff hunk for that file — if not, skip the finding and note it was unmappable
    - Set `severity` to `must-fix`, `should-fix`, or `nit` based on the finding's categorization
    - Set `side` to `LEFT` only if the comment targets a deleted line; otherwise omit (defaults to `RIGHT`)
    - Validate `body` is under 65536 characters
-5. Write the JSON to `ai-swap/pr-review-$ARGUMENTS/findings.json`:
+
+6. **Write `ai-swap/pr-review-$ARGUMENTS/findings.json`:**
 
 ```json
 {
@@ -96,18 +136,21 @@ After writing the markdown report, also produce a machine-readable JSON file for
 }
 ```
 
-6. Report how many findings were mapped to diff positions and how many were skipped.
-7. Remind the user: "Run `/gs:gh-tools:post-comments $ARGUMENTS` to review and post these as GitHub PR comments."
+7. **Report** how many findings were mapped to diff positions and how many were skipped.
 
-## Review Focus
+#### Hard gate
 
-- User-facing behavior correctness
-- Maintainability
-- Testing philosophy (minimize mocks, test real implementations)
-- Test quality and value:
-  - Flag tests that don't assert meaningful behavior (e.g., testing trivial getters/setters, re-testing framework behavior)
-  - Flag tests that duplicate coverage already provided by other tests in the codebase — check for existing integration tests that already cover the path
-  - Prefer integration tests that verify overall behavior over unit tests, unless the unit has complex standalone logic worth isolating
-  - Tests that only exist to bump coverage without catching real bugs should be flagged for removal
+> **You MUST write BOTH `review.md` AND `findings.json` before completing. After writing each file, confirm it was written by reading it back with the Read tool. Do not return until both files exist and are valid.**
 
-Skip praise and lengthy analysis - actionable items only.
+Wait for the synthesis agent to complete before proceeding.
+
+## Phase 4: Verification
+
+After the synthesis agent completes, the orchestrator (you) verifies the output:
+
+1. Check that `ai-swap/pr-review-$ARGUMENTS/review.md` exists: `ls ai-swap/pr-review-$ARGUMENTS/review.md`
+2. Check that `ai-swap/pr-review-$ARGUMENTS/findings.json` exists: `ls ai-swap/pr-review-$ARGUMENTS/findings.json`
+3. If either file is missing: report the failure to the user. Show what the synthesis agent returned so the user can debug.
+4. If both files exist:
+   - Show the synthesis agent's summary (finding counts, mapped vs skipped)
+   - Remind the user: "Run `/gs:gh-tools:post-comments $ARGUMENTS` to review and post these as GitHub PR comments."
