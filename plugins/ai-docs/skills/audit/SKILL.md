@@ -30,7 +30,7 @@ Check these locations in order. Use the **first match**:
 
 If more than one exists, emit a warning: "Multiple docs directories found: [list]. Using [chosen]. Consider consolidating to a single location."
 
-If none exist, output: "No docs-ai directory found. Run `/ai-docs:docs-ai-init` to bootstrap documentation."
+If none exist, output: "No docs-ai directory found. Run `/gs:ai-docs:init` to bootstrap documentation."
 
 #### 2. Spawn Analyst Agent
 

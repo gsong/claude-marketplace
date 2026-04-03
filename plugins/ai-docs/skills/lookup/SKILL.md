@@ -28,7 +28,7 @@ Check these locations in order. Use the **first match**:
 
 If more than one exists, emit a warning: "Multiple docs directories found: [list]. Using [chosen]. Consider consolidating to a single location."
 
-If none exist, output: "No docs-ai directory found. Run `/ai-docs:docs-ai-init` to bootstrap documentation."
+If none exist, output: "No docs-ai directory found. Run `/gs:ai-docs:init` to bootstrap documentation."
 
 ### 2. Read README.md
 
@@ -64,7 +64,7 @@ If documentation doesn't fully answer the question, use Grep/Glob to find releva
 
 **See Also**: [Related doc sections for additional context]
 
-**Staleness**: [Only if detected — "⚠ [doc] may be outdated (Key Paths changed since last doc update). Consider running /ai-docs:docs-ai-check for a full freshness report."]
+**Staleness**: [Only if detected — "⚠ [doc] may be outdated (Key Paths changed since last doc update). Consider running /gs:ai-docs:check for a full freshness report."]
 ```
 
 ### 7. Not-Found Feedback
@@ -73,7 +73,7 @@ If no documentation covers the topic:
 
 ```
 **Not Found**: No documentation covers [topic].
-Consider running `/ai-docs:docs-ai-update "added [topic]"` to create documentation.
+Consider running `/gs:ai-docs:update "added [topic]"` to create documentation.
 ```
 
 ## When NOT to Use

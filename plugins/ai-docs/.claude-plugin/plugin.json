@@ -1,7 +1,7 @@
 {
   "name": "ai-docs",
   "description": "Full lifecycle AI documentation for Claude Code projects: bootstrap, lookup, update, check, and audit",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "author": {
     "name": "George Song"
   },

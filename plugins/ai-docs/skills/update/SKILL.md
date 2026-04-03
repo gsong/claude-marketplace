@@ -11,7 +11,7 @@ Targeted documentation updates after code changes. Analyzes what changed, identi
 
 ### 1. Understand the Change
 
-**If argument provided** (e.g., `/ai-docs:docs-ai-update "added Redis caching layer"`):
+**If argument provided** (e.g., `/gs:ai-docs:update "added Redis caching layer"`):
 Use the argument as the change description.
 
 **If no argument provided:**
@@ -44,7 +44,7 @@ Check these locations in order. Use the **first match**:
 
 If more than one exists, emit a warning: "Multiple docs directories found: [list]. Using [chosen]. Consider consolidating to a single location."
 
-If none exist, output: "No docs-ai directory found. Run `/ai-docs:docs-ai-init` to bootstrap documentation."
+If none exist, output: "No docs-ai directory found. Run `/gs:ai-docs:init` to bootstrap documentation."
 
 ### 3. Identify Affected Docs
 

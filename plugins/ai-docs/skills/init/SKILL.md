@@ -102,7 +102,7 @@ Show:
 
 1. **Files created**: List with line counts
 2. **Stubs needing attention**: Files/sections with `<!-- NEEDS CONTENT` markers, listed explicitly
-3. **Next steps**: Suggest filling stubs manually or running `/ai-docs:docs-ai-update` after making related code changes
+3. **Next steps**: Suggest filling stubs manually or running `/gs:ai-docs:update` after making related code changes
 
 ## Execution Notes
 
