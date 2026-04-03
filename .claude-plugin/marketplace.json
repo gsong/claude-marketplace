@@ -26,7 +26,7 @@
     {
       "name": "codex-tools",
       "source": "./plugins/codex-tools",
-      "description": "OpenAI Codex CLI integration for parallel PR reviews and headless task delegation",
+      "description": "OpenAI Codex CLI integration for parallel PR reviews and task delegation via codex:rescue runtime",
       "author": { "name": "George Song" },
       "category": "development",
       "keywords": ["codex", "openai", "review", "delegation"]
