@@ -21,7 +21,7 @@ Check these locations in order. Use the **first match**:
 
 If more than one exists, emit a warning: "Multiple docs directories found: [list]. Using [chosen]. Consider consolidating to a single location."
 
-If none exist, output: "No docs-ai directory found. Run `/ai-docs:docs-ai-init` to bootstrap documentation."
+If none exist, output: "No docs-ai directory found. Run `/gs:ai-docs:init` to bootstrap documentation."
 
 #### 2. Read README.md
 
@@ -122,8 +122,8 @@ Collect all checker results. Output in this format:
 
 ### Recommended Actions
 
-- Run `/ai-docs:docs-ai-update "[description]"` to fix [specific doc]
-- Run `/ai-docs:docs-ai-audit` for comprehensive review ([N] docs need attention)
+- Run `/gs:ai-docs:update "[description]"` to fix [specific doc]
+- Run `/gs:ai-docs:audit` for comprehensive review ([N] docs need attention)
 ```
 
 ## Critical Rules
