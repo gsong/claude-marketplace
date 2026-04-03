@@ -7,12 +7,12 @@ description: Use when the user wants to post code-level review comments to a Git
 
 Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 
-**Prerequisite:** Run `/c:pr-review $ARGUMENTS` first to generate findings.
+**Prerequisite:** Run `/gs:gh-tools:review $ARGUMENTS` first to generate findings.
 
 ## Step 1: Load Findings
 
 1. Read `ai-swap/pr-review-$ARGUMENTS/findings.json`
-   - If the file doesn't exist, tell the user: "No findings file found. Run `/c:pr-review $ARGUMENTS` first." and stop.
+   - If the file doesn't exist, tell the user: "No findings file found. Run `/gs:gh-tools:review $ARGUMENTS` first." and stop.
 2. Parse the JSON and report: "{N} findings loaded for PR #{pr} in {repo}"
 
 ## Step 2: Staleness Check

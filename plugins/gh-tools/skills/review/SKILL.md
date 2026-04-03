@@ -21,25 +21,16 @@ Launch these two agents in parallel. **Agents return findings only - do not writ
 1. **superpowers:code-reviewer agent** (Task tool)
    - Prompt: "Review PR #$ARGUMENTS. Return your findings as structured output. Do not write to any files. Do not post comments to GitHub."
 
-2. **Built-in /review skill** (Skill tool)
-   - Run: `/review $ARGUMENTS`
+2. **/code-review:code-review skill** (Skill tool)
+   - Run: `/code-review:code-review $ARGUMENTS`
 
 Wait for both to complete before proceeding.
 
-## Phase 3: Final Review (serial)
-
-After Phase 2 completes, run:
-
-- **/code-review:code-review skill** (Skill tool)
-  - Run: `/code-review:code-review $ARGUMENTS`
-
-This must run after the initial reviews complete.
-
-## Phase 4: Synthesis
+## Phase 3: Synthesis
 
 **You (the orchestrator) write the final report.** Do not delegate this step.
 
-1. Read the findings returned by all three agents
+1. Read the findings returned by both agents
 2. Deduplicate issues (same issue from multiple agents = one item)
 3. Categorize by severity and actionability
 4. Write the consolidated report to `ai-swap/pr-review-$ARGUMENTS/review.md`
@@ -67,18 +58,14 @@ The final report must contain:
 
 <!-- Summary of findings -->
 
-### Built-in /review
-
-<!-- Summary of findings -->
-
 ### /code-review:code-review
 
 <!-- Summary of findings -->
 ```
 
-## Phase 5: Structured JSON Output
+## Phase 4: Structured JSON Output
 
-After writing the markdown report, also produce a machine-readable JSON file for `/c:post-pr-comments`.
+After writing the markdown report, also produce a machine-readable JSON file for `/gs:gh-tools:post-comments`.
 
 1. Get the current PR head SHA: `gh pr view $ARGUMENTS --json headRefOid --jq .headRefOid`
 2. Get the repo in `owner/repo` format: `gh repo view --json nameWithOwner --jq .nameWithOwner`
@@ -94,7 +81,7 @@ After writing the markdown report, also produce a machine-readable JSON file for
 
 ```json
 {
-  "pr": 311,
+  "pr": $ARGUMENTS,
   "repo": "owner/repo",
   "head_sha": "<commit SHA>",
   "findings": [
@@ -110,7 +97,7 @@ After writing the markdown report, also produce a machine-readable JSON file for
 ```
 
 6. Report how many findings were mapped to diff positions and how many were skipped.
-7. Remind the user: "Run `/c:post-pr-comments $ARGUMENTS` to review and post these as GitHub PR comments."
+7. Remind the user: "Run `/gs:gh-tools:post-comments $ARGUMENTS` to review and post these as GitHub PR comments."
 
 ## Review Focus
 
