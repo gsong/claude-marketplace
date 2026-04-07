@@ -2,7 +2,6 @@
 name: gs:utilities:date
 description: Use this skill when you need to calculate dates or datetimes based on natural language descriptions. Examples:\n\n<example>\nContext: User needs to know what date it was 7 days ago for a git log command.\nuser: "Show me commits from last week"\nassistant: "I need to calculate the date from 7 days ago. Let me use the /gs:utilities:date skill."\n<Skill tool call: "/gs:utilities:date">\n</example>\n\n<example>\nContext: User is writing code that needs a timestamp from 3 hours ago.\nuser: "I need to filter logs from the last 3 hours"\nassistant: "I'll use the /gs:utilities:date skill to get the timestamp from 3 hours ago."\n<Skill tool call: "/gs:utilities:date">\n</example>\n\n<example>\nContext: User mentions a relative date in their request.\nuser: "Create a report for last month's data"\nassistant: "I need to determine the date range for last month. Let me use the /gs:utilities:date skill."\n<Skill tool call: "/gs:utilities:date">\n</example>\n\n<example>\nContext: Proactively calculating dates when scheduling or planning.\nuser: "Schedule this task for next Monday"\nassistant: "I'll use the /gs:utilities:date skill to determine next Monday's date."\n<Skill tool call: "/gs:utilities:date">\n</example>
 tools: Bash, Read, Glob, Grep
-model: claude-haiku-4-5
 ---
 
 Calculate the requested date or datetime using BSD `date` commands (macOS). Return only the calculated value. If a request is ambiguous (e.g., "last week" could mean 7 days ago or the previous calendar week), ask for clarification.
