@@ -8,7 +8,8 @@ description: Use when the user asks to upgrade, update, or bump pnpm project dep
 1. **Check for outdated dependencies**: `pnpm outdated -r` — present the full output to the user
 2. **Research significant updates**: For packages with major/minor version changes, research changelogs for new features, improvements, and breaking changes that could affect your specific codebase. Present findings to the user before proceeding
 3. **Update dependencies**: `pnpm up -r --latest` (recursive update with latest versions)
-4. **Run tests**: Detect the test command from `package.json` scripts (e.g., `test`, `check`, `ci`) and run it
+4. **Install dependencies**: `pnpm i`
+5. **Run tests**: Detect the test command from `package.json` scripts (e.g., `test`, `check`, `ci`) and run it
    - **CRITICAL**: If any tests fail or errors occur, **STOP IMMEDIATELY** and fix issues before proceeding
 
 ## Important Notes
