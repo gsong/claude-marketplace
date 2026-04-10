@@ -13,7 +13,7 @@ Investigate and triage code review findings for PR #$ARGUMENTS.
 
 1. Glob for `findings-*.json` in the directory (this matches `findings-gh-review.json`, `findings-codex.json`, etc. but NOT `findings.json` which is triage's own output).
 2. If no `findings-*.json` files are found, stop with: "No source findings found. Run `/gs:gh-tools:review $ARGUMENTS` and/or `/gs:codex-tools:review $ARGUMENTS` first."
-3. If a previous `findings.json` exists in the directory, ignore it — triage always starts fresh from source files.
+3. If a previous `findings.json` exists in the directory, ask the user (via AskUserQuestion): "Previous triage output found. Start fresh from source findings, or abort so you can use the existing curated output?" Options: "Start fresh" (rebuild from source files), "Abort" (stop triage, keep existing findings.json). If the user chooses to start fresh, proceed normally. If abort, stop.
 
 ## Phase 1: Merge Structured Findings
 
@@ -22,7 +22,7 @@ Execute directly — no subagent needed.
 1. **Load and validate** each `findings-*.json` file:
 
    ```bash
-   uv run plugins/gh-tools/scripts/validate-findings.py ai-swap/pr-review-$ARGUMENTS/<filename>
+   uv run "$(find ~/.claude/plugins/cache -name validate-findings.py -path '*/gh-tools/*' | sort -V | tail -1)" ai-swap/pr-review-$ARGUMENTS/<filename>
    ```
 
    If validation fails for a file, use AskUserQuestion to warn the user and ask whether to skip that file or abort entirely.
@@ -77,7 +77,7 @@ You are an investigation agent. Deeply investigate this code review finding and 
 
 5. **Check if already addressed:** Compare the current code against the finding description. Has it been fixed since the review was generated?
 
-6. **Return your findings as JSON** (ONLY the JSON object, no other text):
+6. **Return your findings as JSON** (ONLY the JSON object, no other text). Do not wrap in markdown code fences:
 
 ```json
 {
@@ -115,11 +115,12 @@ For each finding in sorted order:
 1. **Present the finding.** Output to the user:
 
    ```
-   ## Finding {n}/{total}: {title or first 80 chars of body}
+   ## Finding {n}/{total}: {title or first 80 chars of body}   {if unmappable: [outside diff]}
 
    **File:** {path}:{start_line}-{line} (or {path}:{line})
    **Severity:** {severity}
    **Flagged by:** {comma-separated agent_labels from source_detail}
+   {if unmappable: **Note:** This finding is outside the PR diff and will be posted as a general comment.}
 
    **Body:** {body}
    **Recommendation:** {recommendation, or omit if null}
@@ -168,7 +169,7 @@ For each finding in sorted order:
 2. **Validate the output:**
 
    ```bash
-   uv run plugins/gh-tools/scripts/validate-findings.py ai-swap/pr-review-$ARGUMENTS/findings.json
+   uv run "$(find ~/.claude/plugins/cache -name validate-findings.py -path '*/gh-tools/*' | sort -V | tail -1)" ai-swap/pr-review-$ARGUMENTS/findings.json
    ```
 
    If validation fails, fix the errors and re-validate.
