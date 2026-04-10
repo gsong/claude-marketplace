@@ -11,9 +11,12 @@ Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 
 ## Step 1: Load Findings
 
-1. Read `ai-swap/pr-review-$ARGUMENTS/findings.json`
-   - If the file doesn't exist, tell the user: "No findings file found. Run `/gs:gh-tools:review $ARGUMENTS` first." and stop.
-2. Parse the JSON and report: "{N} findings loaded for PR #{pr} in {repo}"
+1. Check for `ai-swap/pr-review-$ARGUMENTS/findings.json`
+   - If it exists: read and parse it. Report: "{N} findings loaded for PR #{pr} in {repo}"
+   - If it does NOT exist:
+     - Check for `findings-*.json` files in the directory
+     - If `findings-*.json` files exist: tell the user "Source findings exist but haven't been triaged. Run `/gs:gh-tools:triage $ARGUMENTS` first." and stop.
+     - If no `findings-*.json` files exist: tell the user "No findings found. Run `/gs:gh-tools:review $ARGUMENTS` first." and stop.
 
 ## Step 2: Staleness Check
 
@@ -29,9 +32,36 @@ Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 2. For each finding, verify:
    - The `path` exists in the diff
    - The `line` (and `start_line` if present) falls within a diff hunk
-3. Report validation results:
+3. If any findings are invalid, **append** them to `ai-swap/pr-review-$ARGUMENTS/general-comments.md`:
+   - Before appending, read the existing file (if present) and check for entries with the same `path` + `line` to avoid duplicates. Skip any finding that already has a matching entry.
+   - Each bullet includes a source tag if `source_detail` is present: `[source: {agent_label from first source_detail entry}]`
+   - If the file already exists (from the review skill), append new findings under existing severity headers or add new severity headers as needed.
+   - If the file doesn't exist, create it with the full format:
+
+   ```markdown
+   ## Findings Outside the Diff
+
+   The following review findings reference code that isn't part of this PR's diff, so they couldn't be posted as inline comments.
+
+   ### Must-fix
+
+   - [source: architecture & design] **`{path}:{line}`** — {body}...
+
+   ### Should-fix
+
+   - [source: Correctness & Safety] **`{path}:{start_line}-{line}`** — {body}...
+
+   ### Nit
+
+   - **`{path}:{line}`** — {body}...
+   ```
+
+   Rules: each finding is a bullet with optional `[source: {label}]` prefix, then ``**`{path}:{line}`**`` (or `{path}:{start_line}-{line}` for ranges) followed by `— {body}`. Group by severity (must-fix → should-fix → nit). Omit empty groups.
+
+4. Report validation results:
    - Valid findings: list count
-   - Invalid findings: list with reason (file not in diff, line not in hunk) — these will be skipped
+   - Invalid findings: list with reason (file not in diff, line not in hunk) — these will be skipped for inline posting
+   - If any were written to `general-comments.md`: "{N} findings written to `general-comments.md`"
 
 ## Step 4: Present for Approval
 
@@ -94,4 +124,5 @@ After the user selects findings to post, ask (via AskUserQuestion):
 
 - Show count of posted comments
 - Link to the PR: `https://github.com/{repo}/pull/$ARGUMENTS`
+- If `ai-swap/pr-review-$ARGUMENTS/general-comments.md` exists: "**{N} findings couldn't be posted inline** and were saved to `ai-swap/pr-review-$ARGUMENTS/general-comments.md`. You can copy-paste this file's contents as a general PR comment."
 - Remind: "Review is pending — go to the PR on GitHub to submit it with your verdict (Comment, Approve, or Request Changes)."
