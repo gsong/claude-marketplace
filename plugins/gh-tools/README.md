@@ -4,12 +4,12 @@ GitHub CLI workflow skills for Claude Code.
 
 ## Skills
 
-| Skill                         | Trigger                                        | Description                                       |
-| ----------------------------- | ---------------------------------------------- | ------------------------------------------------- |
-| `gs:gh-tools:review`          | "review PR", "code review"                     | Comprehensive PR code review with parallel agents |
-| `gs:gh-tools:post-comments`   | "post review comments", "post PR comments"     | Post review findings as GitHub PR comments        |
-| `gs:gh-tools:triage`          | "triage review", "investigate review findings" | Investigate and triage code review findings       |
-| `gs:gh-tools:project-manager` | "project board", "GitHub project"              | Create agents for GitHub project board management |
+| Skill                         | Trigger                                        | Description                                                     |
+| ----------------------------- | ---------------------------------------------- | --------------------------------------------------------------- |
+| `gs:gh-tools:review`          | "review PR", "code review"                     | Comprehensive PR code review with parallel agents               |
+| `gs:gh-tools:triage`          | "triage review", "investigate review findings" | Merge, investigate, and curate findings from all review sources |
+| `gs:gh-tools:post-comments`   | "post review comments", "post PR comments"     | Post curated findings as GitHub PR comments                     |
+| `gs:gh-tools:project-manager` | "project board", "GitHub project"              | Create agents for GitHub project board management               |
 
 ## Prerequisites
 
@@ -28,6 +28,9 @@ Install them:
 /plugin install superpowers@claude-plugins-official
 /plugin install feature-dev@claude-plugins-official
 ```
+
+The review pipeline uses a shared findings schema validated by
+`plugins/gh-tools/scripts/validate-findings.py` (requires `uv`).
 
 ## Installation
 
