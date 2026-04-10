@@ -27,9 +27,27 @@ Execute directly — no subagent needed.
 
    If validation fails for a file, use AskUserQuestion to warn the user and ask whether to skip that file or abort entirely.
 
-2. **Cross-source consistency check:** verify all loaded files agree on `pr`, `repo`, and `head_sha`. If any values differ, use AskUserQuestion to warn the user with the mismatched values and ask whether to:
-   - Proceed using the most recent `head_sha`
-   - Abort
+2. **Cross-source consistency check:** verify all loaded files agree on `pr`, `repo`, and `head_sha`.
+
+   If `pr` or `repo` differ, stop with an error showing the mismatched values.
+
+   If `head_sha` values differ, **stop with an actionable error** (do NOT offer to proceed):
+
+   ```
+   ## SHA Mismatch — Cannot Merge Findings
+
+   Source findings were generated against different commits:
+
+   | Source | head_sha | Age |
+   |--------|----------|-----|
+   | findings-codex.json | abc1234... | current |
+   | findings-gh-review.json | def5678... | N commits behind |
+
+   Re-run the stale review(s) before triaging:
+   - `/gs:codex-tools:review $ARGUMENTS`  ← stale
+   ```
+
+   Compute "Age" via `git log --oneline {stale_sha}..{newest_sha} | wc -l`. Label the newest SHA as "current". List re-run commands only for stale sources.
 
 3. **Merge** all findings into a single working list. Preserve each finding's `source_detail` array as-is.
 
@@ -159,7 +177,7 @@ For each finding in sorted order:
      "source": "triage",
      "pr": $ARGUMENTS,
      "repo": "<repo from source files>",
-     "head_sha": "<head_sha — most recent if sources differed>",
+     "head_sha": "<head_sha from source files (guaranteed consistent)>",
      "input_sources": ["<source IDs from each loaded file>"],
      "findings": [<kept and edited findings>]
    }
