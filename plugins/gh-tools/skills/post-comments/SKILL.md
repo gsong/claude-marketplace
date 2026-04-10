@@ -36,7 +36,7 @@ Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 3. **Separate** findings into two lists based on validation results:
    - **Inline-postable:** findings that pass position validation.
    - **General-comment:** findings that fail position validation. Re-validate all findings regardless of the `unmappable` flag — the PR may have been updated since the review was generated.
-4. **Regenerate** `ai-swap/pr-review-$ARGUMENTS/general-comments.md` from scratch using the general-comment list:
+4. If the general-comment list is non-empty, **write** `ai-swap/pr-review-$ARGUMENTS/general-comments.md` (overwriting any existing file):
 
    ```markdown
    ## Findings Outside the Diff

@@ -115,12 +115,13 @@ For each finding in sorted order:
 1. **Present the finding.** Output to the user:
 
    ```
-   ## Finding {n}/{total}: {title or first 80 chars of body}   {if unmappable: [outside diff]}
+   ## Finding {n}/{total}: {title or first 80 chars of body}
+   {if unmappable: [outside diff]}
 
    **File:** {path}:{start_line}-{line} (or {path}:{line})
    **Severity:** {severity}
    **Flagged by:** {comma-separated agent_labels from source_detail}
-   {if unmappable: **Note:** This finding is outside the PR diff and will be posted as a general comment.}
+   {if unmappable: **Note:** This finding is outside the PR diff and will be saved to `general-comments.md` instead of posted inline.}
 
    **Body:** {body}
    **Recommendation:** {recommendation, or omit if null}
