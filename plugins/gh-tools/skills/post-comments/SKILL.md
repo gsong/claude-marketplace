@@ -23,9 +23,34 @@ Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 
 1. Get current PR head: `gh pr view $ARGUMENTS --json headRefOid --jq .headRefOid`
 2. Compare with `head_sha` from the JSON
-3. If they differ:
-   - Warn: "The PR has been updated since the review (reviewed: `{head_sha}`, current: `{current_sha}`). Findings may reference stale line numbers."
-   - Ask the user (via AskUserQuestion) whether to proceed anyway or abort
+3. If they match, proceed to Step 3.
+4. If they differ, compute staleness context and present an interactive warning:
+
+   **Compute context:**
+   - Commit list: `git log --oneline {head_sha}..{current_sha}`
+   - Changed files: `git diff --name-status {head_sha}..{current_sha}`
+   - Cross-reference finding paths against changed files to count affected findings
+
+   **Present to user:**
+
+   ```
+   ## Stale Findings Detected
+
+   Findings were generated against `{head_sha}`, but the PR head is now `{current_sha}` ({N} commits ahead).
+
+   **Commits since review:**
+   - {sha1} {message1}
+   - {sha2} {message2}
+   ...
+
+   **Files changed since review:**
+   - {path} ({status: modified/added/deleted})
+   ...
+
+   **Findings that touch changed files:** {count} of {total}
+   ```
+
+   Then ask the user (via AskUserQuestion) whether to proceed anyway or abort. This is an interactive warning, not a hard failure — the user may judge that findings are still valid despite new commits (e.g., trivial changes to unrelated files).
 
 ## Step 3: Validate Positions
 
