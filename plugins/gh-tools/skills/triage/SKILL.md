@@ -15,6 +15,17 @@ Investigate and triage code review findings for PR #$ARGUMENTS.
 2. If no `findings-*.json` files are found, stop with: "No source findings found. Run `/gs:gh-tools:review $ARGUMENTS` and/or `/gs:codex-tools:review $ARGUMENTS` first."
 3. If a previous `findings.json` exists in the directory, ask the user (via AskUserQuestion): "Previous triage output found. Start fresh from source findings, or abort so you can use the existing curated output?" Options: "Start fresh" (rebuild from source files), "Abort" (stop triage, keep existing findings.json). If the user chooses to start fresh, proceed normally. If abort, stop.
 
+## Setup
+
+Locate the schema validator (used throughout this skill):
+
+```bash
+VALIDATOR="$(find ~/.claude/plugins/cache $(jq -r '.[].installLocation' ~/.claude/plugins/known_marketplaces.json 2>/dev/null) -name validate-findings.py -path '*/gh-tools/*' 2>/dev/null | sort -V | tail -1)"
+if [ -z "$VALIDATOR" ]; then echo "ERROR: gh-tools validator not found." >&2; exit 1; fi
+```
+
+Use `uv run "$VALIDATOR" <file>` for all validation commands below.
+
 ## Phase 1: Merge Structured Findings
 
 Execute directly — no subagent needed.
@@ -22,10 +33,12 @@ Execute directly — no subagent needed.
 1. **Load and validate** each `findings-*.json` file:
 
    ```bash
-   uv run "$(find ~/.claude/plugins/cache -name validate-findings.py -path '*/gh-tools/*' | sort -V | tail -1)" ai-swap/pr-review-$ARGUMENTS/<filename>
+   uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/<filename>
    ```
 
    If validation fails for a file, use AskUserQuestion to warn the user and ask whether to skip that file or abort entirely.
+
+   **After all validation/skip decisions:** if no source files remain, stop with: "All source files failed validation. Fix the source findings and retry." Do not proceed to merge or write `findings.json`.
 
 2. **Cross-source consistency check:** verify all loaded files agree on `pr`, `repo`, and `head_sha`.
 
@@ -97,16 +110,7 @@ You are an investigation agent. Deeply investigate this code review finding and 
 
 6. **Return your findings as JSON** (ONLY the JSON object, no other text). Do not wrap in markdown code fences:
 
-```json
-{
-  "verdict": "valid | false-positive | already-addressed | pre-existing | unclear",
-  "confidence": 0-100,
-  "evidence": "Key findings with code snippets, git blame output, test references",
-  "recommended_action": "keep | remove | reword",
-  "suggested_body": "Proposed revised comment body text, or null",
-  "suggested_severity": "must-fix | should-fix | nit, or null"
-}
-```
+{"verdict": "valid | false-positive | already-addressed | pre-existing | unclear", "confidence": 0-100, "evidence": "Key findings with code snippets, git blame output, test references", "recommended_action": "keep | remove | reword", "suggested_body": "Proposed revised comment body text, or null", "suggested_severity": "must-fix | should-fix | nit, or null"}
 
 **Action rules:**
 
@@ -188,7 +192,7 @@ For each finding in sorted order:
 2. **Validate the output:**
 
    ```bash
-   uv run "$(find ~/.claude/plugins/cache -name validate-findings.py -path '*/gh-tools/*' | sort -V | tail -1)" ai-swap/pr-review-$ARGUMENTS/findings.json
+   uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/findings.json
    ```
 
    If validation fails, fix the errors and re-validate.
