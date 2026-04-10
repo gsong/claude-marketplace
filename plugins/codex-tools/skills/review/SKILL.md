@@ -129,6 +129,59 @@ After all 3 agents return:
 2. **Deduplicate** — if two agents flag the same file + overlapping line range, merge into one finding. Keep the higher severity. Combine descriptions, noting which agent perspectives caught it.
 3. **Overall verdict** — `needs-attention` if any agent returns `needs-attention`; `approve` only if all three approve.
 4. **Sort** — by severity (critical → high → medium → low), then confidence descending.
+5. **Write structured findings JSON** — Write `ai-swap/pr-review-<number>/findings-codex.json`. Map fields from the Codex schema to the common findings schema:
+
+   | Codex field      | Common schema field            | Notes                                                                                                                      |
+   | ---------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+   | `file`           | `path`                         | Direct rename                                                                                                              |
+   | `line_start`     | `start_line`                   | Direct rename                                                                                                              |
+   | `line_end`       | `line`                         | Direct rename                                                                                                              |
+   | `severity`       | `severity` + `source_severity` | Normalize: `critical`/`high` → `must-fix`, `medium` → `should-fix`, `low` → `nit`. Preserve original in `source_severity`. |
+   | `confidence`     | `confidence`                   | Pass through                                                                                                               |
+   | `title`          | `title`                        | Pass through                                                                                                               |
+   | `body`           | `body`                         | Pass through                                                                                                               |
+   | `recommendation` | `recommendation`               | Pass through (keep separate, do NOT append to body)                                                                        |
+
+   Each finding's `source_detail` is an array with one entry:
+
+   ```json
+   "source_detail": [
+     {
+       "skill": "gs:codex-tools:review",
+       "agent": "codex-agent-a",
+       "agent_label": "Correctness & Safety"
+     }
+   ]
+   ```
+
+   Agent labels by role:
+   - Agent A → `"agent": "codex-agent-a"`, `"agent_label": "Correctness & Safety"`
+   - Agent B → `"agent": "codex-agent-b"`, `"agent_label": "Concurrency, State & Integration"`
+   - Agent C → `"agent": "codex-agent-c"`, `"agent_label": "Test & Specification Integrity"`
+
+   Full file format:
+
+   ```json
+   {
+     "source": "codex",
+     "pr": <number>,
+     "repo": "<owner/repo from gh pr view>",
+     "head_sha": "<head SHA from gh pr view>",
+     "findings": [...]
+   }
+   ```
+
+   **You MUST write this file even if zero findings** (use `"findings": []`).
+
+   No diff-position validation at this stage — Codex reviews the checked-out code, not the diff. Validation happens in post-comments.
+
+6. **Validate the JSON** — Run the schema validator:
+
+   ```bash
+   uv run "$(find ~/.claude/plugins/cache -name validate-findings.py -path '*/gh-tools/*' | sort -V | tail -1)" ai-swap/pr-review-<number>/findings-codex.json
+   ```
+
+   If validation fails, fix the errors and re-validate.
 
 ### Step 4: Output Results
 
@@ -171,7 +224,7 @@ using 3 parallel Codex adversarial reviews.
 
 **Markdown report:**
 
-Write the full report (all findings) to `ai-swap/pr-review-<number>/codex-review.md` using the Write tool. Include agent source for each finding.
+Write the full report (all findings) to `ai-swap/pr-review-<number>/reports/codex-review.md` using the Write tool. Include agent source for each finding.
 
 ## Notes
 
