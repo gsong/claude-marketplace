@@ -12,7 +12,8 @@ Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 ## Step 1: Load Findings
 
 1. Check for `ai-swap/pr-review-$ARGUMENTS/findings.json`
-   - If it exists: read and parse it. Report: "{N} findings loaded for PR #{pr} in {repo}"
+   - If it exists: validate it first with `uv run "$(find ~/.claude/plugins/cache -name validate-findings.py -path '*/gh-tools/*' | sort -V | tail -1)" ai-swap/pr-review-$ARGUMENTS/findings.json`. If validation fails, report the errors and stop.
+   - If valid: read and parse it. Report: "{N} findings loaded for PR #{pr} in {repo}"
    - If it does NOT exist:
      - Check for `findings-*.json` files in the directory
      - If `findings-*.json` files exist: tell the user "Source findings exist but haven't been triaged. Run `/gs:gh-tools:triage $ARGUMENTS` first." and stop.
@@ -32,11 +33,10 @@ Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 2. For each finding, verify:
    - The `path` exists in the diff
    - The `line` (and `start_line` if present) falls within a diff hunk
-3. If any findings are invalid, **append** them to `ai-swap/pr-review-$ARGUMENTS/general-comments.md`:
-   - Before appending, read the existing file (if present) and check for entries with the same `path` + `line` to avoid duplicates. Skip any finding that already has a matching entry.
-   - Each bullet includes a source tag if `source_detail` is present: `[source: {agent_label from first source_detail entry}]`
-   - If the file already exists (from the review skill), append new findings under existing severity headers or add new severity headers as needed.
-   - If the file doesn't exist, create it with the full format:
+3. **Separate** findings into two lists based on validation results:
+   - **Inline-postable:** findings that pass position validation.
+   - **General-comment:** findings that fail position validation. Re-validate all findings regardless of the `unmappable` flag — the PR may have been updated since the review was generated.
+4. **Regenerate** `ai-swap/pr-review-$ARGUMENTS/general-comments.md` from scratch using the general-comment list:
 
    ```markdown
    ## Findings Outside the Diff
@@ -56,16 +56,18 @@ Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
    - **`{path}:{line}`** — {body}...
    ```
 
-   Rules: each finding is a bullet with optional `[source: {label}]` prefix, then ``**`{path}:{line}`**`` (or `{path}:{start_line}-{line}` for ranges) followed by `— {body}`. Group by severity (must-fix → should-fix → nit). Omit empty groups.
+   Rules: each finding is a bullet with optional `[source: {agent_label from first source_detail entry}]` prefix, then ``**`{path}:{line}`**`` (or `{path}:{start_line}-{line}` for ranges) followed by `— {body}`. Group by severity (must-fix → should-fix → nit). Omit empty groups.
 
-4. Report validation results:
-   - Valid findings: list count
-   - Invalid findings: list with reason (file not in diff, line not in hunk) — these will be skipped for inline posting
-   - If any were written to `general-comments.md`: "{N} findings written to `general-comments.md`"
+5. If zero general-comment findings, delete any existing `general-comments.md`: `rm -f ai-swap/pr-review-$ARGUMENTS/general-comments.md`
+6. Report validation results:
+   - Inline-postable findings: count
+   - General-comment findings: count and list with reason (file not in diff, line not in hunk)
+   - If `general-comments.md` was written: "{N} findings written to `general-comments.md`"
+   - If `general-comments.md` was deleted (stale from previous run): note that it was cleaned up
 
 ## Step 4: Present for Approval
 
-Present findings grouped by severity (must-fix first, then should-fix, then nit).
+Present **inline-postable** findings grouped by severity (must-fix first, then should-fix, then nit). General-comment findings were already curated during triage and are handled by Step 3.
 
 For each finding, display:
 
