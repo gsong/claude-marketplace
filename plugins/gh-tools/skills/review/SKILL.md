@@ -61,7 +61,8 @@ Include ALL of the following in the agent's prompt:
 5. Full text output from Agent 2 (feature-dev:code-reviewer findings)
 6. The review focus areas (below)
 7. The output format specs (below)
-8. The hard gate (below)
+8. The validator step (below)
+9. The hard gate (below)
 
 #### Review focus areas
 
@@ -81,7 +82,7 @@ Skip praise and lengthy analysis — actionable items only.
 1. **Filter and organize only.** Do not introduce new findings — your job is to deduplicate, categorize, and map the agents' findings. Use the review focus areas above as a lens for prioritization, not as a prompt for new analysis.
 2. **Deduplicate:** Merge findings that describe the same issue from both agents into one item. Keep the higher severity.
 3. **Categorize** by severity and actionability.
-4. **Write `ai-swap/pr-review-$ARGUMENTS/review.md`** using this template:
+4. **Write `ai-swap/pr-review-$ARGUMENTS/reports/review.md`** using this template:
 
 ```markdown
 # PR #$ARGUMENTS Review
@@ -112,15 +113,16 @@ Skip praise and lengthy analysis — actionable items only.
 5. **Map findings to diff positions.** For each finding across all sections of the markdown report — include anything that has not been actively disproven. Only exclude findings that are confirmed false positives or duplicates of another included finding. Do not exclude findings just because they scored below a threshold or were categorized as low-severity — if the issue is real, include it:
    - Identify the `path` (file path relative to repo root)
    - Identify the `line` (end line in the new version of the file) and optional `start_line` (for multi-line ranges)
-   - Verify both `line` and `start_line` fall within a diff hunk for that file — if not, skip the finding and note it was unmappable
+   - Verify both `line` and `start_line` fall within a diff hunk for that file — if not, collect the finding as unmappable (keep its path, line, start_line, severity, and body) and exclude it from `findings-gh-review.json`
    - Set `severity` to `must-fix`, `should-fix`, or `nit` based on the finding's categorization
    - Set `side` to `LEFT` only if the comment targets a deleted line; otherwise omit (defaults to `RIGHT`)
    - Validate `body` is under 65536 characters
 
-6. **Write `ai-swap/pr-review-$ARGUMENTS/findings.json`:**
+6. **Write `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`:**
 
 ```json
 {
+  "source": "gh-review",
   "pr": $ARGUMENTS,
   "repo": "owner/repo",
   "head_sha": "<commit SHA>",
@@ -130,17 +132,77 @@ Skip praise and lengthy analysis — actionable items only.
       "line": 45,
       "start_line": 38,
       "body": "Comment text with **markdown** support",
-      "severity": "must-fix"
+      "severity": "must-fix",
+      "source_severity": "must-fix",
+      "confidence": 85,
+      "title": "Short title for the finding",
+      "recommendation": "Concrete fix suggestion",
+      "source_detail": [
+        {
+          "skill": "gs:gh-tools:review",
+          "agent": "superpowers:code-reviewer",
+          "agent_label": "architecture & design"
+        }
+      ]
     }
   ]
 }
 ```
 
-7. **Report** how many findings were mapped to diff positions and how many were skipped.
+`source_detail` is **always an array**, even for single-source findings. For findings both agents flagged, include both entries:
+
+```json
+"source_detail": [
+  {"skill": "gs:gh-tools:review", "agent": "superpowers:code-reviewer", "agent_label": "architecture & design"},
+  {"skill": "gs:gh-tools:review", "agent": "feature-dev:code-reviewer", "agent_label": "bugs & security"}
+]
+```
+
+The body should note when both agents flagged the same issue.
+
+`title` and `recommendation` are optional — include when the reviewer provided them.
+
+**You MUST write this file even if zero findings** (use `"findings": []`).
+
+7. **Write unmappable findings to `ai-swap/pr-review-$ARGUMENTS/general-comments.md`** if any exist. This file is a ready-to-paste GitHub PR comment. Format:
+
+```markdown
+## Findings Outside the Diff
+
+The following review findings reference code that isn't part of this PR's diff, so they couldn't be posted as inline comments.
+
+### Must-fix
+
+- **`src/auth/handler.ts:42`** — Session token not invalidated on logout...
+
+### Should-fix
+
+- **`src/utils/cache.ts:118-125`** — Cache TTL hardcoded...
+
+### Nit
+
+- **`src/types/index.ts:7`** — Unused type export...
+```
+
+Rules:
+
+- Each finding is a bullet: ``**`{path}:{line}`**`` (or `{path}:{start_line}-{line}` for multi-line ranges) followed by `— {body}`
+- Group by severity: must-fix → should-fix → nit. Omit empty groups.
+- Do NOT create this file if there are zero unmappable findings.
+
+8. **Report** how many findings were mapped to diff positions, how many were unmappable, and whether `general-comments.md` was written.
+
+9. **Run the schema validator** on the findings file:
+
+   ```bash
+   uv run plugins/gh-tools/scripts/validate-findings.py ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
+   ```
+
+   If validation fails, fix the errors in the JSON and re-validate before proceeding.
 
 #### Hard gate
 
-> **You MUST write BOTH `review.md` AND `findings.json` before completing. After writing each file, confirm it was written by reading it back with the Read tool. Do not return until both files exist and are valid.**
+> **You MUST write ALL of these before completing: `reports/review.md`, `findings-gh-review.json`, and (if unmappable findings exist) `general-comments.md`. After writing each file, confirm it was written by reading it back with the Read tool. Run the schema validator on `findings-gh-review.json` and confirm it passes. Do not return until all required files exist and are valid.**
 
 Wait for the synthesis agent to complete before proceeding.
 
@@ -148,9 +210,10 @@ Wait for the synthesis agent to complete before proceeding.
 
 After the synthesis agent completes, the orchestrator (you) verifies the output:
 
-1. Check that `ai-swap/pr-review-$ARGUMENTS/review.md` exists: `ls ai-swap/pr-review-$ARGUMENTS/review.md`
-2. Check that `ai-swap/pr-review-$ARGUMENTS/findings.json` exists: `ls ai-swap/pr-review-$ARGUMENTS/findings.json`
+1. Check that `ai-swap/pr-review-$ARGUMENTS/reports/review.md` exists: `ls ai-swap/pr-review-$ARGUMENTS/reports/review.md`
+2. Check that `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` exists: `ls ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`
 3. If either file is missing: report the failure to the user. Show what the synthesis agent returned so the user can debug.
 4. If both files exist:
-   - Show the synthesis agent's summary (finding counts, mapped vs skipped)
-   - Remind the user: "Run `/gs:gh-tools:post-comments $ARGUMENTS` to review and post these as GitHub PR comments."
+   - Show the synthesis agent's summary (finding counts, mapped vs unmappable)
+   - If `ai-swap/pr-review-$ARGUMENTS/general-comments.md` exists, note: "{N} findings were outside the diff and saved to `general-comments.md`."
+   - Remind the user: "Run `/gs:gh-tools:triage $ARGUMENTS` to investigate and curate findings before posting."
