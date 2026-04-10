@@ -1,13 +1,13 @@
 ---
 name: gs:gh-tools:post-comments
-description: Use when the user wants to post code-level review comments to a GitHub PR as a pending review, or when the user invokes /gs:gh-tools:post-comments. Requires running /gs:gh-tools:review first to generate findings.
+description: Use when the user wants to post code-level review comments to a GitHub PR as a pending review, or when the user invokes /gs:gh-tools:post-comments. Requires running /gs:gh-tools:triage first to curate findings.
 ---
 
 # Post PR Comments
 
 Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 
-**Prerequisite:** Run `/gs:gh-tools:review $ARGUMENTS` first to generate findings.
+**Prerequisite:** Run `/gs:gh-tools:triage $ARGUMENTS` first to curate findings.
 
 ## Step 1: Load Findings
 
