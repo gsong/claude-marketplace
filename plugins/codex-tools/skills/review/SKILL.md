@@ -175,10 +175,15 @@ After all 3 agents return:
 
    No diff-position validation at this stage — Codex reviews the checked-out code, not the diff. Validation happens in post-comments.
 
-6. **Validate the JSON** — Run the schema validator:
+6. **Validate the JSON** — Run the schema validator (requires gh-tools plugin):
 
    ```bash
-   uv run "$(find ~/.claude/plugins/cache -name validate-findings.py -path '*/gh-tools/*' | sort -V | tail -1)" ai-swap/pr-review-<number>/findings-codex.json
+   VALIDATOR="$(find ~/.claude/plugins/cache $(jq -r '.[].installLocation' ~/.claude/plugins/known_marketplaces.json 2>/dev/null) -name validate-findings.py -path '*/gh-tools/*' 2>/dev/null | sort -V | tail -1)"
+   if [ -z "$VALIDATOR" ]; then
+     echo "ERROR: gh-tools plugin not found. Install it to validate findings." >&2
+     exit 1
+   fi
+   uv run "$VALIDATOR" ai-swap/pr-review-<number>/findings-codex.json
    ```
 
    If validation fails, fix the errors and re-validate.
