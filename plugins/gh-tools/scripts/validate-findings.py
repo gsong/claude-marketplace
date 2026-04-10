@@ -39,7 +39,8 @@ FINDINGS_SCHEMA = {
                 "confidence": {"type": "integer", "minimum": 0, "maximum": 100},
                 "title": {"type": "string"},
                 "recommendation": {"type": "string"},
-                "side": {"type": "string", "enum": ["LEFT"]},
+                "side": {"type": "string"},
+                "unmappable": {"type": "boolean", "const": True},
                 "source_detail": {
                     "type": "array",
                     "minItems": 1,
@@ -77,12 +78,17 @@ def validate_file(path: Path) -> list[str]:
         json_path = ".".join(str(p) for p in error.absolute_path) or "(root)"
         errors.append(f"[{json_path}] {error.message}")
 
-    # Cross-field: start_line <= line
+    # Cross-field checks require a dict; non-object JSON is caught by schema validation above
+    if not isinstance(data, dict):
+        return errors
+
+    # Cross-field: start_line <= line, side != "RIGHT"
     if isinstance(data.get("findings"), list):
         for i, finding in enumerate(data["findings"]):
+            if not isinstance(finding, dict):
+                continue
             if (
-                isinstance(finding, dict)
-                and "start_line" in finding
+                "start_line" in finding
                 and "line" in finding
                 and isinstance(finding["start_line"], int)
                 and isinstance(finding["line"], int)
@@ -92,6 +98,19 @@ def validate_file(path: Path) -> list[str]:
                     f"[findings.{i}] start_line ({finding['start_line']}) "
                     f"must be <= line ({finding['line']})"
                 )
+            side = finding.get("side")
+            if side is not None and side != "LEFT":
+                if side == "RIGHT":
+                    errors.append(
+                        f"[findings.{i}] side must be omitted for RIGHT-side "
+                        f"comments (RIGHT is the default); only include side "
+                        f"when set to LEFT"
+                    )
+                else:
+                    errors.append(
+                        f"[findings.{i}] side must be \"LEFT\" or omitted "
+                        f"(defaults to RIGHT); got \"{side}\""
+                    )
 
     # Cross-field: triage requires input_sources
     if data.get("source") == "triage" and "input_sources" not in data:
