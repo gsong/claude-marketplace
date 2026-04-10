@@ -113,12 +113,19 @@ Skip praise and lengthy analysis — actionable items only.
 5. **Map findings to diff positions.** For each finding across all sections of the markdown report — include anything that has not been actively disproven. Only exclude findings that are confirmed false positives or duplicates of another included finding. Do not exclude findings just because they scored below a threshold or were categorized as low-severity — if the issue is real, include it:
    - Identify the `path` (file path relative to repo root)
    - Identify the `line` (end line in the new version of the file) and optional `start_line` (for multi-line ranges)
-   - Verify both `line` and `start_line` fall within a diff hunk for that file — if not, collect the finding as unmappable (keep its path, line, start_line, severity, and body) and exclude it from `findings-gh-review.json`
+   - Verify both `line` and `start_line` fall within a diff hunk for that file — if not, include the finding in `findings-gh-review.json` with `"unmappable": true` set on it. Do not exclude any findings from the JSON based on diff position.
    - Set `severity` to `must-fix`, `should-fix`, or `nit` based on the finding's categorization
    - Set `side` to `LEFT` only if the comment targets a deleted line; otherwise omit (defaults to `RIGHT`)
    - Validate `body` is under 65536 characters
 
-6. **Write `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`:**
+6. **Write `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`:** The file MUST be named exactly `findings-gh-review.json`, NOT `findings.json`. The downstream triage skill globs for `findings-*.json` to discover source files — `findings.json` is reserved for triage's own output and will be ignored.
+
+   **REQUIRED top-level fields** (validation fails without these):
+   - `"source"`: always `"gh-review"` for this skill
+   - `"pr"`, `"repo"`, `"head_sha"`, `"findings"`
+
+   **REQUIRED fields on every finding** (validation fails without these):
+   - `"path"`, `"line"`, `"body"`, `"severity"`, `"source_detail"`
 
 ```json
 {
@@ -162,47 +169,23 @@ The body should note when both agents flagged the same issue.
 
 `title` and `recommendation` are optional — include when the reviewer provided them.
 
+`unmappable` is only set when `true` — omit it for findings that map to valid diff positions.
+
 **You MUST write this file even if zero findings** (use `"findings": []`).
 
-7. **Write unmappable findings to `ai-swap/pr-review-$ARGUMENTS/general-comments.md`** if any exist. This file is a ready-to-paste GitHub PR comment. Format:
+7. **Report** how many findings were mapped to diff positions and how many were flagged as unmappable.
 
-```markdown
-## Findings Outside the Diff
-
-The following review findings reference code that isn't part of this PR's diff, so they couldn't be posted as inline comments.
-
-### Must-fix
-
-- **`src/auth/handler.ts:42`** — Session token not invalidated on logout...
-
-### Should-fix
-
-- **`src/utils/cache.ts:118-125`** — Cache TTL hardcoded...
-
-### Nit
-
-- **`src/types/index.ts:7`** — Unused type export...
-```
-
-Rules:
-
-- Each finding is a bullet: ``**`{path}:{line}`**`` (or `{path}:{start_line}-{line}` for multi-line ranges) followed by `— {body}`
-- Group by severity: must-fix → should-fix → nit. Omit empty groups.
-- Do NOT create this file if there are zero unmappable findings.
-
-8. **Report** how many findings were mapped to diff positions, how many were unmappable, and whether `general-comments.md` was written.
-
-9. **Run the schema validator** on the findings file:
+8. **Run the schema validator** on the findings file:
 
    ```bash
-   uv run plugins/gh-tools/scripts/validate-findings.py ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
+   uv run "$(find ~/.claude/plugins/cache -name validate-findings.py -path '*/gh-tools/*' | sort -V | tail -1)" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
    ```
 
    If validation fails, fix the errors in the JSON and re-validate before proceeding.
 
 #### Hard gate
 
-> **You MUST write ALL of these before completing: `reports/review.md`, `findings-gh-review.json`, and (if unmappable findings exist) `general-comments.md`. After writing each file, confirm it was written by reading it back with the Read tool. Run the schema validator on `findings-gh-review.json` and confirm it passes. Do not return until all required files exist and are valid.**
+> **You MUST write ALL of these before completing: `reports/review.md` and `findings-gh-review.json`. After writing each file, confirm it was written by reading it back with the Read tool. Run the schema validator on `findings-gh-review.json` and confirm it passes. Do not return until all required files exist and are valid.**
 
 Wait for the synthesis agent to complete before proceeding.
 
@@ -212,8 +195,14 @@ After the synthesis agent completes, the orchestrator (you) verifies the output:
 
 1. Check that `ai-swap/pr-review-$ARGUMENTS/reports/review.md` exists: `ls ai-swap/pr-review-$ARGUMENTS/reports/review.md`
 2. Check that `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` exists: `ls ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`
-3. If either file is missing: report the failure to the user. Show what the synthesis agent returned so the user can debug.
-4. If both files exist:
+3. **Check for wrong filename:** `ls ai-swap/pr-review-$ARGUMENTS/findings.json` — if this file exists AND `findings-gh-review.json` does not, the synthesis agent used the wrong name. Rename it: `mv ai-swap/pr-review-$ARGUMENTS/findings.json ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` and warn the user.
+4. If `reports/review.md` or `findings-gh-review.json` is still missing after step 3: report the failure to the user. Show what the synthesis agent returned so the user can debug.
+5. If both files exist:
+   - **Run the schema validator** (the synthesis agent may have skipped it):
+     ```bash
+     uv run "$(find ~/.claude/plugins/cache -name validate-findings.py -path '*/gh-tools/*' | sort -V | tail -1)" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
+     ```
+     If validation fails, fix the JSON yourself (common issues: missing top-level `"source": "gh-review"`, missing `"source_detail"` on findings) and re-validate until it passes.
    - Show the synthesis agent's summary (finding counts, mapped vs unmappable)
-   - If `ai-swap/pr-review-$ARGUMENTS/general-comments.md` exists, note: "{N} findings were outside the diff and saved to `general-comments.md`."
+   - If step 3 renamed the file, warn: "The synthesis agent wrote `findings.json` instead of `findings-gh-review.json` — renamed automatically, but this indicates the agent didn't follow the naming instruction."
    - Remind the user: "Run `/gs:gh-tools:triage $ARGUMENTS` to investigate and curate findings before posting."
