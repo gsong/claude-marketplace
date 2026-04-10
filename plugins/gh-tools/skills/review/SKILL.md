@@ -9,13 +9,30 @@ Perform a comprehensive code review for PR #$ARGUMENTS
 
 **All output goes to `ai-swap/pr-review-$ARGUMENTS/` — never post comments to GitHub directly.**
 
+## Setup
+
+Locate the schema validator (used in Phase 3 and Phase 4):
+
+```bash
+VALIDATOR="$(find ~/.claude/plugins/cache $(jq -r '.[].installLocation' ~/.claude/plugins/known_marketplaces.json 2>/dev/null) -name validate-findings.py -path '*/gh-tools/*' 2>/dev/null | sort -V | tail -1)"
+if [ -z "$VALIDATOR" ]; then echo "ERROR: gh-tools validator not found." >&2; exit 1; fi
+```
+
+Use `uv run "$VALIDATOR" <file>` for all validation commands below.
+
 ## Phase 1: Setup
 
-1. Checkout the PR branch: `gh pr checkout $ARGUMENTS`
-2. Get PR metadata: `gh pr view $ARGUMENTS --json title,body,files,additions,deletions,headRefOid`
-3. Get repo name: `gh repo view --json nameWithOwner --jq .nameWithOwner`
-4. Get PR diff: `gh pr diff $ARGUMENTS`
-5. Store all of the above — you will pass metadata to review agents and everything to the synthesis agent.
+1. **Clean output directory:** Remove stale artifacts from prior runs so they don't interfere:
+   ```bash
+   rm -f ai-swap/pr-review-$ARGUMENTS/findings.json ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
+   rm -rf ai-swap/pr-review-$ARGUMENTS/reports
+   ```
+   This is safe because each review run regenerates all output files.
+2. Checkout the PR branch: `gh pr checkout $ARGUMENTS`
+3. Get PR metadata: `gh pr view $ARGUMENTS --json title,body,files,additions,deletions,headRefOid`
+4. Get repo name: `gh repo view --json nameWithOwner --jq .nameWithOwner`
+5. Get PR diff: `gh pr diff $ARGUMENTS`
+6. Store all of the above — you will pass metadata to review agents and everything to the synthesis agent.
 
 ## Phase 2: Reviews (parallel)
 
@@ -178,7 +195,7 @@ The body should note when both agents flagged the same issue.
 8. **Run the schema validator** on the findings file:
 
    ```bash
-   uv run "$(find ~/.claude/plugins/cache -name validate-findings.py -path '*/gh-tools/*' | sort -V | tail -1)" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
+   uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
    ```
 
    If validation fails, fix the errors in the JSON and re-validate before proceeding.
@@ -195,12 +212,14 @@ After the synthesis agent completes, the orchestrator (you) verifies the output:
 
 1. Check that `ai-swap/pr-review-$ARGUMENTS/reports/review.md` exists: `ls ai-swap/pr-review-$ARGUMENTS/reports/review.md`
 2. Check that `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` exists: `ls ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`
-3. **Check for wrong filename:** `ls ai-swap/pr-review-$ARGUMENTS/findings.json` — if this file exists AND `findings-gh-review.json` does not, the synthesis agent used the wrong name. Rename it: `mv ai-swap/pr-review-$ARGUMENTS/findings.json ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` and warn the user.
+3. **Check for wrong filename:** `ls ai-swap/pr-review-$ARGUMENTS/findings.json` — if this file exists:
+   - If `findings-gh-review.json` does NOT exist: the synthesis agent used the wrong name. Rename it: `mv ai-swap/pr-review-$ARGUMENTS/findings.json ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` and warn the user.
+   - If `findings-gh-review.json` ALSO exists: the stale `findings.json` is left over (likely from a previous triage run). Delete it: `rm -f ai-swap/pr-review-$ARGUMENTS/findings.json` and warn the user that a stale file was cleaned up.
 4. If `reports/review.md` or `findings-gh-review.json` is still missing after step 3: report the failure to the user. Show what the synthesis agent returned so the user can debug.
 5. If both files exist:
    - **Run the schema validator** (the synthesis agent may have skipped it):
      ```bash
-     uv run "$(find ~/.claude/plugins/cache -name validate-findings.py -path '*/gh-tools/*' | sort -V | tail -1)" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
+     uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
      ```
      If validation fails, fix the JSON yourself (common issues: missing top-level `"source": "gh-review"`, missing `"source_detail"` on findings) and re-validate until it passes.
    - Show the synthesis agent's summary (finding counts, mapped vs unmappable)

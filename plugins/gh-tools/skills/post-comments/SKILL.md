@@ -9,10 +9,21 @@ Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 
 **Prerequisite:** Run `/gs:gh-tools:triage $ARGUMENTS` first to curate findings.
 
+## Setup
+
+Locate the schema validator (used throughout this skill):
+
+```bash
+VALIDATOR="$(find ~/.claude/plugins/cache $(jq -r '.[].installLocation' ~/.claude/plugins/known_marketplaces.json 2>/dev/null) -name validate-findings.py -path '*/gh-tools/*' 2>/dev/null | sort -V | tail -1)"
+if [ -z "$VALIDATOR" ]; then echo "ERROR: gh-tools validator not found." >&2; exit 1; fi
+```
+
+Use `uv run "$VALIDATOR" <file>` for all validation commands below.
+
 ## Step 1: Load Findings
 
 1. Check for `ai-swap/pr-review-$ARGUMENTS/findings.json`
-   - If it exists: validate it first with `uv run "$(find ~/.claude/plugins/cache -name validate-findings.py -path '*/gh-tools/*' | sort -V | tail -1)" ai-swap/pr-review-$ARGUMENTS/findings.json`. If validation fails, report the errors and stop.
+   - If it exists: validate it first with `uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/findings.json`. If validation fails, report the errors and stop.
    - If valid: read and parse it. Report: "{N} findings loaded for PR #{pr} in {repo}"
    - If it does NOT exist:
      - Check for `findings-*.json` files in the directory
@@ -57,7 +68,7 @@ Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 1. Get the PR diff: `gh pr diff $ARGUMENTS`
 2. For each finding, verify:
    - The `path` exists in the diff
-   - The `line` (and `start_line` if present) falls within a diff hunk
+   - The `line` (and `start_line` if present) falls within a diff hunk. **Side-aware validation:** if the finding has `side: "LEFT"`, validate line numbers against the **old-side** (deletion) ranges of the hunk headers (`-start,count`). If `side` is omitted (defaults to RIGHT), validate against the **new-side** (addition) ranges (`+start,count`).
 3. **Separate** findings into two lists based on validation results:
    - **Inline-postable:** findings that pass position validation.
    - **General-comment:** findings that fail position validation. Re-validate all findings regardless of the `unmappable` flag — the PR may have been updated since the review was generated.
@@ -132,7 +143,7 @@ After the user selects findings to post, ask (via AskUserQuestion):
 
    ```bash
    jq -n '{commit_id: $cid, comments: $c}' \
-     --arg cid "<head_sha from JSON>" \
+     --arg cid "<current PR head SHA from Step 2 if staleness was detected, otherwise head_sha from JSON>" \
      --argjson c '<comments array as JSON>' |
      gh api --method POST /repos/{repo}/pulls/$ARGUMENTS/reviews --input -
    ```
