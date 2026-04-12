@@ -55,7 +55,7 @@ gh pr checkout <number>
 6. Resolve the codex companion script path:
 
 ```bash
-find ~/.claude/plugins/cache -name "codex-companion.mjs" -path "*/codex/*" | sort -V | tail -1
+find ~/.claude/plugins/cache $(jq -r '.[].installLocation' ~/.claude/plugins/known_marketplaces.json 2>/dev/null) -name "codex-companion.mjs" -path "*/codex/*" 2>/dev/null | sort -V | tail -1
 ```
 
 If no path is found, stop with: "Error: codex plugin not installed. Run `/codex:setup` first."
