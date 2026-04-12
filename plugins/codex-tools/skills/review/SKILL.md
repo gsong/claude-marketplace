@@ -227,10 +227,6 @@ No issues found. Checked correctness, integration safety, and test quality
 using 3 parallel Codex adversarial reviews.
 ```
 
-**Markdown report:**
-
-Write the full report (all findings) to `ai-swap/pr-review-<number>/reports/codex-review.md` using the Write tool. Include agent source for each finding.
-
 ## Notes
 
 - Use `gh` to interact with GitHub, not web fetch
