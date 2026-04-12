@@ -25,7 +25,6 @@ Use `uv run "$VALIDATOR" <file>` for all validation commands below.
 1. **Clean output directory:** Remove stale artifacts from prior runs so they don't interfere:
    ```bash
    rm -f ai-swap/pr-review-$ARGUMENTS/findings.json ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
-   rm -rf ai-swap/pr-review-$ARGUMENTS/reports
    ```
    This is safe because each review run regenerates all output files.
 2. Checkout the PR branch: `gh pr checkout $ARGUMENTS`
@@ -99,35 +98,9 @@ Skip praise and lengthy analysis — actionable items only.
 1. **Filter and organize only.** Do not introduce new findings — your job is to deduplicate, categorize, and map the agents' findings. Use the review focus areas above as a lens for prioritization, not as a prompt for new analysis.
 2. **Deduplicate:** Merge findings that describe the same issue from both agents into one item. Keep the higher severity.
 3. **Categorize** by severity and actionability.
-4. **Write `ai-swap/pr-review-$ARGUMENTS/reports/review.md`** using this template:
-
-```markdown
-# PR #$ARGUMENTS Review
-
-## Decision: MERGE | NO MERGE
-
-## Action Items
-
-<!-- Issues that must be fixed before merge -->
-
-## Needs Decision
-
-<!-- Items requiring user input or clarification -->
-
-## Findings by Source
-
-### superpowers:code-reviewer
-
-<!-- Summary of findings from Agent 1 -->
-
-### feature-dev:code-reviewer
-
-<!-- Summary of findings from Agent 2 -->
-```
-
 4. **Use the PR metadata provided in the prompt** (head SHA, repo name, and diff — all fetched by the orchestrator in Phase 1). Do NOT run any `gh` commands.
 
-5. **Map findings to diff positions.** For each finding across all sections of the markdown report — include anything that has not been actively disproven. Only exclude findings that are confirmed false positives or duplicates of another included finding. Do not exclude findings just because they scored below a threshold or were categorized as low-severity — if the issue is real, include it:
+5. **Map findings to diff positions.** For each finding from the review agents — include anything that has not been actively disproven. Only exclude findings that are confirmed false positives or duplicates of another included finding. Do not exclude findings just because they scored below a threshold or were categorized as low-severity — if the issue is real, include it:
    - Identify the `path` (file path relative to repo root)
    - Identify the `line` (end line in the new version of the file) and optional `start_line` (for multi-line ranges)
    - Verify both `line` and `start_line` fall within a diff hunk for that file — if not, include the finding in `findings-gh-review.json` with `"unmappable": true` set on it. Do not exclude any findings from the JSON based on diff position.
@@ -202,7 +175,7 @@ The body should note when both agents flagged the same issue.
 
 #### Hard gate
 
-> **You MUST write ALL of these before completing: `reports/review.md` and `findings-gh-review.json`. After writing each file, confirm it was written by reading it back with the Read tool. Run the schema validator on `findings-gh-review.json` and confirm it passes. Do not return until all required files exist and are valid.**
+> **You MUST write `findings-gh-review.json` before completing. After writing it, confirm it was written by reading it back with the Read tool. Run the schema validator and confirm it passes. Do not return until the file exists and is valid.**
 
 Wait for the synthesis agent to complete before proceeding.
 
@@ -210,18 +183,17 @@ Wait for the synthesis agent to complete before proceeding.
 
 After the synthesis agent completes, the orchestrator (you) verifies the output:
 
-1. Check that `ai-swap/pr-review-$ARGUMENTS/reports/review.md` exists: `ls ai-swap/pr-review-$ARGUMENTS/reports/review.md`
-2. Check that `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` exists: `ls ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`
-3. **Check for wrong filename:** `ls ai-swap/pr-review-$ARGUMENTS/findings.json` — if this file exists:
+1. Check that `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` exists: `ls ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`
+2. **Check for wrong filename:** `ls ai-swap/pr-review-$ARGUMENTS/findings.json` — if this file exists:
    - If `findings-gh-review.json` does NOT exist: the synthesis agent used the wrong name. Rename it: `mv ai-swap/pr-review-$ARGUMENTS/findings.json ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` and warn the user.
    - If `findings-gh-review.json` ALSO exists: the stale `findings.json` is left over (likely from a previous triage run). Delete it: `rm -f ai-swap/pr-review-$ARGUMENTS/findings.json` and warn the user that a stale file was cleaned up.
-4. If `reports/review.md` or `findings-gh-review.json` is still missing after step 3: report the failure to the user. Show what the synthesis agent returned so the user can debug.
-5. If both files exist:
+3. If `findings-gh-review.json` is still missing after step 2: report the failure to the user. Show what the synthesis agent returned so the user can debug.
+4. If the file exists:
    - **Run the schema validator** (the synthesis agent may have skipped it):
      ```bash
      uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
      ```
      If validation fails, fix the JSON yourself (common issues: missing top-level `"source": "gh-review"`, missing `"source_detail"` on findings) and re-validate until it passes.
    - Show the synthesis agent's summary (finding counts, mapped vs unmappable)
-   - If step 3 renamed the file, warn: "The synthesis agent wrote `findings.json` instead of `findings-gh-review.json` — renamed automatically, but this indicates the agent didn't follow the naming instruction."
+   - If step 2 renamed the file, warn: "The synthesis agent wrote `findings.json` instead of `findings-gh-review.json` — renamed automatically, but this indicates the agent didn't follow the naming instruction."
    - Remind the user: "Run `/gs:gh-tools:triage $ARGUMENTS` to investigate and curate findings before posting."
