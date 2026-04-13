@@ -138,6 +138,7 @@ After the user selects findings to post, ask (via AskUserQuestion):
    `line` must be an integer (not a string). `start_line` must also be an integer if present.
    Include `start_line` only if it was present in the finding.
    Include `side` only if it was present in the finding (omitting defaults to `RIGHT`).
+   Include `start_side` only if it was present in the finding (omitting defaults to `RIGHT`).
 
 2. Build and post the review via `gh api`. Construct the full JSON payload and pipe via stdin:
 
