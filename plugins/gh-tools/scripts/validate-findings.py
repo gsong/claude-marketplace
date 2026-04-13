@@ -39,8 +39,8 @@ FINDINGS_SCHEMA = {
                 "confidence": {"type": "integer", "minimum": 0, "maximum": 100},
                 "title": {"type": "string"},
                 "recommendation": {"type": "string"},
-                "side": {"type": "string", "enum": ["LEFT"]},
-                "start_side": {"type": "string", "enum": ["LEFT"]},
+                "side": {"type": "string"},
+                "start_side": {"type": "string"},
                 "unmappable": {"type": "boolean", "const": True},
                 "source_detail": {
                     "type": "array",
@@ -111,6 +111,20 @@ def validate_file(path: Path) -> list[str]:
                     errors.append(
                         f"[findings.{i}] side must be \"LEFT\" or omitted "
                         f"(defaults to RIGHT); got \"{side}\""
+                    )
+
+            start_side = finding.get("start_side")
+            if start_side is not None and start_side != "LEFT":
+                if start_side == "RIGHT":
+                    errors.append(
+                        f"[findings.{i}] start_side must be omitted for "
+                        f"RIGHT-side comments (RIGHT is the default); only "
+                        f"include start_side when set to LEFT"
+                    )
+                else:
+                    errors.append(
+                        f"[findings.{i}] start_side must be \"LEFT\" or "
+                        f"omitted (defaults to RIGHT); got \"{start_side}\""
                     )
 
             if "start_side" in finding and "start_line" not in finding:

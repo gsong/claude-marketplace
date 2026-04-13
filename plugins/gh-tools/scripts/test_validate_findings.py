@@ -211,13 +211,15 @@ class TestCrossFieldRules:
         finding = _minimal_finding(side="RIGHT")
         p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
         errors = validate_file(p)
-        assert any("RIGHT" in e for e in errors)
+        assert len(errors) == 1
+        assert "RIGHT" in errors[0]
 
     def test_side_invalid_value_rejected(self, tmp_path):
         finding = _minimal_finding(side="BOTH")
         p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
         errors = validate_file(p)
-        assert any("BOTH" in e for e in errors)
+        assert len(errors) == 1
+        assert "BOTH" in errors[0]
 
     def test_side_left_accepted(self, tmp_path):
         finding = _minimal_finding(side="LEFT")
@@ -234,13 +236,15 @@ class TestCrossFieldRules:
         finding = _minimal_finding(start_line=5, line=10, start_side="RIGHT")
         p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
         errors = validate_file(p)
-        assert any("start_side" in e or "RIGHT" in e for e in errors)
+        assert len(errors) == 1
+        assert "start_side" in errors[0] or "RIGHT" in errors[0]
 
     def test_start_side_invalid_value_rejected(self, tmp_path):
         finding = _minimal_finding(start_line=5, line=10, start_side="BOTH")
         p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
         errors = validate_file(p)
-        assert any("start_side" in e or "BOTH" in e for e in errors)
+        assert len(errors) == 1
+        assert "start_side" in errors[0] or "BOTH" in errors[0]
 
     def test_triage_without_input_sources(self, tmp_path):
         doc = _minimal_doc(source="triage")
