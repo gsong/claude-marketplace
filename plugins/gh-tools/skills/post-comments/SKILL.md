@@ -68,7 +68,7 @@ Use `uv run "$VALIDATOR" <file>` for all validation commands below.
 1. Get the PR diff: `gh pr diff $ARGUMENTS`
 2. For each finding, verify:
    - The `path` exists in the diff
-   - The `line` (and `start_line` if present) falls within a diff hunk. **Side-aware validation:** if the finding has `side: "LEFT"`, validate line numbers against the **old-side** (deletion) ranges of the hunk headers (`-start,count`). If `side` is omitted (defaults to RIGHT), validate against the **new-side** (addition) ranges (`+start,count`).
+   - The `line` (and `start_line` if present) falls within a diff hunk. **Side-aware validation:** if the finding has `side: "LEFT"`, validate line numbers against the **old-side** range from the hunk header (`-start,count`, which covers both context and deleted lines). If `side` is omitted (defaults to RIGHT), validate against the **new-side** range from the hunk header (`+start,count`, which covers both context and added lines).
 3. **Separate** findings into two lists based on validation results:
    - **Inline-postable:** findings that pass position validation.
    - **General-comment:** findings that fail position validation. Re-validate all findings regardless of the `unmappable` flag — the PR may have been updated since the review was generated.
@@ -140,22 +140,28 @@ After the user selects findings to post, ask (via AskUserQuestion):
    Include `side` only if it was present in the finding (omitting defaults to `RIGHT`).
    Include `start_side` only if it was present in the finding (omitting defaults to `RIGHT`).
 
-2. Build and post the review via `gh api`. Construct the full JSON payload and pipe via stdin:
+2. **Preflight: check for existing pending review.** A user can only have one pending review per PR — the POST will 422 if one already exists.
+
+   ```bash
+   gh api /repos/{repo}/pulls/$ARGUMENTS/reviews --jq '[.[] | select(.state == "PENDING")] | first'
+   ```
+
+   - If no pending review exists → proceed to sub-step 3.
+   - If a pending review is found → report its ID and comment count, then ask the user (via AskUserQuestion) how to proceed:
+     - **Delete it** — `gh api --method DELETE /repos/{repo}/pulls/{pr}/reviews/{review_id}` — then proceed to sub-step 3.
+     - **Submit it as-is** — `gh api --method POST /repos/{repo}/pulls/{pr}/reviews/{review_id}/events --input <(echo '{"event":"COMMENT"}')` — then proceed to sub-step 3.
+     - **Abort** — stop the skill.
+
+3. Build and post the review via `gh api`. Construct the full JSON payload and pipe via stdin:
 
    ```bash
    jq -n '{commit_id: $cid, comments: $c}' \
-     --arg cid "<current PR head SHA from Step 2 if staleness was detected, otherwise head_sha from JSON>" \
+     --arg cid "<current PR head SHA from Step 2>" \
      --argjson c '<comments array as JSON>' |
      gh api --method POST /repos/{repo}/pulls/$ARGUMENTS/reviews --input -
    ```
 
-   Do NOT include an `event` field — omitting it creates a pending (draft) review.
-
-3. **IMPORTANT: GitHub API limitation** — You cannot add comments to an existing pending review. A user can only have one pending review per PR. If a pending review already exists, you must either:
-   - **Delete it first** (`gh api --method DELETE /repos/{repo}/pulls/{pr}/reviews/{review_id}`) and recreate with all comments in one call, OR
-   - **Submit it first** (`gh api --method POST /repos/{repo}/pulls/{pr}/reviews/{review_id}/events --input <(echo '{"event":"COMMENT"}')`) before creating a new pending review
-
-   Always batch all approved comments into a single `POST .../reviews` call to avoid this issue.
+   Do NOT include an `event` field — omitting it creates a pending (draft) review. Always batch all approved comments into a single call.
 
 4. If the API call fails, show the full error and stop. Do not retry.
 
