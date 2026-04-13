@@ -163,7 +163,11 @@ Sort by severity (must-fix → should-fix → nit), then by investigation confid
 
 For each finding in sorted order:
 
-1. **Present the finding.** Output to the user:
+0. **Check for prior decision (resume only).** If a resume flag is set and this finding's `_identity_hash` exists in the loaded `decisions` map:
+   - Apply the recorded decision silently: if `"keep"`, include the finding in the output list and increment kept counter; if `"remove"`, exclude and increment removed counter; if `"edit"`, update the finding's `body` with the recorded `edited_body`, include in output list, and increment edited counter.
+   - Skip to the next finding (do not present or ask).
+
+1. **Present the finding.** `{n}` is the finding's position in the sorted list (1-indexed), counting all findings including those replayed from checkpoint. Output to the user:
 
    ```
    ## Finding {n}/{total}: {title or first 80 chars of body}
@@ -200,6 +204,10 @@ For each finding in sorted order:
    - If `suggested_body` is non-null: first option is "Use suggested body" with a preview of the full suggested text
    - Always allow "Other" for custom text
      Update the finding's `body` with the chosen text. Increment edited counter.
+
+4. **Checkpoint.** After executing the user's choice, immediately update `triage-state.json`:
+   - Update the in-memory `triage-state.json` object (the same object written in Initialize Checkpoint) by adding this finding's `_identity_hash` to the `decisions` map. Use the canonical action value: `"keep"` for Keep, `"remove"` for Remove, `"edit"` for Edit body. If `"edit"`, also include `"edited_body"` with the final body text.
+   - Write the updated object to disk. If the write fails, warn the user but continue.
 
 ## Phase 4: Output
 
