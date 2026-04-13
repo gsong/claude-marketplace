@@ -97,6 +97,11 @@ class TestValidDocuments:
         p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
         assert validate_file(p) == []
 
+    def test_finding_with_start_side_left(self, tmp_path):
+        finding = _minimal_finding(start_line=5, line=10, start_side="LEFT", side="LEFT")
+        p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
+        assert validate_file(p) == []
+
     def test_unmappable_finding(self, tmp_path):
         finding = _minimal_finding(unmappable=True)
         p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
@@ -218,6 +223,24 @@ class TestCrossFieldRules:
         finding = _minimal_finding(side="LEFT")
         p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
         assert validate_file(p) == []
+
+    def test_start_side_without_start_line_rejected(self, tmp_path):
+        finding = _minimal_finding(start_side="LEFT")
+        p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
+        errors = validate_file(p)
+        assert any("start_side" in e and "start_line" in e for e in errors)
+
+    def test_start_side_right_rejected(self, tmp_path):
+        finding = _minimal_finding(start_line=5, line=10, start_side="RIGHT")
+        p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
+        errors = validate_file(p)
+        assert any("start_side" in e or "RIGHT" in e for e in errors)
+
+    def test_start_side_invalid_value_rejected(self, tmp_path):
+        finding = _minimal_finding(start_line=5, line=10, start_side="BOTH")
+        p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
+        errors = validate_file(p)
+        assert any("start_side" in e or "BOTH" in e for e in errors)
 
     def test_triage_without_input_sources(self, tmp_path):
         doc = _minimal_doc(source="triage")

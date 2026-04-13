@@ -40,6 +40,7 @@ FINDINGS_SCHEMA = {
                 "title": {"type": "string"},
                 "recommendation": {"type": "string"},
                 "side": {"type": "string", "enum": ["LEFT"]},
+                "start_side": {"type": "string", "enum": ["LEFT"]},
                 "unmappable": {"type": "boolean", "const": True},
                 "source_detail": {
                     "type": "array",
@@ -111,6 +112,12 @@ def validate_file(path: Path) -> list[str]:
                         f"[findings.{i}] side must be \"LEFT\" or omitted "
                         f"(defaults to RIGHT); got \"{side}\""
                     )
+
+            if "start_side" in finding and "start_line" not in finding:
+                errors.append(
+                    f"[findings.{i}] start_side requires start_line for "
+                    f"multiline comments"
+                )
 
     # Cross-field: triage requires input_sources
     if data.get("source") == "triage" and "input_sources" not in data:
