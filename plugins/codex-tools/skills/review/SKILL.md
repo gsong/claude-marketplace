@@ -145,7 +145,7 @@ After all 3 agents return:
    | ---------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
    | `file`           | `path`                         | Direct rename                                                                                                              |
    | `line_start`     | `start_line`                   | Direct rename                                                                                                              |
-   | `line_end`       | `line`                         | Direct rename                                                                                                              |
+   | `line_end`       | `line`                         | Direct rename. If `line_end` is absent, use `line_start` as `line`.                                                        |
    | `severity`       | `severity` + `source_severity` | Normalize: `critical`/`high` → `must-fix`, `medium` → `should-fix`, `low` → `nit`. Preserve original in `source_severity`. |
    | `confidence`     | `confidence`                   | Pass through                                                                                                               |
    | `title`          | `title`                        | Pass through                                                                                                               |
