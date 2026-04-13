@@ -24,9 +24,9 @@ Use `uv run "$VALIDATOR" <file>` for all validation commands below.
 
 1. **Clean output directory:** Remove stale artifacts from prior runs so they don't interfere:
    ```bash
-   rm -f ai-swap/pr-review-$ARGUMENTS/findings.json ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
+   rm -f ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json ai-swap/pr-review-$ARGUMENTS/general-comments.md
    ```
-   This is safe because each review run regenerates all output files.
+   Only delete artifacts this skill produces (`findings-gh-review.json`) or that become stale after a new review (`general-comments.md` from post-comments). Never delete `findings.json` — it contains the user's curated triage decisions and cannot be regenerated.
 2. Checkout the PR branch: `gh pr checkout $ARGUMENTS`
 3. Get PR metadata: `gh pr view $ARGUMENTS --json title,body,files,additions,deletions,headRefOid`
 4. Get repo name: `gh repo view --json nameWithOwner --jq .nameWithOwner`
@@ -99,7 +99,6 @@ Skip praise and lengthy analysis — actionable items only.
 2. **Deduplicate:** Merge findings that describe the same issue from both agents into one item. Keep the higher severity.
 3. **Categorize** by severity and actionability.
 4. **Use the PR metadata provided in the prompt** (head SHA, repo name, and diff — all fetched by the orchestrator in Phase 1). Do NOT run any `gh` commands.
-
 5. **Map findings to diff positions.** For each finding from the review agents — include anything that has not been actively disproven. Only exclude findings that are confirmed false positives or duplicates of another included finding. Do not exclude findings just because they scored below a threshold or were categorized as low-severity — if the issue is real, include it:
    - Identify the `path` (file path relative to repo root)
    - Identify the `line` (end line in the new version of the file) and optional `start_line` (for multi-line ranges)
@@ -186,7 +185,7 @@ After the synthesis agent completes, the orchestrator (you) verifies the output:
 1. Check that `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` exists: `ls ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`
 2. **Check for wrong filename:** `ls ai-swap/pr-review-$ARGUMENTS/findings.json` — if this file exists:
    - If `findings-gh-review.json` does NOT exist: the synthesis agent used the wrong name. Rename it: `mv ai-swap/pr-review-$ARGUMENTS/findings.json ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` and warn the user.
-   - If `findings-gh-review.json` ALSO exists: the stale `findings.json` is left over (likely from a previous triage run). Delete it: `rm -f ai-swap/pr-review-$ARGUMENTS/findings.json` and warn the user that a stale file was cleaned up.
+   - If `findings-gh-review.json` ALSO exists: `findings.json` is likely from a previous triage run containing the user's curated decisions. **Do not auto-delete.** Warn the user and ask (via AskUserQuestion) whether to delete it or keep it. It won't interfere with the new review output, but may be stale.
 3. If `findings-gh-review.json` is still missing after step 2: report the failure to the user. Show what the synthesis agent returned so the user can debug.
 4. If the file exists:
    - **Run the schema validator** (the synthesis agent may have skipped it):
