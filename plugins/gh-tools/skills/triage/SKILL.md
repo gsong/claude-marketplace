@@ -20,8 +20,8 @@ Investigate and triage code review findings for PR #$ARGUMENTS.
 Locate the schema validator (used throughout this skill):
 
 ```bash
-VALIDATOR="$(find ~/.claude/plugins/cache $(jq -r '.[].installLocation' ~/.claude/plugins/known_marketplaces.json 2>/dev/null) -name validate-findings.py -path '*/gh-tools/*' 2>/dev/null | sort -V | tail -1)"
-if [ -z "$VALIDATOR" ]; then echo "ERROR: gh-tools validator not found." >&2; exit 1; fi
+VALIDATOR="${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py"
+if [ ! -f "$VALIDATOR" ]; then echo "ERROR: validate-findings.py not found at $VALIDATOR" >&2; exit 1; fi
 ```
 
 Use `uv run "$VALIDATOR" <file>` for all validation commands below.
