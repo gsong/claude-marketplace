@@ -234,7 +234,13 @@ For each finding in sorted order:
 
    If validation fails, fix the errors and re-validate.
 
-3. **Report summary:**
+3. **Clean up checkpoint state:**
+
+   ```bash
+   rm -f ai-swap/pr-review-$ARGUMENTS/triage-state.json
+   ```
+
+4. **Report summary:**
 
    ```
    ## Triage Complete
