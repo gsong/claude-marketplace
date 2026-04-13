@@ -39,7 +39,7 @@ FINDINGS_SCHEMA = {
                 "confidence": {"type": "integer", "minimum": 0, "maximum": 100},
                 "title": {"type": "string"},
                 "recommendation": {"type": "string"},
-                "side": {"type": "string"},
+                "side": {"type": "string", "enum": ["LEFT"]},
                 "unmappable": {"type": "boolean", "const": True},
                 "source_detail": {
                     "type": "array",
