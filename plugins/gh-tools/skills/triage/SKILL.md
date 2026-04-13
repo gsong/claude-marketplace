@@ -15,13 +15,18 @@ Investigate and triage code review findings for PR #$ARGUMENTS.
 2. If no `findings-*.json` files are found:
    - If `triage-state.json` exists in the directory, delete it silently (`rm -f`).
    - Stop with: "No source findings found. Run `/gs:gh-tools:review $ARGUMENTS` and/or `/gs:codex-tools:review $ARGUMENTS` first."
-3. If a previous `findings.json` exists in the directory, ask the user (via AskUserQuestion): "Previous triage output found. Start fresh from source findings, or abort so you can use the existing curated output?" Options: "Start fresh" (rebuild from source files), "Abort" (stop triage, keep existing findings.json). If the user chooses to start fresh, also delete `triage-state.json` silently (`rm -f ai-swap/pr-review-$ARGUMENTS/triage-state.json`) before proceeding. If abort, stop.
-4. If `triage-state.json` exists in the directory:
-   - Attempt to parse it as JSON. If unparseable, delete it silently (`rm -f`) and continue as if it didn't exist. If the parsed JSON is missing the `decisions` object or `finding_order` array, also treat it as corrupt: delete silently and continue.
+3. If `triage-state.json` exists in the directory:
+   - Attempt to parse it as JSON. If unparseable, delete it silently (`rm -f`) and continue to step 4 as if it didn't exist. If the parsed JSON is missing the `decisions` object or `finding_order` array, also treat it as corrupt: delete silently and continue to step 4.
    - Read the `decisions` object and the `finding_order` array.
-   - Ask the user (via AskUserQuestion): "Found partial triage progress ({count of decisions}/{count of finding_order} findings decided in prior session). Resume where you left off, or start fresh?" Options: "Resume" (carry forward previous decisions), "Start fresh" (delete state file, triage from scratch).
-   - **Resume**: Set a resume flag and store the loaded `decisions` map for Phase 3. Proceed to Phase 1 and Phase 2 normally (they are automated and idempotent).
+   - **If `findings.json` also exists** (both checkpoint and prior output), ask the user (via AskUserQuestion): "Found partial triage progress ({count of decisions}/{count of finding_order} findings decided) and a previous triage output." Options:
+     - "Resume in-progress triage" — carry forward previous decisions, prior `findings.json` will be replaced on completion
+     - "Start fresh" — delete `triage-state.json` (`rm -f`) and proceed normally (prior `findings.json` will be replaced)
+     - "Abort" — stop triage, keep existing `findings.json`
+   - **If only `triage-state.json` exists** (no prior output), ask the user (via AskUserQuestion): "Found partial triage progress ({count of decisions}/{count of finding_order} findings decided in prior session). Resume where you left off, or start fresh?" Options: "Resume" (carry forward previous decisions), "Start fresh" (delete state file, triage from scratch).
+   - **Resume**: Set a resume flag and store the loaded `decisions` map for Phase 3. Proceed to Phase 1 and Phase 2 normally (they are automated and idempotent). Provenance validation happens after Phase 1 merge — see "Initialize Checkpoint" below.
    - **Start fresh**: Delete `triage-state.json` (`rm -f`) and proceed normally.
+   - **Abort**: Stop.
+4. If a previous `findings.json` exists in the directory (no checkpoint), ask the user (via AskUserQuestion): "Previous triage output found. Start fresh from source findings, or abort so you can use the existing curated output?" Options: "Start fresh" (rebuild from source files), "Abort" (stop triage, keep existing findings.json). If abort, stop.
 
 ## Setup
 
@@ -142,22 +147,33 @@ Sort by severity (must-fix → should-fix → nit), then by investigation confid
 
 1. **Compute identity hashes.** For each finding in the sorted list, compute:
 
-   `sha256(path + ":" + line + ":" + (side || "RIGHT") + ":" + source_detail[0].agent_label + ":" + (title || body[:64]))`
+   `sha256(path + ":" + line + ":" + (side || "RIGHT") + ":" + sorted_agent_labels + ":" + (title || body[:64]))`
+
+   Where `sorted_agent_labels` is a comma-joined string of all `agent_label` values from `source_detail`, sorted alphabetically (e.g. `"Correctness & Safety,architecture & design"`). This ensures the hash is stable regardless of `source_detail` merge order during deduplication.
 
    Truncate to the first 12 hex characters. This is the finding's stable identity hash used for checkpointing. Store it on the finding as `_identity_hash` for use in the triage loop.
 
    Note: the `side` field only appears in the schema when its value is `"LEFT"`; absence means RIGHT. The `title` (or body prefix) distinguishes different concerns flagged at the same file location. Hash collisions are statistically negligible for typical PR sizes.
 
-2. **Write initial `triage-state.json`.** Construct the JSON object in memory first. If resuming (resume flag set in Input Parsing step 4), use the loaded `decisions` map; otherwise use `{}`. Always compute `finding_order` from the current sort order. Then write to `ai-swap/pr-review-$ARGUMENTS/triage-state.json`:
+2. **Write initial `triage-state.json`.** Construct the JSON object in memory first. If resuming (resume flag set in Input Parsing step 3), use the loaded `decisions` map; otherwise use `{}`. Always compute `finding_order` from the current sort order. Then write to `ai-swap/pr-review-$ARGUMENTS/triage-state.json`:
 
    ```json
    {
+     "head_sha": "<head_sha from source findings>",
+     "source_files": ["findings-codex.json", "findings-gh-review.json"],
      "finding_order": ["<hash1>", "<hash2>", ...],
      "decisions": {}
    }
    ```
 
+   `source_files` is the sorted list of source filenames loaded in Phase 1.
+
    If the write fails, warn the user but continue — triage will still work, just without checkpoint protection.
+
+3. **Validate checkpoint provenance (resume only).** If the resume flag is set, compare the checkpoint's `head_sha` and `source_files` against the current values from Phase 1. If either mismatches:
+   - Warn the user: "Checkpoint was created against different source findings (SHA or source files changed). Previous decisions cannot be safely replayed."
+   - Ask the user (via AskUserQuestion): "Start fresh" (clear the resume flag, delete `triage-state.json`, rewrite a fresh checkpoint) or "Abort".
+   - Do not offer resume — stale decisions are not safe to replay.
 
 ### Triage Loop
 
@@ -211,7 +227,9 @@ For each finding in sorted order:
 
 ## Phase 4: Output
 
-1. **Write `ai-swap/pr-review-$ARGUMENTS/findings.json`** with the triage output schema:
+1. **Strip internal fields.** Remove `_identity_hash` from each finding in the output list. This field is used internally for checkpointing and must not appear in the output.
+
+2. **Write `ai-swap/pr-review-$ARGUMENTS/findings.json`** with the triage output schema:
 
    ```json
    {
@@ -226,7 +244,7 @@ For each finding in sorted order:
 
    Use 2-space indentation. Only include findings the user kept or edited (not removed).
 
-2. **Validate the output:**
+3. **Validate the output:**
 
    ```bash
    uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/findings.json
@@ -234,13 +252,13 @@ For each finding in sorted order:
 
    If validation fails, fix the errors and re-validate.
 
-3. **Clean up checkpoint state:**
+4. **Clean up checkpoint state:**
 
    ```bash
    rm -f ai-swap/pr-review-$ARGUMENTS/triage-state.json
    ```
 
-4. **Report summary:**
+5. **Report summary:**
 
    ```
    ## Triage Complete
