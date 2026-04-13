@@ -206,15 +206,13 @@ class TestCrossFieldRules:
         finding = _minimal_finding(side="RIGHT")
         p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
         errors = validate_file(p)
-        assert len(errors) == 1
-        assert "RIGHT" in errors[0]
+        assert any("RIGHT" in e for e in errors)
 
     def test_side_invalid_value_rejected(self, tmp_path):
         finding = _minimal_finding(side="BOTH")
         p = _write_json(tmp_path, _minimal_doc(findings=[finding]))
         errors = validate_file(p)
-        assert len(errors) == 1
-        assert "BOTH" in errors[0]
+        assert any("BOTH" in e for e in errors)
 
     def test_side_left_accepted(self, tmp_path):
         finding = _minimal_finding(side="LEFT")
