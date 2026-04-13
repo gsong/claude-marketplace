@@ -60,6 +60,16 @@ find ~/.claude/plugins/cache $(jq -r '.[].installLocation' ~/.claude/plugins/kno
 
 If no path is found, stop with: "Error: codex plugin not installed. Run `/codex:setup` first."
 
+7. Verify the schema validator is available (requires gh-tools sibling plugin):
+
+```bash
+VALIDATOR="${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py"
+if [ ! -f "$VALIDATOR" ]; then
+  echo "ERROR: validate-findings.py not found. The gh-tools plugin must be installed from the same marketplace." >&2
+  exit 1
+fi
+```
+
 ### Step 2: Parallel Agent Dispatch
 
 Launch **3 parallel agents** (using the Agent tool, `subagent_type: "general-purpose"`). Pass each agent:
@@ -175,14 +185,9 @@ After all 3 agents return:
 
    No diff-position validation at this stage — Codex reviews the checked-out code, not the diff. Validation happens in post-comments.
 
-6. **Validate the JSON** — Run the schema validator (requires gh-tools plugin):
+6. **Validate the JSON** — Run the schema validator (resolved in Step 1.7):
 
    ```bash
-   VALIDATOR="$(find ~/.claude/plugins/cache $(jq -r '.[].installLocation' ~/.claude/plugins/known_marketplaces.json 2>/dev/null) -name validate-findings.py -path '*/gh-tools/*' 2>/dev/null | sort -V | tail -1)"
-   if [ -z "$VALIDATOR" ]; then
-     echo "ERROR: gh-tools plugin not found. Install it to validate findings." >&2
-     exit 1
-   fi
    uv run "$VALIDATOR" ai-swap/pr-review-<number>/findings-codex.json
    ```
 
