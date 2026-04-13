@@ -138,6 +138,27 @@ Report: "Investigation complete. {N} findings investigated, {F} investigation(s)
 
 Sort by severity (must-fix → should-fix → nit), then by investigation confidence (highest first). Findings with failed investigations sort last within their severity group.
 
+### Initialize Checkpoint
+
+1. **Compute identity hashes.** For each finding in the sorted list, compute:
+
+   `sha256(path + ":" + line + ":" + (side || "RIGHT") + ":" + source_detail[0].agent_label + ":" + (title || body[:64]))`
+
+   Truncate to the first 12 hex characters. This is the finding's stable identity hash used for checkpointing. Store it on the finding as `_identity_hash` for use in the triage loop.
+
+   Note: the `side` field only appears in the schema when its value is `"LEFT"`; absence means RIGHT. The `title` (or body prefix) distinguishes different concerns flagged at the same file location. Hash collisions are statistically negligible for typical PR sizes.
+
+2. **Write initial `triage-state.json`.** Construct the JSON object in memory first. If resuming (resume flag set in Input Parsing step 4), use the loaded `decisions` map; otherwise use `{}`. Always compute `finding_order` from the current sort order. Then write to `ai-swap/pr-review-$ARGUMENTS/triage-state.json`:
+
+   ```json
+   {
+     "finding_order": ["<hash1>", "<hash2>", ...],
+     "decisions": {}
+   }
+   ```
+
+   If the write fails, warn the user but continue — triage will still work, just without checkpoint protection.
+
 ### Triage Loop
 
 For each finding in sorted order:
