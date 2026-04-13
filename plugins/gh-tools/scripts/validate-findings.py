@@ -21,7 +21,7 @@ FINDINGS_SCHEMA = {
         "pr": {"type": "integer", "minimum": 1},
         "repo": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
         "head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-        "input_sources": {"type": "array", "items": {"type": "string"}},
+        "input_sources": {"type": "array", "items": {"type": "string"}, "minItems": 1},
         "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
     },
     "$defs": {

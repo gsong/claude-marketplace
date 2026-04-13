@@ -255,6 +255,12 @@ class TestCrossFieldRules:
         p = _write_json(tmp_path, doc)
         assert validate_file(p) == []
 
+    def test_triage_empty_input_sources_rejected(self, tmp_path):
+        doc = _minimal_doc(source="triage", input_sources=[])
+        p = _write_json(tmp_path, doc)
+        errors = validate_file(p)
+        assert any("input_sources" in e for e in errors)
+
 
 # ---------------------------------------------------------------------------
 # File collection
