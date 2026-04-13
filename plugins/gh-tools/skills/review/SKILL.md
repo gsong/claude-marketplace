@@ -183,9 +183,7 @@ Wait for the synthesis agent to complete before proceeding.
 After the synthesis agent completes, the orchestrator (you) verifies the output:
 
 1. Check that `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` exists: `ls ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`
-2. **Check for wrong filename:** `ls ai-swap/pr-review-$ARGUMENTS/findings.json` — if this file exists:
-   - If `findings-gh-review.json` does NOT exist: the synthesis agent used the wrong name. Rename it: `mv ai-swap/pr-review-$ARGUMENTS/findings.json ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` and warn the user.
-   - If `findings-gh-review.json` ALSO exists: `findings.json` is likely from a previous triage run containing the user's curated decisions. **Do not auto-delete.** Warn the user and ask (via AskUserQuestion) whether to delete it or keep it. It won't interfere with the new review output, but may be stale.
+2. **Check for stale triage output:** `ls ai-swap/pr-review-$ARGUMENTS/findings.json` — if this file exists alongside `findings-gh-review.json`: `findings.json` is likely from a previous triage run containing the user's curated decisions. **Do not auto-delete.** Warn the user and ask (via AskUserQuestion) whether to delete it or keep it. It won't interfere with the new review output, but may be stale.
 3. If `findings-gh-review.json` is still missing after step 2: report the failure to the user. Show what the synthesis agent returned so the user can debug.
 4. If the file exists:
    - **Run the schema validator** (the synthesis agent may have skipped it):
