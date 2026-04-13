@@ -12,8 +12,16 @@ Investigate and triage code review findings for PR #$ARGUMENTS.
 `$ARGUMENTS` is a PR number. The review directory is `ai-swap/pr-review-$ARGUMENTS/`.
 
 1. Glob for `findings-*.json` in the directory (this matches `findings-gh-review.json`, `findings-codex.json`, etc. but NOT `findings.json` which is triage's own output).
-2. If no `findings-*.json` files are found, stop with: "No source findings found. Run `/gs:gh-tools:review $ARGUMENTS` and/or `/gs:codex-tools:review $ARGUMENTS` first."
-3. If a previous `findings.json` exists in the directory, ask the user (via AskUserQuestion): "Previous triage output found. Start fresh from source findings, or abort so you can use the existing curated output?" Options: "Start fresh" (rebuild from source files), "Abort" (stop triage, keep existing findings.json). If the user chooses to start fresh, proceed normally. If abort, stop.
+2. If no `findings-*.json` files are found:
+   - If `triage-state.json` exists in the directory, delete it silently (`rm -f`).
+   - Stop with: "No source findings found. Run `/gs:gh-tools:review $ARGUMENTS` and/or `/gs:codex-tools:review $ARGUMENTS` first."
+3. If a previous `findings.json` exists in the directory, ask the user (via AskUserQuestion): "Previous triage output found. Start fresh from source findings, or abort so you can use the existing curated output?" Options: "Start fresh" (rebuild from source files), "Abort" (stop triage, keep existing findings.json). If the user chooses to start fresh, also delete `triage-state.json` silently (`rm -f ai-swap/pr-review-$ARGUMENTS/triage-state.json`) before proceeding. If abort, stop.
+4. If `triage-state.json` exists in the directory:
+   - Attempt to parse it as JSON. If unparseable, delete it silently (`rm -f`) and continue as if it didn't exist. If the parsed JSON is missing the `decisions` object or `finding_order` array, also treat it as corrupt: delete silently and continue.
+   - Read the `decisions` object and the `finding_order` array.
+   - Ask the user (via AskUserQuestion): "Found partial triage progress ({count of decisions}/{count of finding_order} findings decided in prior session). Resume where you left off, or start fresh?" Options: "Resume" (carry forward previous decisions), "Start fresh" (delete state file, triage from scratch).
+   - **Resume**: Set a resume flag and store the loaded `decisions` map for Phase 3. Proceed to Phase 1 and Phase 2 normally (they are automated and idempotent).
+   - **Start fresh**: Delete `triage-state.json` (`rm -f`) and proceed normally.
 
 ## Setup
 
