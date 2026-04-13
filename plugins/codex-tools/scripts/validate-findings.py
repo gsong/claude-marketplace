@@ -1,0 +1,1 @@
+../../gh-tools/scripts/validate-findings.py
