@@ -10,7 +10,7 @@ Distribute uncommitted changes across the current branch's commits via fixup, cr
 ## 1. Pre-flight checks
 
 1. Run `git status --porcelain` — if there are no uncommitted changes (modified, untracked, or deleted files), stop and inform the user
-2. Run `git diff --cached --quiet` — if there are already-staged changes, warn the user that this command will take control of the index and confirm before proceeding
+2. Run `git diff --cached --quiet` — if there are already-staged changes, stop the skill and tell the user to stash or commit them first. This skill takes exclusive control of the index to safely verify each fixup's contents; a pre-existing staged layout (e.g., partial hunks from `git add -p`) cannot survive the per-group staging and recovery cycle.
 
 ## 2. Determine branch scope
 
@@ -42,11 +42,19 @@ Group all matched files by their target commit SHA.
 
 ## 4. Create fixup commits
 
+Before the loop, capture the starting HEAD sha: `start_sha=$(git rev-parse HEAD)`. This lets the skill cleanly unwind every fixup created during this run if any verification fails.
+
 For each target commit group:
 
 1. Stage the relevant files with `git add <files>` (this also stages deletions when the file is absent from the working tree)
-2. If the changes meaningfully alter the commit's purpose or scope, use `git commit --fixup=reword:<SHA>` to update the message
+2. If the changes meaningfully alter the commit's purpose or scope, compose a new commit message reflecting the combined change and run `git commit --fixup=amend:<SHA> -m "<new message>"`. This creates an `amend!` commit that squashes the staged content **and** replaces the target's message on rebase.
+   - Do **not** use `--fixup=reword:<SHA>` here — `reword:` is shorthand for `--fixup=amend:<SHA> --only` and silently ignores staged content, leaving it to leak into a subsequent commit.
+   - If `-m` is rejected (older git), fall back to two steps: `GIT_EDITOR=true git commit --fixup=amend:<SHA>` then `git commit --amend -m "<new message>"`. The `amend!` commit's own message is what replaces the target's on autosquash.
 3. Otherwise, use `git commit --fixup <SHA>`
+4. **Verify the fixup captured the expected files.** Run `git show --name-only --format= HEAD` and compare against the files you just staged for this group. If the lists differ (missing or extra paths):
+   - Run `git reset --mixed <start_sha>` to unwind every fixup commit created during this run (including earlier groups that already succeeded). This restores HEAD to its pre-skill state and leaves all changes unstaged in the working tree — nothing is lost.
+   - Tell the user: `Fixup for <SHA> captured <actual> but expected <staged>. I've unwound all fixups from this run; your changes are back in the working tree. Use the gs:git-tools:commit skill to commit them manually.`
+   - Stop the skill — do not continue iterating and do not proceed to step 6.
 
 ## 5. Create new commits
 
