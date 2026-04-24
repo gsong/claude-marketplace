@@ -13,6 +13,11 @@ Delegate tasks to OpenAI's Codex agent through the codex:rescue runtime.
 
 Use `AskUserQuestion` to collect:
 
+**Model** — ask which Codex model to use:
+
+- `gpt-5.4` — everyday coding (Recommended)
+- `gpt-5.5` — frontier model for complex work
+
 **Reasoning effort** — ask the level:
 
 - `low` — fast responses
@@ -47,7 +52,8 @@ Use the Agent tool to hand the task to Codex:
 
 - Set `subagent_type` to `"codex:codex-rescue"`
 - Pass the assembled self-contained prompt as the agent prompt
-- If the user chose non-default effort, append `--effort <level>` as a CLI flag (not in the prompt text — rescue passes it through to the companion script's argument parser)
+- Append `--model <slug>` as a CLI flag matching the user's choice (not in the prompt text — rescue passes it through to the companion script's argument parser)
+- If the user chose non-default effort, append `--effort <level>` as a CLI flag
 - If the user chose `write` sandbox mode, the rescue agent adds `--write` by default — no action needed
 - If the user chose `read-only`, clearly state the read-only intent in the prompt (e.g., "this is a read-only task, no edits") so rescue omits `--write`
 - For complex or long-running tasks, set `run_in_background: true`

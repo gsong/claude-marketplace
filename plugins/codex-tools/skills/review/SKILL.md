@@ -12,11 +12,22 @@ specialized focus area.
 
 - **Required:** PR number (first positional argument)
 - **Optional flags:**
-  - `--model <model>` — Codex model (passed through to adversarial-review)
+  - `--model <model>` — Codex model (passed through to adversarial-review). If omitted, the skill prompts for one.
 
 ## Process
 
 Follow these steps precisely:
+
+### Step 0: Model Selection
+
+If `--model <model>` was passed as a flag, use that value and skip this step.
+
+Otherwise, use `AskUserQuestion` to ask which Codex model to use:
+
+- `gpt-5.4` — everyday coding (Recommended)
+- `gpt-5.5` — frontier model for complex work
+
+Use the selected slug for the `--model` value passed to each agent in Step 2.
 
 ### Step 1: Eligibility & Context Gathering
 
@@ -78,7 +89,7 @@ Launch **3 parallel agents** (using the Agent tool, `subagent_type: "general-pur
 - The base ref from Step 1.5
 - The PR context block
 - Its agent-specific focus text
-- The `--model` flag if one was passed to the skill
+- The model slug resolved in Step 0 (or passed via `--model`)
 
 Each agent:
 
@@ -91,7 +102,7 @@ node "<companion-path>" adversarial-review --base <base-ref> --wait -- "$(cat <t
 
 - `--wait` ensures foreground execution (no interactive prompts)
 - `--` separates flags from focus text to prevent misparse
-- If `--model` was passed, add it before `--`: `--model <model>`
+- Always add `--model <slug>` before `--` using the resolved model from Step 0
 
 3. Captures the structured JSON output (verdict, findings, next_steps)
 4. For any external issue references encountered, attempts resolution using available skills/tools
