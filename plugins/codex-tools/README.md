@@ -4,10 +4,11 @@ OpenAI Codex CLI integration for Claude Code — parallel PR reviews and task de
 
 ## Skills
 
-| Skill                   | Trigger                                                                          | Description                                                                                              |
-| ----------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `gs:codex-tools:review` | "Codex code review", "GPT-based review", `/gs:codex-tools:review`                | Launch 3 parallel Codex adversarial reviews for a PR — correctness, integration safety, and test quality |
-| `gs:codex-tools:run`    | "run Codex", "use Codex CLI", "second opinion from Codex", `/gs:codex-tools:run` | Delegate tasks to Codex via codex:rescue runtime                                                         |
+| Skill                    | Trigger                                                                          | Description                                                                                              |
+| ------------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `gs:codex-tools:discuss` | "discuss with Codex", "reach consensus with Codex", `/gs:codex-tools:discuss`    | Multi-round, two-model dialogue between Claude and Codex toward consensus on a topic                     |
+| `gs:codex-tools:review`  | "Codex code review", "GPT-based review", `/gs:codex-tools:review`                | Launch 3 parallel Codex adversarial reviews for a PR — correctness, integration safety, and test quality |
+| `gs:codex-tools:run`     | "run Codex", "use Codex CLI", "second opinion from Codex", `/gs:codex-tools:run` | Delegate tasks to Codex via codex:rescue runtime                                                         |
 
 ## Prerequisites
 
