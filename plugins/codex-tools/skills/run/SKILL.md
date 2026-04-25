@@ -15,8 +15,8 @@ Use `AskUserQuestion` to collect:
 
 **Model** — ask which Codex model to use:
 
-- `gpt-5.4` — everyday coding (Recommended)
-- `gpt-5.5` — frontier model for complex work
+- `gpt-5.5` — frontier model for complex work (Recommended)
+- `gpt-5.4` — everyday coding
 
 **Reasoning effort** — ask the level:
 

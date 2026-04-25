@@ -24,8 +24,8 @@ If `--model <model>` was passed as a flag, use that value and skip this step.
 
 Otherwise, use `AskUserQuestion` to ask which Codex model to use:
 
-- `gpt-5.4` — everyday coding (Recommended)
-- `gpt-5.5` — frontier model for complex work
+- `gpt-5.5` — frontier model for complex work (Recommended)
+- `gpt-5.4` — everyday coding
 
 Use the selected slug for the `--model` value passed to each agent in Step 2.
 
