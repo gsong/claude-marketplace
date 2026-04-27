@@ -53,7 +53,9 @@ Gather and embed:
 
 Derive `<slug>` from the topic: lowercase, kebab-case, alphanumerics and hyphens only, truncated to ≤40 chars. Example: topic `"Postgres vs DynamoDB for the events table"` → `postgres-vs-dynamodb-for-the-events-tab`.
 
-The output path will be `ai-swap/discuss-<slug>/consensus.md`.
+**Resolve destination directory.** List existing subdirectories under `ai-swap/`. If one is a natural fit for this topic (e.g. an existing brainstorming folder for the same task — `ai-swap/add-user-auth/` when discussing OAuth vs JWT for add-user-auth), reuse it so the consensus sits alongside any prior `spec.md` / `plan.md`. Otherwise, fall back to a new `ai-swap/discuss-<slug>/` folder.
+
+The output path will be `<resolved-dir>/consensus.md`.
 
 ### Step 3: Round 1 (fresh thread)
 
@@ -129,9 +131,9 @@ If total rounds reach 15 without consensus, force a "stuck" checkpoint: present 
 
 ### Step 6: Consensus output
 
-Create the directory if needed: `mkdir -p ai-swap/discuss-<slug>/`.
+Create the directory if needed: `mkdir -p <resolved-dir>/`.
 
-Write `ai-swap/discuss-<slug>/consensus.md`:
+Write `<resolved-dir>/consensus.md`:
 
 ```markdown
 # Consensus: <topic>
