@@ -1,7 +1,7 @@
 {
   "name": "repo-maintenance",
   "description": "Dependency upgrades and CI/CD security auditing for project repositories",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "author": {
     "name": "George Song"
   },
@@ -11,6 +11,7 @@
   "keywords": [
     "dependencies",
     "pnpm",
+    "mise",
     "security",
     "zizmor",
     "maintenance",
