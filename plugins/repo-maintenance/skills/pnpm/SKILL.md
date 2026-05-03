@@ -44,8 +44,8 @@ Check both config files and normalize to minutes:
 **Combine:**
 
 - If both exist, use the **larger** (stricter) value
-- If neither exists, inform the user: "No minimumReleaseAge found in pnpm-workspace.yaml or renovate.json — using latest available version."
-- Report the effective constraint to the user (e.g., "Using minimumReleaseAge of 3 days (4320 minutes) from renovate.json")
+- If neither exists, default to **7 days** (10080 minutes) and inform the user: "No minimumReleaseAge found in pnpm-workspace.yaml or renovate.json — defaulting to a 7-day cool-down."
+- Report the effective constraint to the user (e.g., "Using minimumReleaseAge of 3 days (4320 minutes) from renovate.json" or "Using 7-day default cool-down (10080 minutes)")
 
 ### 4. Resolve target version
 
@@ -61,7 +61,7 @@ This returns a JSON object mapping version strings to ISO 8601 release timestamp
 2. Filter out:
    - Pre-release versions (any version containing `-alpha`, `-beta`, `-rc`, or similar suffixes)
    - The special keys `created` and `modified`
-3. If minimumReleaseAge is set, filter to versions where `now - release_date >= minimumReleaseAge` in minutes
+3. Filter to versions where `now - release_date >= minimumReleaseAge` in minutes (using the resolved constraint, which is always set — either from config or the 7-day default)
 4. From remaining versions, select the one with the highest semver
 5. If the selected version equals the current version, inform the user: "pnpm is already at the latest eligible version ({version})." and stop
 6. Report the resolved version and its release date
@@ -71,7 +71,7 @@ This returns a JSON object mapping version strings to ISO 8601 release timestamp
 1. Check that the version exists in the registry data — if not, abort: "Version {version} not found in npm registry"
 2. If the version contains a pre-release suffix (alpha, beta, rc), warn: "Warning: {version} is a pre-release version."
 3. Calculate the version's age from its release date
-4. If minimumReleaseAge is set and the version's age is less than the constraint, warn with specifics: "Warning: Version {version} was released {age} ago but minimumReleaseAge requires {constraint}." Then use AskUserQuestion to ask whether to proceed anyway
+4. If the version's age is less than the resolved minimumReleaseAge (config or 7-day default), warn with specifics: "Warning: Version {version} was released {age} ago but minimumReleaseAge requires {constraint}." Then use AskUserQuestion to ask whether to proceed anyway
 5. Report the target version and its release date
 
 ### 5. Find and update all pnpm version references
