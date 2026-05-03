@@ -26,18 +26,18 @@ Upgrade GitHub Actions workflow dependencies using [actions-up](https://github.c
    - Convert: days × 1, hours ÷ 24 (round up), minutes ÷ 1440 (round up)
    - Examples: `"3 days"` → 3, `"72 hours"` → 3, `"4320 minutes"` → 3
 5. **If multiple values found**, use the **largest** (strictest)
-6. **If none found**, inform the user: "No minimumReleaseAge found in renovate.json — updating to latest available versions."
-7. **Report** the effective constraint to the user (e.g., "Using minimumReleaseAge of 3 days from renovate.json")
+6. **If none found**, default to **7 days** and inform the user: "No minimumReleaseAge found in renovate.json — defaulting to a 7-day cool-down."
+7. **Report** the effective constraint to the user (e.g., "Using minimumReleaseAge of 3 days from renovate.json" or "Using 7-day default cool-down")
 
 ### 3. Dry-run preview
 
 Run with sandbox disabled:
 
 ```bash
-GITHUB_TOKEN=$(gh auth token) npx actions-up --yes --dry-run [--min-age N]
+GITHUB_TOKEN=$(gh auth token) npx actions-up --yes --dry-run --min-age N
 ```
 
-- Include `--min-age N` only if a minimumReleaseAge was resolved (N = days)
+- `N` is the resolved minimumReleaseAge in days (or `7` if none was found in renovate.json)
 - Present the full output to the user
 - If the output shows no updates available, inform the user and stop
 
@@ -54,7 +54,7 @@ Ask the user if they want to apply the updates shown in the dry-run. Use the Ask
 If the user confirms, run with sandbox disabled:
 
 ```bash
-GITHUB_TOKEN=$(gh auth token) npx actions-up --yes [--min-age N]
+GITHUB_TOKEN=$(gh auth token) npx actions-up --yes --min-age N
 ```
 
 - Use the same `--min-age` value as the dry-run
