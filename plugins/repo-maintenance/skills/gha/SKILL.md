@@ -15,19 +15,30 @@ Upgrade GitHub Actions workflow dependencies using [actions-up](https://github.c
 
 ### 2. Resolve minimumReleaseAge
 
-1. **Read `renovate.json`** if it exists in the project root
-2. **Check top-level `minimumReleaseAge`** — this applies globally to all packages
-3. **Check `packageRules` array** for entries matching GitHub Actions:
-   - Look for entries where `matchManagers` includes `"github-actions"`
-   - Also check `matchPackagePatterns` or `matchPackageNames` for action patterns (e.g., `"actions/*"`)
-   - Extract the `minimumReleaseAge` from matching rules
-4. **Parse duration strings to days:**
+Check both config files and normalize to days (round up). The pnpm-workspace.yaml value is treated as a project-wide cool-down hint even though it natively scopes to pnpm — it signals the maintainer's general comfort threshold for new releases.
+
+**`renovate.json`** (if it exists in the project root):
+
+1. Check top-level `minimumReleaseAge` — applies globally to all packages
+2. Check `packageRules` array for entries matching GitHub Actions:
+   - Entries where `matchManagers` includes `"github-actions"`
+   - Or `matchPackagePatterns` / `matchPackageNames` referencing action patterns (e.g., `"actions/*"`)
+   - Extract `minimumReleaseAge` from matching rules
+3. Parse duration strings to days:
    - Split on space: `{number} {unit}`
    - Convert: days × 1, hours ÷ 24 (round up), minutes ÷ 1440 (round up)
    - Examples: `"3 days"` → 3, `"72 hours"` → 3, `"4320 minutes"` → 3
-5. **If multiple values found**, use the **largest** (strictest)
-6. **If none found**, default to **7 days** and inform the user: "No minimumReleaseAge found in renovate.json — defaulting to a 7-day cool-down."
-7. **Report** the effective constraint to the user (e.g., "Using minimumReleaseAge of 3 days from renovate.json" or "Using 7-day default cool-down")
+
+**`pnpm-workspace.yaml`** (if it exists in the project root):
+
+- Look for a top-level `minimumReleaseAge` field — integer in minutes (e.g., `1440` = 1 day)
+- Convert to days, rounding up: `minutes ÷ 1440` (e.g., `1440` → 1, `4320` → 3, `10080` → 7)
+
+**Combine:**
+
+1. If multiple values found across sources, use the **largest** (strictest)
+2. If none found, default to **7 days** and inform the user: "No minimumReleaseAge found in renovate.json or pnpm-workspace.yaml — defaulting to a 7-day cool-down."
+3. Report the effective constraint and its source to the user (e.g., "Using minimumReleaseAge of 3 days from renovate.json", "Using 3 days from pnpm-workspace.yaml as a hint", or "Using 7-day default cool-down")
 
 ### 3. Dry-run preview
 
