@@ -1,6 +1,6 @@
 ---
 name: gs:ai-docs:audit
-description: "Comprehensive audit of docs-ai/ documentation using coordinated agent teams. Use when the user wants a full review of all documentation for accuracy, completeness, and quality. Heavier than docs-ai-update — use for periodic deep reviews, not routine maintenance."
+description: "Comprehensive audit of docs-ai/ documentation using coordinated agent teams. Use when the user wants a full review of all documentation for accuracy, completeness, and quality. Heavier than /gs:ai-docs:update — use for periodic deep reviews, not routine maintenance."
 ---
 
 # Audit Docs AI
@@ -38,7 +38,7 @@ Spawn a single analyst agent (Explore type, read-only). Include the shared analy
 
 !`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/project-analysis-prompt.md"`
 
-> **Resource fallback:** If the above is empty, the plugin may not be installed correctly. Try reading the resource relative to the skill directory: `$(dirname "${CLAUDE_SKILL_DIR}")/../resources/project-analysis-prompt.md`.
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/project-analysis-prompt.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
 In addition to the project analysis, the analyst must also evaluate the existing docs:
 
@@ -50,7 +50,7 @@ In addition to the project analysis, the analyst must also evaluate the existing
 
   !`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-ai-readme-format.md"`
 
-  > **Resource fallback:** If the above is empty, the plugin may not be installed correctly. Try reading the resource relative to the skill directory: `$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-ai-readme-format.md`.
+  > **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/docs-ai-readme-format.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
 The analyst returns structured findings:
 

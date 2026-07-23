@@ -86,7 +86,7 @@ Spawn writer agents (one per affected doc, parallelized). Each writer:
 - Reads current doc content + changed source files
 - Updates doc to reflect new reality, preserving accurate existing content
 - Uses `file::Symbol` references throughout
-- If creating a new doc: auto-populate with real content using the same approach as docs-ai-init (read source files, write content, use rich stubs for gaps)
+- If creating a new doc: auto-populate with real content using the same approach as gs:ai-docs:init (read source files, write content, use rich stubs for gaps)
 
 ### 6. Update README.md
 
