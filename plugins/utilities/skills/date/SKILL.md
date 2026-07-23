@@ -1,6 +1,6 @@
 ---
 name: gs:utilities:date
-description: Use this skill when you need to calculate dates or datetimes based on natural language descriptions. Examples:\n\n<example>\nContext: User needs to know what date it was 7 days ago for a git log command.\nuser: "Show me commits from last week"\nassistant: "I need to calculate the date from 7 days ago. Let me use the /gs:utilities:date skill."\n<Skill tool call: "/gs:utilities:date">\n</example>\n\n<example>\nContext: User is writing code that needs a timestamp from 3 hours ago.\nuser: "I need to filter logs from the last 3 hours"\nassistant: "I'll use the /gs:utilities:date skill to get the timestamp from 3 hours ago."\n<Skill tool call: "/gs:utilities:date">\n</example>\n\n<example>\nContext: User mentions a relative date in their request.\nuser: "Create a report for last month's data"\nassistant: "I need to determine the date range for last month. Let me use the /gs:utilities:date skill."\n<Skill tool call: "/gs:utilities:date">\n</example>\n\n<example>\nContext: Proactively calculating dates when scheduling or planning.\nuser: "Schedule this task for next Monday"\nassistant: "I'll use the /gs:utilities:date skill to determine next Monday's date."\n<Skill tool call: "/gs:utilities:date">\n</example>
+description: Calculate dates and datetimes from natural-language descriptions — relative days/weeks/months/years, weekdays, hours, timestamps, and date ranges — using macOS `date`. Use whenever a request involves a relative or computed date, e.g. "commits from last week", "logs from the last 3 hours", "last month's report", "schedule this for next Monday", or "30 days ago", including proactively when scheduling or planning. Return the computed value, then continue the task that needed it.
 tools: Bash, Read, Glob, Grep
 ---
 
@@ -22,6 +22,7 @@ When this calculation is part of a larger task, use the value to continue that t
 
 ## Command Standards
 
+- BSD/macOS `date` only: these recipes rely on `-v` flags. GNU/Linux `date` uses different syntax (`-d "7 days ago"`) and will error on `-v`; it is not supported here.
 - Use BSD date syntax (macOS compatible)
 - Use `-v` flags for relative date calculations
 - Use `-I` or `-Iseconds` for ISO 8601 formats
