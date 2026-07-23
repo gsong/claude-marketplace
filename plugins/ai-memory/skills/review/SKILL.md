@@ -77,7 +77,7 @@ Identify gaps that cause repeated questions or mistakes
 
 ### Recommended Rewrite
 
-Provide an optimized version of the entire CLAUDE.md file
+Offer to produce an optimized version of the entire CLAUDE.md file, and produce one when the user asks. Default to the targeted before/after edits above rather than emitting a full rewrite unprompted — for large files a wholesale rewrite risks changing more than the user wanted.
 
 ## Principles
 

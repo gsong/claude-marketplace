@@ -27,7 +27,8 @@ Capture a succinct summary of the current session's work to enable future Claude
 
 4. **Create memory document:**
    - Filename: `ai-swap/memories/{YYYY-MM-DD}-{topic-slug}.md`
-   - Use ISO date format (e.g., `2025-10-08-commodity-routing.md`)
+   - `ai-swap/memories/` is a local, git-ignored scratch location for these notes. If the project has no such convention, ask the user where memories should live before writing.
+   - Use ISO date format (e.g., `2025-10-08-commodity-routing.md`). Use the `/gs:utilities:date` skill to get today's date rather than guessing it.
    - Follow structure below
 
 ## Document Structure
@@ -49,8 +50,8 @@ Capture a succinct summary of the current session's work to enable future Claude
 
 ## Testing/Verification
 
-- ✅ {What was tested}
-- ✅ {What was verified}
+- {What was tested}
+- {What was verified}
 
 ## Future Considerations
 
