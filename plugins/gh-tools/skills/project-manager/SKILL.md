@@ -66,27 +66,16 @@ STATUS_MAPPINGS=$(echo "$STATUS_FIELD" | jq -r '.options[] | "- \"\(.name | asci
 1. Create `.claude/agents/` directory if it doesn't exist
 2. If `github-project-manager.md` already exists, ask for confirmation before overwriting
 3. Generate the agent file with extracted project IDs, status mappings, and pre-configured commands
-4. Write to `.claude/agents/gs:gh-tools:project-manager.md`
+4. Write to `.claude/agents/github-project-manager.md`
 5. Confirm creation and provide usage instructions
 
 ## Important Guidelines
 
-### Always:
+Beyond the numbered Process steps, hold to these non-obvious constraints:
 
-- Verify GitHub CLI is available before proceeding
-- Parse the project URL to extract owner and project number
-- Use GitHub CLI to fetch all project information automatically
-- Generate proper status mappings from GitHub API data
-- Create the .claude/agents/ directory if it doesn't exist
-- Provide clear next steps after agent creation
-
-### Never:
-
-- Proceed without a valid project URL argument
-- Create the agent without validating the environment
-- Proceed if GitHub CLI authentication fails
-- Overwrite existing github-project-manager.md without confirmation
-- Make assumptions about project structure or status names
+- **Stop if `gh` auth fails** — every generated command depends on it; a half-authenticated run produces an agent with empty IDs.
+- **Confirm before overwriting an existing `github-project-manager.md`** — the user may have hand-edited it, and the write is destructive.
+- **Never guess project structure or status names** — derive every ID and status option from the GitHub API data, since a wrong mapping silently moves issues to the wrong column.
 
 ## Error Handling
 
@@ -104,7 +93,7 @@ The command will generate an agent similar to:
 
 ```yaml
 ---
-name: gs:gh-tools:project-manager
+name: github-project-manager
 description: Manage GitHub project board operations for moving issues between status columns
 tools: Bash
 ---

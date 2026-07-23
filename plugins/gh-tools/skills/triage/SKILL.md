@@ -93,7 +93,7 @@ Report: "Loaded {N} findings from {M} source(s): {comma-separated source IDs}. A
 
 ## Phase 2: Investigate Findings
 
-For each finding in the merged list, dispatch an investigation agent (Agent tool, subagent_type: "general-purpose"). **Launch ALL agents in a single message** so they run in parallel.
+For each finding in the merged list, dispatch an investigation agent (Agent tool, subagent_type: "general-purpose"). **Launch ALL agents in a single message** so they run in parallel. On very large PRs (roughly 40+ findings), cap concurrency by launching in batches (e.g. 15-20 agents per message, waiting for each batch to finish before the next) to avoid overloading the session.
 
 Each agent receives this prompt (fill in finding-specific values):
 
