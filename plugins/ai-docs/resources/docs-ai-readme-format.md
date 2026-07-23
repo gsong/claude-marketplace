@@ -5,7 +5,7 @@ that generate or validate README.md must follow this format.
 
 ## Purpose
 
-README.md is the documentation map — the single entry point that docs-ai-lookup uses to
+README.md is the documentation map — the single entry point that gs:ai-docs:lookup uses to
 route questions to the right documentation files. It must be both human-readable and
 structured enough for an AI agent to parse reliably.
 

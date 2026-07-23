@@ -14,7 +14,7 @@ The question to answer: $ARGUMENTS
 
 !`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-ai-readme-format.md"`
 
-> **Resource fallback:** If the above is empty, the plugin may not be installed correctly. Try reading the resource relative to the skill directory: `$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-ai-readme-format.md`.
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/docs-ai-readme-format.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
 ## Process
 

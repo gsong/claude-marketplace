@@ -9,7 +9,7 @@ Bootstrap a `docs-ai/` directory structure with auto-populated content for Claud
 
 ## Goal
 
-Create AI-optimized documentation that enables effective Claude Code assistance via the docs-ai-lookup skill. Unlike v1, this produces **real content** (not just TODO stubs) by reading source files identified during analysis.
+Create AI-optimized documentation that enables effective Claude Code assistance via the gs:ai-docs:lookup skill. This produces **real content** (not just TODO stubs) by reading source files identified during analysis.
 
 ## Process
 
@@ -36,7 +36,7 @@ Spawn an analyst subagent (Explore type, read-only). Include this shared analysi
 
 !`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/project-analysis-prompt.md"`
 
-> **Resource fallback:** If the above is empty, the plugin may not be installed correctly. Try reading the resource relative to the skill directory: `$(dirname "${CLAUDE_SKILL_DIR}")/../resources/project-analysis-prompt.md`.
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/project-analysis-prompt.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
 The analyst produces:
 
@@ -90,7 +90,7 @@ Load the canonical README format:
 
 !`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-ai-readme-format.md"`
 
-> **Resource fallback:** If the above is empty, the plugin may not be installed correctly. Try reading the resource relative to the skill directory: `$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-ai-readme-format.md`.
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/docs-ai-readme-format.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
 Populate `[docs-dir]/README.md` following this format exactly.
 
@@ -107,5 +107,5 @@ Show:
 ## Execution Notes
 
 - Create all files using Write tool
-- Do not create `.claude/agents/` or modify `.claude/CLAUDE.md` — the plugin handles docs-ai-lookup and reminders via its built-in skill and hook
+- Do not create `.claude/agents/` or modify `.claude/CLAUDE.md` — the plugin handles gs:ai-docs:lookup and reminders via its built-in skill and hook
 - Use `file::Symbol` references throughout (e.g., `src/store/useAppStore.ts::useAppStore`), not code blocks
