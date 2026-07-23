@@ -6,6 +6,8 @@ tools: Bash, Read, Glob, Grep
 
 Calculate the requested date or datetime using BSD `date` commands (macOS). Return only the calculated value. If a request is ambiguous (e.g., "last week" could mean 7 days ago or the previous calendar week), ask for clarification.
 
+Anchor every relative calculation to the actual current date rather than an assumed one. Let `date` read the clock (e.g. `date -v-7d`) instead of computing from a date you assume is today — this is what keeps the result correct regardless of when the skill runs.
+
 **This skill is a helper step.** After calculating and returning the date value, continue with whatever task prompted the calculation. Do not treat the date result as a final response.
 
 ## Output
@@ -37,12 +39,14 @@ When this calculation is part of a larger task, use the value to continue that t
 **Weekdays**: Use `-v+day` or `-v-day` (e.g., `-v+mon` for next Monday)
 **Hours**: Use `-v±NH` (e.g., `-v-3H` for 3 hours ago)
 **Minutes**: Use `-v±NM` (e.g., `-v+45M` for 45 minutes from now)
+**First day of month**: `-v1d` (e.g., `date -v-1m -v1d` for the first of last month)
+**Last day of month**: jump to the first of next month, then back a day (e.g., `date -v1d -v+1m -v-1d` for the last day of this month)
 
 ## Edge Cases
 
 - Month/year boundaries (e.g., "30 days ago" when current date is early in month)
 - Leap years when calculating year-relative dates
-- "Start/end of month" calculations (use `-v1d` for first day, calculate last day appropriately)
+- Weekday flags count _today_ as a match: `-v+mon` run on a Monday returns that same Monday, not the following one. When the user clearly means the _upcoming_ weekday, step forward a day first (e.g., `date -v+1d -v+mon`). The order of `-v` flags matters — they apply left to right, so `-v+1d -v+mon` and `-v+mon -v+1d` give different results.
 - Ambiguous requests like "last week" -- clarify before calculating
 
 Be concise. Lead with the value.
