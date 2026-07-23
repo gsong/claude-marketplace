@@ -1,6 +1,6 @@
 ---
 name: gs:gh-tools:review
-description: Use when the user wants a comprehensive code review for a GitHub pull request, or when the user invokes /gs:gh-tools:review with a PR number.
+description: Use when the user wants a comprehensive code review for a GitHub pull request, or when the user invokes /gs:gh-tools:review with a PR number. First step of the review → triage → post-comments pipeline.
 ---
 
 # PR Review

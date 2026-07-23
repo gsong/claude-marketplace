@@ -81,18 +81,18 @@ Use `uv run "$VALIDATOR" <file>` for all validation commands below.
 
    ### Must-fix
 
-   - [source: architecture & design] **`{path}:{line}`** — {body}...
+   - [source: architecture & design] **`{path}:{line}`** — {body}
 
    ### Should-fix
 
-   - [source: Correctness & Safety] **`{path}:{start_line}-{line}`** — {body}...
+   - [source: Correctness & Safety] **`{path}:{start_line}-{line}`** — {body}
 
    ### Nit
 
-   - **`{path}:{line}`** — {body}...
+   - **`{path}:{line}`** — {body}
    ```
 
-   Rules: each finding is a bullet with optional `[source: {agent_label from first source_detail entry}]` prefix, then ``**`{path}:{line}`**`` (or `{path}:{start_line}-{line}` for ranges) followed by `— {body}`. Group by severity (must-fix → should-fix → nit). Omit empty groups.
+   Rules: each finding is a bullet with optional `[source: {agent_label from first source_detail entry}]` prefix, then ``**`{path}:{line}`**`` (or `{path}:{start_line}-{line}` for ranges) followed by `— {body}`. Use the finding's **full** body text verbatim — do not truncate it. Group by severity (must-fix → should-fix → nit). Omit empty groups.
 
 5. If zero general-comment findings, delete any existing `general-comments.md`: `rm -f ai-swap/pr-review-$ARGUMENTS/general-comments.md`
 6. Report validation results:
