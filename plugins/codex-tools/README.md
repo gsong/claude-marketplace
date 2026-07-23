@@ -13,7 +13,7 @@ OpenAI Codex CLI integration for Claude Code — parallel PR reviews and task de
 ## Prerequisites
 
 - [OpenAI Codex CLI](https://github.com/openai/codex) — the `codex` command must be available in your PATH
-- codex plugin — the `codex:adversarial-review` command must be installed (provides the review engine). Install from the `openai-codex` marketplace.
+- codex plugin — provides the companion runtime the review skill shells out to via `node <companion> adversarial-review` (the review engine). Install from the `openai-codex` marketplace.
 
 ## Installation
 

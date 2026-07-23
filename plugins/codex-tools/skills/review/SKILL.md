@@ -97,7 +97,7 @@ Each agent:
 2. Invokes adversarial-review via Bash using the companion script path:
 
 ```bash
-node "<companion-path>" adversarial-review --base <base-ref> --wait -- "$(cat <temp-file>)"
+node "<companion-path>" adversarial-review --base <base-ref> --wait --model <slug> -- "$(cat <temp-file>)"
 ```
 
 - `--wait` ensures foreground execution (no interactive prompts)

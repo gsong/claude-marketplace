@@ -169,7 +169,7 @@ If the user aborts at a checkpoint, do not write `consensus.md`. Print: `Discuss
 
 - **Codex returns nothing or rescue fails:** present the error, ask via `AskUserQuestion` whether to retry the round, abort, or accept current state.
 - **AGREED/DISAGREE marker missing or malformed:** re-dispatch once with an explicit format reminder appended. If a second attempt also fails to produce a parseable marker, present Codex's raw response to the user via `AskUserQuestion` and ask them to judge whether Codex agrees.
-- **`--resume` fails (no thread found):** fall back to a fresh `task` call with a brief inline summary of prior rounds in the prompt. Print a warning so the user knows thread state was lost.
+- **`--resume` fails (no thread found):** fall back to a fresh Agent call with a brief inline summary of prior rounds in the prompt. Print a warning so the user knows thread state was lost.
 - **Round 1 fails outright:** abort with the codex-rescue stderr message. Suggest `/codex:setup` if Codex isn't installed.
 
 ## Notes
