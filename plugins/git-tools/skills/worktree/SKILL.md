@@ -24,6 +24,9 @@ The user will provide either:
    - If it describes restructuring/improving code → `refactor/`
    - If it describes performance improvements → `perf/`
    - If it describes styling changes → `style/`
+   - If it describes writing/updating docs → `docs/`
+   - If it describes adding/fixing tests → `test/`
+   - If it describes chores, tooling, or dependency work → `chore/`
    - Convert the intent to kebab-case
    - Combine prefix + kebab-case description
 
@@ -89,13 +92,19 @@ cd .worktrees/{short-dir-name} && mise trust
 cd .worktrees/{short-dir-name} && direnv allow
 ```
 
-5. If `package.json` exists in the new worktree, install dependencies:
+5. If `package.json` exists in the new worktree, install dependencies with the package manager indicated by the lockfile:
 
 ```bash
+# Detect the lockfile in the new worktree and run the matching command:
+#   pnpm-lock.yaml     → pnpm install
+#   package-lock.json  → npm install
+#   yarn.lock          → yarn
+#   bun.lockb          → bun install
+# If only package.json is present (no lockfile), fall back to pnpm install.
 cd .worktrees/{short-dir-name} && pnpm install
 ```
 
-Note: Execute each command separately. Do not chain them together with the worktree creation.
+Note: Run the worktree creation (Step 4.1) as its own step. Do not chain these setup commands onto the `git worktree add` command.
 
 ## Step 5: Report
 
