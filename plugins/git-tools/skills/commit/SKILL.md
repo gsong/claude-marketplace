@@ -49,7 +49,8 @@ Optional longer explanation of what changed and why.
 
 ## Important Notes
 
-- Never commit unless explicitly asked
+- Do not create the commit prematurely; finish the status/diff review and any lint/typecheck steps first
+- Only commit the changes the user asked for; leave unrelated changes staged or unstaged as they were
 - Check for sensitive information before committing
 - If pre-commit hooks modify files, amend the commit to include those changes
 - Do not push to remote unless explicitly requested
