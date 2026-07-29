@@ -14,6 +14,10 @@ You are an active participant, not a relay. You form your own position from the 
 - **Topic** (optional positional): the discussion topic. If absent, ask via `AskUserQuestion`.
 - `--rounds N` (optional flag): rounds per checkpoint. Default `3`. Min `1`, max `10`.
 
+## Model
+
+Always use `gpt-5.6-terra`. Do not ask the user to pick a model.
+
 ## Process
 
 ### Step 1: Gather parameters
@@ -23,11 +27,6 @@ Parse `--rounds` from the invocation if present. Otherwise default to `3`.
 If no topic was provided, use `AskUserQuestion` with a free-form text field to ask for it. The question should mention the current working directory.
 
 Then use `AskUserQuestion` to collect:
-
-**Model** — which Codex model to use:
-
-- `gpt-5.5` — frontier model for complex work (Recommended)
-- `gpt-5.4` — everyday coding
 
 **Reasoning effort** — the level:
 
@@ -65,7 +64,7 @@ Dispatch the codex-rescue agent with a fresh task. Use the `Agent` tool:
 
 - `subagent_type`: `"codex:codex-rescue"`
 - `run_in_background`: `false` (need synchronous response)
-- Append CLI flags: `--model <slug> --effort <level>`. Add `--write` only if user picked `write` sandbox; otherwise state read-only intent in the prompt.
+- Append CLI flags: `--model gpt-5.6-terra --effort <level>`. Add `--write` only if user picked `write` sandbox; otherwise state read-only intent in the prompt.
 
 Prompt template (round 1):
 

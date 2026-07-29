@@ -11,23 +11,14 @@ specialized focus area.
 ## Arguments
 
 - **Required:** PR number (first positional argument)
-- **Optional flags:**
-  - `--model <model>` — Codex model (passed through to adversarial-review). If omitted, the skill prompts for one.
+
+## Model
+
+Always use `gpt-5.6-terra`. Do not ask the user to pick a model, and ignore any `--model` flag passed to the skill — there is no model override.
 
 ## Process
 
 Follow these steps precisely:
-
-### Step 0: Model Selection
-
-If `--model <model>` was passed as a flag, use that value and skip this step.
-
-Otherwise, use `AskUserQuestion` to ask which Codex model to use:
-
-- `gpt-5.5` — frontier model for complex work (Recommended)
-- `gpt-5.4` — everyday coding
-
-Use the selected slug for the `--model` value passed to each agent in Step 2.
 
 ### Step 1: Eligibility & Context Gathering
 
@@ -89,7 +80,6 @@ Launch **3 parallel agents** (using the Agent tool, `subagent_type: "general-pur
 - The base ref from Step 1.5
 - The PR context block
 - Its agent-specific focus text
-- The model slug resolved in Step 0 (or passed via `--model`)
 
 Each agent:
 
@@ -97,12 +87,12 @@ Each agent:
 2. Invokes adversarial-review via Bash using the companion script path:
 
 ```bash
-node "<companion-path>" adversarial-review --base <base-ref> --wait --model <slug> -- "$(cat <temp-file>)"
+node "<companion-path>" adversarial-review --base <base-ref> --wait --model gpt-5.6-terra -- "$(cat <temp-file>)"
 ```
 
 - `--wait` ensures foreground execution (no interactive prompts)
 - `--` separates flags from focus text to prevent misparse
-- Always add `--model <slug>` before `--` using the resolved model from Step 0
+- Always add `--model gpt-5.6-terra` before `--`
 
 3. Captures the structured JSON output (verdict, findings, next_steps)
 4. For any external issue references encountered, attempts resolution using available skills/tools
