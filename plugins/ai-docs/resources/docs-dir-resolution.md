@@ -29,6 +29,8 @@ Each hit is a candidate with its own `[docs-dir]` and `[path-root]`.
   2. The `[path-root]` that contains the files being changed or asked about — for `gs:ai-docs:update`, the paths from the git diff.
   3. The working directory itself, if a candidate sits at it.
 
+  Then confirm the choice against the candidate's topic index before you answer from it: if its README has no row matching the question, fall through to the other candidates rather than reporting the topic undocumented. A monorepo root and its workspaces often each hold a docs directory, and only one of them covers any given topic — stopping at the first plausible candidate is how a documented topic looks missing.
+
   Read-only skills (`lookup`, `check`) may cover several candidates when the task genuinely spans them; say which ones you used. Skills that write (`update`, `audit`, `init`) must settle on one — ask the user when steps 1–3 leave it ambiguous, because writing to the wrong docs tree is worse than a question.
 
 Report the choice as `[docs-dir]` (path root `[path-root]`) so the user can see a mis-resolution immediately. Several candidates in a monorepo is the normal, correct layout — do not warn about it. Warn only when candidates sit at the *same* path root, e.g. both `docs-ai/` and `docs/ai/` in one package: "Multiple docs directories at [path-root]: [list]. Using [chosen]. Consider consolidating to a single location."
