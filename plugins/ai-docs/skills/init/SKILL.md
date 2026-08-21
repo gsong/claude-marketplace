@@ -15,20 +15,23 @@ Create AI-optimized documentation that enables effective Claude Code assistance 
 
 ### 1. Check Prerequisites
 
-Search for existing docs in all supported locations, in order (the same list every other skill resolves against):
+Resolve existing docs directories with the shared rules, so init agrees with every other skill about what already exists:
 
-1. `docs-ai/`
-2. `docs/ai/`
-3. `.claude/docs/`
+!`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-dir-resolution.md"`
 
-If more than one exists, warn: "Multiple docs directories found: [list]. Consider consolidating to a single location."
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/docs-dir-resolution.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
-If any found, ask the user which mode:
+If any docs directory is found, ask the user which mode, and which directory it applies to when there is more than one:
 
-- **Fresh start** — delete existing directory and recreate from scratch
+- **Fresh start** — delete the existing directory and recreate from scratch
 - **Refresh** — re-analyze project structure, add missing docs, flag extraneous docs, but preserve existing content in files that are still relevant
 
-If not found, proceed with creation in `docs-ai/`.
+If none is found, decide **where** the new directory goes before creating anything:
+
+- **Single-package project** — `docs-ai/` at the project root.
+- **Monorepo** — one `docs-ai/` per workspace that a developer works in, at that workspace's root (`apps/woody/docs-ai/`), so its Key Paths stay relative to its own code and the package can move without a rewrite. A root `docs-ai/` earns its place only for genuinely cross-cutting topics — the build graph, the deploy pipeline, shared conventions — and its Key Paths then point at repo-root paths like `turbo.json` or `packages/ui/`.
+
+Bootstrapping a whole monorepo in one pass produces a lot of docs of uneven value. Propose the workspace (or the small set of workspaces) to start with, and let the user confirm the placement before step 2.
 
 ### 2. Analyze Project
 
@@ -56,6 +59,8 @@ User can:
 
 ### 4. Create Directory Structure
 
+Create the directory at the location confirmed in step 1. The directory it sits in — the project or workspace root, not an intermediate `docs/` or `.claude/` — is the `[path-root]` that all Key Paths will be written against.
+
 ```
 [docs-dir]/
 ├── README.md (documentation map — always created)
@@ -69,7 +74,7 @@ User can:
 Spawn content-writer agents (general-purpose type — writers need Write, which Explore lacks; parallelized, ~3-4 docs per agent). Each writer:
 
 - Reads the relevant source files identified by the analyzer
-- Writes real content using `file::Symbol` references (not code blocks)
+- Writes real content using `file::Symbol` references (not code blocks), with paths relative to `[path-root]` — for `apps/woody/docs-ai/`, write `app/routes.ts::routes`, not `apps/woody/app/routes.ts::routes`
 - Keeps it concise — lookup reference, not tutorial
 - Marks unpopulatable sections with rich stubs:
 
