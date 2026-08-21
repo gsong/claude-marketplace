@@ -24,10 +24,11 @@ Follow these steps precisely:
 
 Run these directly (no subagents):
 
-1. `gh pr view <number> --json state,additions,deletions,title,body,author,comments,labels,baseRefName` — check eligibility:
+1. `gh pr view <number> --json state,additions,deletions,title,body,author,comments,labels,baseRefName,headRefOid` — check eligibility:
    - If closed → stop
    - If < 5 lines changed → stop
    - Drafts ARE allowed
+   - Also run `gh repo view --json nameWithOwner --jq .nameWithOwner` — Step 3.5 needs the repo name and the head SHA (`headRefOid`)
 2. Parse the PR body and comments for issue references:
    - **GitHub issues:** `#123` or full GitHub issue URLs → resolve via `gh issue view <number> --json title,body`
    - **Other references** (Linear URLs, Jira IDs, etc.): include the raw reference text in the context block. Instruct agents to resolve using available skills/tools if present.
@@ -60,14 +61,16 @@ gh pr checkout <number>
 find ~/.claude/plugins/cache $(jq -r '.[].installLocation' ~/.claude/plugins/known_marketplaces.json 2>/dev/null) -name "codex-companion.mjs" -path "*/codex/*" 2>/dev/null | sort -V | tail -1
 ```
 
+The `sort -V | tail -1` sorts version-numbered cache directories and picks the newest.
+
 If no path is found, stop with: "Error: codex plugin not installed. Run `/codex:setup` first."
 
-7. Verify the schema validator is available (ships with this plugin):
+7. Verify the schema validator is available (shared with the gh-tools sibling plugin via symlink):
 
 ```bash
 VALIDATOR="${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py"
 if [ ! -f "$VALIDATOR" ]; then
-  echo "ERROR: validate-findings.py not found in the codex-tools plugin. Reinstall codex-tools from the marketplace." >&2
+  echo "ERROR: validate-findings.py not resolvable. It is a symlink into the gh-tools sibling plugin, so the marketplace clone must include the gh-tools plugin directory — reinstalling codex-tools alone won't fix this." >&2
   exit 1
 fi
 ```
@@ -176,13 +179,13 @@ After all 3 agents return:
    {
      "source": "codex",
      "pr": <number>,
-     "repo": "<owner/repo from gh pr view>",
-     "head_sha": "<head SHA from gh pr view>",
+     "repo": "<nameWithOwner from gh repo view in Step 1.1>",
+     "head_sha": "<headRefOid from gh pr view in Step 1.1>",
      "findings": [...]
    }
    ```
 
-   **You MUST write this file even if zero findings** (use `"findings": []`).
+   **You MUST write this file even if zero findings** (use `"findings": []`) — downstream `gs:gh-tools:triage` globs for `findings-*.json` and treats a missing file as "review never ran".
 
    No diff-position validation at this stage — Codex reviews the checked-out code, not the diff. Validation happens in post-comments.
 

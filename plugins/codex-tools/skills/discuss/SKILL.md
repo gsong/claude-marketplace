@@ -1,6 +1,6 @@
 ---
 name: gs:codex-tools:discuss
-description: Use when the user wants Claude and Codex to discuss a topic together and reach consensus through multi-round dialogue. Also use when the user invokes /gs:codex-tools:discuss.
+description: Runs a multi-round dialogue between Claude and Codex and writes the outcome as a consensus document (consensus.md). Use when the user wants Claude and Codex to discuss a topic together and reach consensus through multi-round dialogue. Also use when the user invokes /gs:codex-tools:discuss.
 ---
 
 # Discuss with Codex
@@ -42,13 +42,13 @@ Then use `AskUserQuestion` to collect:
 
 ### Step 2: Build context and derive slug
 
-**Codex can only access project files in the working directory.** It has no access to external tools, MCP servers, or APIs (Linear, Slack, GitHub issues, Jira, etc.). Inline all relevant external context into the first prompt — same principle as `/gs:codex-tools:run`.
+**Codex can only access project files in the working directory.** It has no access to external tools, MCP servers, or APIs (Linear, Slack, GitHub issues, Jira, etc.). You MUST inline all relevant external context into the first prompt — same principle as `/gs:codex-tools:run`.
 
-Gather and embed:
+Before dispatching, gather and embed any context Codex will need:
 
-- External issue/ticket content if the topic references one (fetch via `gh`, MCP, web, etc.)
-- Conversation context: prior decisions, constraints, requirements discussed earlier
-- API responses or tool output Codex needs to reason about
+- **External issue/ticket content**: If the topic references a Linear issue, GitHub issue, Jira ticket, etc., fetch the full description, comments, and acceptance criteria yourself, then include them verbatim (or a thorough summary) in the prompt.
+- **Conversation context**: If the user discussed requirements, constraints, or decisions earlier in the conversation, summarize the key points in the prompt.
+- **API responses / tool output**: If you retrieved data from MCP servers, web searches, or other tools that Codex needs to reason about, paste the relevant content into the prompt.
 
 Derive `<slug>` from the topic: lowercase, kebab-case, alphanumerics and hyphens only, truncated to ≤40 chars. Example: topic `"Postgres vs DynamoDB for the events table"` → `postgres-vs-dynamodb-for-the-events-tab`.
 
@@ -64,7 +64,7 @@ Dispatch the codex-rescue agent with a fresh task. Use the `Agent` tool:
 
 - `subagent_type`: `"codex:codex-rescue"`
 - `run_in_background`: `false` (need synchronous response)
-- Append CLI flags: `--model gpt-5.6-terra --effort <level>`. Add `--write` only if user picked `write` sandbox; otherwise state read-only intent in the prompt.
+- Append `--model gpt-5.6-terra` as a CLI flag. If the user chose non-default effort, append `--effort <level>`. Do not pass `--write` yourself — if the user picked `write` sandbox, the rescue agent adds it by default; if they picked `read-only`, clearly state the read-only intent in the prompt so rescue omits it.
 
 Prompt template (round 1):
 
@@ -97,7 +97,7 @@ For each subsequent round:
    - `true` if Codex's argument is sound and you are persuaded
    - `false` if you still hold ground
 3. If `claude_agrees && codex_agrees` → consensus reached, go to Step 6.
-4. Otherwise, dispatch codex-rescue again with the `--resume` flag (continues the same Codex thread):
+4. Otherwise, dispatch codex-rescue again with the `--resume` flag (continues the same Codex thread). No thread id is needed — the rescue runtime maps `--resume` to Codex's `--resume-last`, which picks up the most recent rescue thread in this repository:
 
 ```
 Round <N>.
@@ -156,7 +156,7 @@ Reached after <N> round(s) on <YYYY-MM-DD>.
 - <acknowledged downsides or open questions, if any>
 ```
 
-Use the `/gs:utilities:date` skill for the date if it's not already known.
+Use the `/gs:utilities:date` skill for the date if it's not already known, or `date +%F` if that skill is unavailable.
 
 Print to terminal: a one-paragraph summary of the consensus and the path to the file.
 

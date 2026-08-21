@@ -1,7 +1,7 @@
 {
   "name": "codex-tools",
-  "description": "OpenAI Codex CLI integration for parallel PR reviews and task delegation via codex:rescue runtime",
-  "version": "4.0.1",
+  "description": "OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi-round consensus discussions via codex:rescue runtime",
+  "version": "4.0.2",
   "author": {
     "name": "George Song"
   },

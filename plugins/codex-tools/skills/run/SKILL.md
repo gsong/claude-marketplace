@@ -1,6 +1,6 @@
 ---
 name: gs:codex-tools:run
-description: Use when the user asks to run Codex, use Codex CLI, get a second opinion from Codex, or delegate a task to OpenAI's Codex agent. Also use when the user invokes /gs:codex-tools:run.
+description: Assembles a self-contained prompt and delegates it to OpenAI's Codex agent via the codex:rescue runtime. Use when the user asks to run Codex, use Codex CLI, get a second opinion from Codex, or delegate a task to OpenAI's Codex agent. Also use when the user invokes /gs:codex-tools:run.
 ---
 
 # Run Codex
@@ -15,23 +15,23 @@ Always use `gpt-5.6-terra`. Do not ask the user to pick a model.
 
 ### 1. Gather parameters
 
-Use `AskUserQuestion` to collect:
+If the user's request already specifies these, use them; only ask for what's missing, via `AskUserQuestion`:
 
-**Reasoning effort** — ask the level:
+**Reasoning effort** — the level:
 
 - `low` — fast responses
 - `medium` — balanced (Recommended)
 - `high` — complex problem solving
 - `xhigh` — maximum depth
 
-**Sandbox mode** — ask the access level:
+**Sandbox mode** — access level for Codex:
 
 - `read-only` — Codex can only read files (Recommended for review/diagnosis/research)
 - `write` — Codex can modify files (for implementation/fix tasks)
 
 ### 2. Get the prompt
 
-Use `AskUserQuestion` with a free-form text field to ask what task/prompt to send to Codex. The question should mention the current working directory so the user has context.
+If the user's request already contains the task, use it. If absent, use `AskUserQuestion` with a free-form text field to ask what task/prompt to send to Codex. The question should mention the current working directory so the user has context.
 
 ### 3. Build the full prompt with context
 

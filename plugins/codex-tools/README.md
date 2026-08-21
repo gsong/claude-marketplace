@@ -1,6 +1,6 @@
 # codex-tools
 
-OpenAI Codex CLI integration for Claude Code — parallel PR reviews and task delegation via codex:rescue runtime.
+OpenAI Codex CLI integration for Claude Code — parallel PR reviews, task delegation, and multi-round consensus discussions via codex:rescue runtime.
 
 ## Skills
 
@@ -13,7 +13,8 @@ OpenAI Codex CLI integration for Claude Code — parallel PR reviews and task de
 ## Prerequisites
 
 - [OpenAI Codex CLI](https://github.com/openai/codex) — the `codex` command must be available in your PATH
-- codex plugin — provides the companion runtime the review skill shells out to via `node <companion> adversarial-review` (the review engine). Install from the `openai-codex` marketplace.
+- codex plugin — provides the runtime all three skills depend on: review shells out to `node <companion> adversarial-review` (the review engine), while discuss and run dispatch the `codex:codex-rescue` agent. Install from the `openai-codex` marketplace.
+- For the review skill only: the [GitHub CLI](https://cli.github.com) (`gh`, authenticated) to fetch PR metadata and diffs, and [uv](https://docs.astral.sh/uv/) to run the findings validator. The validator itself is a symlink into the gh-tools sibling plugin, so the marketplace clone must include the `gh-tools` directory.
 
 ## Installation
 
