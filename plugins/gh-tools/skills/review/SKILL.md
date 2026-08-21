@@ -1,6 +1,8 @@
 ---
-name: gs:gh-tools:review
-description: Use when the user wants a comprehensive code review for a GitHub pull request, or when the user invokes /gs:gh-tools:review with a PR number. First step of the review → triage → post-comments pipeline.
+name: "gs:gh-tools:review"
+description: "Comprehensive code review for a GitHub pull request, and the first step of the review → triage → post-comments pipeline. Use when the user wants a thorough code review of a GitHub pull request, or invokes /gs:gh-tools:review with a PR number."
+compatibility: "Requires the gh CLI (authenticated) and uv for the bundled Python validator."
+argument-hint: "<pr-number>"
 ---
 
 # PR Review

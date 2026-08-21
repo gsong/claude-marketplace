@@ -1,6 +1,7 @@
 ---
-name: gs:ai-docs:lookup
+name: "gs:ai-docs:lookup"
 description: "Look up project conventions and patterns from docs-ai/ before writing or modifying code. Use proactively for: implementing features, modifying components, refactoring, routing changes, state management, styling, data flow, hooks, testing patterns, or when uncertain about project conventions. Invoke with a question about the relevant topic."
+argument-hint: "<question>"
 context: fork
 agent: Explore
 model: sonnet

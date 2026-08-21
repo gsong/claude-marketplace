@@ -1,6 +1,7 @@
 ---
-name: gs:repo-maintenance:gha
-description: Use when the user asks to upgrade or update GitHub Actions workflow dependencies, check for outdated actions, or use actions-up. Also use when the user invokes /gs:repo-maintenance:gha.
+name: "gs:repo-maintenance:gha"
+description: "Upgrade GitHub Actions workflow dependencies with actions-up, respecting the project's release-age cool-down. Use when the user asks to upgrade or update GitHub Actions workflow dependencies, check for outdated actions, or use actions-up. Also use when the user invokes /gs:repo-maintenance:gha."
+compatibility: "Requires npx and the gh CLI (authenticated), plus network access to the GitHub API."
 ---
 
 # Upgrade GitHub Actions Dependencies

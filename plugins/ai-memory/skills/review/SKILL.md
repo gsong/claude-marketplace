@@ -1,6 +1,6 @@
 ---
-name: gs:ai-memory:review
-description: Use when the user wants to review, audit, or optimize their project-level CLAUDE.md file for effectiveness and token efficiency — e.g. "trim CLAUDE.md", "is my CLAUDE.md too long", "reduce CLAUDE.md token usage". Also use when the user invokes /gs:ai-memory:review.
+name: "gs:ai-memory:review"
+description: "Analyze the project-level CLAUDE.md for effectiveness and token efficiency, with before/after edit suggestions. Use when the user wants to review, audit, or optimize their project-level CLAUDE.md file — e.g. \"trim CLAUDE.md\", \"is my CLAUDE.md too long\", \"reduce CLAUDE.md token usage\". Also use when the user invokes /gs:ai-memory:review."
 ---
 
 # Review Project Memory

@@ -1,5 +1,5 @@
 ---
-name: gs:ai-docs:audit
+name: "gs:ai-docs:audit"
 description: "Comprehensive audit of docs-ai/ documentation using coordinated agent teams. Use when the user wants a full review of all documentation for accuracy, completeness, and quality. Also use when the user invokes /gs:ai-docs:audit. Heavier than /gs:ai-docs:update — use for periodic deep reviews, not routine maintenance."
 ---
 

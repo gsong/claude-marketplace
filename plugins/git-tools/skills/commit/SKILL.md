@@ -1,6 +1,6 @@
 ---
-name: gs:git-tools:commit
-description: Groups staged and unstaged changes into logical commits, runs lint/typecheck first, and writes conventional-commit messages focused on why. Use when the user says "commit this", "commit my changes", "make a commit", or invokes /gs:git-tools:commit.
+name: "gs:git-tools:commit"
+description: "Groups staged and unstaged changes into logical commits, runs lint/typecheck first, and writes conventional-commit messages focused on why. Use when the user says \"commit this\", \"commit my changes\", \"make a commit\", or invokes /gs:git-tools:commit."
 ---
 
 # Commit Changes

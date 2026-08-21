@@ -1,6 +1,7 @@
 ---
-name: gs:codex-tools:review
-description: Code review a pull request using parallel Codex adversarial reviews. Use when the user asks for a Codex code review, wants a GPT-based review, or invokes /gs:codex-tools:review.
+name: "gs:codex-tools:review"
+description: "Code review a pull request using parallel Codex adversarial reviews. Use when the user asks for a Codex code review, wants a GPT-based review, or invokes /gs:codex-tools:review."
+compatibility: "Requires the Codex CLI (via the codex:rescue runtime), the gh CLI, and uv."
 ---
 
 # Codex Code Review

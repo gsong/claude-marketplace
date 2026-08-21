@@ -1,6 +1,6 @@
 ---
-name: gs:ai-docs:init
-description: Bootstraps a docs-ai/ directory — analyzes the project, generates docs with auto-populated content, builds the README topic index, and stamps everything. Use when the user wants to bootstrap or initialize AI-optimized documentation for a project, or set up a docs-ai directory. Also use when the user invokes /gs:ai-docs:init.
+name: "gs:ai-docs:init"
+description: "Bootstraps a docs-ai/ directory — analyzes the project, generates docs with auto-populated content, builds the README topic index, and stamps everything. Use when the user wants to bootstrap or initialize AI-optimized documentation for a project, or set up a docs-ai directory. Also use when the user invokes /gs:ai-docs:init."
 ---
 
 # Initialize Docs AI

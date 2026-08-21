@@ -1,6 +1,7 @@
 ---
-name: gs:ai-docs:update
-description: "Update specific docs-ai/ documentation after code changes. Use when the user has made code changes and wants to update related documentation, or when invoked as /gs:ai-docs:update. Accepts an optional argument describing the change (e.g., 'added Redis caching layer'). Lightweight alternative to a full audit."
+name: "gs:ai-docs:update"
+description: "Update specific docs-ai/ documentation after code changes — a lightweight alternative to a full audit. Use when the user has made code changes and wants to update related documentation. Also use when the user invokes /gs:ai-docs:update, optionally with a description of the change (e.g., 'added Redis caching layer')."
+argument-hint: "[what changed]"
 ---
 
 # Update Docs AI

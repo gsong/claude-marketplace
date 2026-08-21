@@ -1,6 +1,7 @@
 ---
-name: gs:repo-maintenance:mise
-description: Use when the user asks to upgrade, update, or bump mise-managed tool versions in `mise.toml`, or wants to check for outdated tools managed by mise. Also use when the user invokes /gs:repo-maintenance:mise.
+name: "gs:repo-maintenance:mise"
+description: "Upgrade mise-managed tool versions in mise.toml, respecting minimum_release_age. Use when the user asks to upgrade, update, or bump mise-managed tool versions in `mise.toml`, or wants to check for outdated tools managed by mise. Also use when the user invokes /gs:repo-maintenance:mise."
+compatibility: "Requires mise and network access to resolve tool versions."
 ---
 
 # Upgrade mise-managed tool versions

@@ -1,6 +1,8 @@
 ---
-name: gs:git-tools:worktree
-description: Creates a git worktree under .worktrees/ with an intelligently named branch, copies .env, trusts mise/direnv, and installs dependencies per the lockfile. Use when the user says "work on X in parallel", "spin up a worktree", "separate checkout", or invokes /gs:git-tools:worktree.
+name: "gs:git-tools:worktree"
+description: "Creates a git worktree under .worktrees/ with an intelligently named branch, copies .env, trusts mise/direnv, and installs dependencies per the lockfile. Use when the user says \"work on X in parallel\", \"spin up a worktree\", \"separate checkout\", or invokes /gs:git-tools:worktree."
+compatibility: "Uses pnpm as the dependency-install fallback when a package.json has no lockfile."
+argument-hint: "<branch-name-or-intent>"
 ---
 
 # Create Git Worktree

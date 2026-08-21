@@ -1,6 +1,8 @@
 ---
-name: gs:gh-tools:triage
-description: Use when the user wants to investigate and triage code review findings for a PR, or when the user invokes /gs:gh-tools:triage with a PR number. Requires running a review skill first.
+name: "gs:gh-tools:triage"
+description: "Investigate and triage code review findings for a PR, curating which ones are worth posting. Use when the user wants to investigate and triage code review findings for a PR, or invokes /gs:gh-tools:triage with a PR number. Requires running a review skill first."
+compatibility: "Requires the gh CLI (authenticated) and uv for the bundled Python validator."
+argument-hint: "<pr-number>"
 ---
 
 # Triage Review

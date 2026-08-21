@@ -1,6 +1,6 @@
 ---
-name: gs:ai-docs:check
-description: "Check documentation freshness and detect drift. Use when the user wants to know which docs-ai/ files may be outdated relative to code changes, without modifying anything. Also use when the user invokes /gs:ai-docs:check. Returns a staleness report with recommended actions."
+name: "gs:ai-docs:check"
+description: "Check documentation freshness and detect drift, returning a staleness report with recommended actions. Read-only — modifies nothing. Use when the user wants to know which docs-ai/ files may be outdated relative to code changes. Also use when the user invokes /gs:ai-docs:check."
 ---
 
 # Check Docs AI Freshness

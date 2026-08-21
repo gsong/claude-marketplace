@@ -1,6 +1,7 @@
 ---
-name: gs:codex-tools:discuss
-description: Runs a multi-round dialogue between Claude and Codex and writes the outcome as a consensus document (consensus.md). Use when the user wants Claude and Codex to discuss a topic together and reach consensus through multi-round dialogue. Also use when the user invokes /gs:codex-tools:discuss.
+name: "gs:codex-tools:discuss"
+description: "Runs a multi-round dialogue between Claude and Codex and writes the outcome as a consensus document (consensus.md). Use when the user wants Claude and Codex to discuss a topic together and reach consensus through multi-round dialogue. Also use when the user invokes /gs:codex-tools:discuss."
+compatibility: "Requires the Codex CLI, reached through the codex:rescue runtime."
 ---
 
 # Discuss with Codex

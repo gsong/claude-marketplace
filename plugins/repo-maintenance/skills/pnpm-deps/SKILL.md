@@ -1,6 +1,7 @@
 ---
-name: gs:repo-maintenance:pnpm-deps
-description: Use when the user asks to upgrade, update, or bump pnpm project dependencies (not the pnpm version itself — use /gs:repo-maintenance:pnpm for that), or wants to check for outdated packages. Works for both single-project and monorepo/workspace setups. Also use when the user invokes /gs:repo-maintenance:pnpm-deps.
+name: "gs:repo-maintenance:pnpm-deps"
+description: "Upgrade pnpm project dependencies and run the test suite, respecting the project's release-age cool-down. Works for single projects and workspaces. Use when the user asks to upgrade, update, or bump pnpm project dependencies (not the pnpm version itself — use /gs:repo-maintenance:pnpm for that), or wants to check for outdated packages. Also use when the user invokes /gs:repo-maintenance:pnpm-deps."
+compatibility: "Requires pnpm and network access to the npm registry."
 ---
 
 # Upgrade project dependencies

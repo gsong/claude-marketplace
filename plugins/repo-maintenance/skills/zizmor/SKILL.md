@@ -1,6 +1,7 @@
 ---
-name: gs:repo-maintenance:zizmor
-description: Use when the user asks to run a security audit on GitHub Actions workflows, check CI/CD pipeline security, scan for workflow vulnerabilities, or use zizmor. Also use when the user invokes /gs:repo-maintenance:zizmor.
+name: "gs:repo-maintenance:zizmor"
+description: "Run a zizmor security audit of GitHub Actions workflows and offer fixes for the findings. Use when the user asks to run a security audit on GitHub Actions workflows, check CI/CD pipeline security, scan for workflow vulnerabilities, or use zizmor. Also use when the user invokes /gs:repo-maintenance:zizmor."
+compatibility: "Requires zizmor. The gh CLI and network access enable its online audits; without them it falls back to --offline."
 ---
 
 # Zizmor Security Audit

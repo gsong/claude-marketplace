@@ -1,6 +1,8 @@
 ---
-name: gs:gh-tools:post-comments
-description: Use when the user wants to post code-level review comments to a GitHub PR as a pending review, or when the user invokes /gs:gh-tools:post-comments with a PR number. Requires running /gs:gh-tools:triage first to curate findings.
+name: "gs:gh-tools:post-comments"
+description: "Post curated code-level review comments to a GitHub PR as a pending review. Use when the user wants to post code-level review comments to a GitHub PR, or invokes /gs:gh-tools:post-comments with a PR number. Requires running /gs:gh-tools:triage first to curate findings."
+compatibility: "Requires the gh CLI (authenticated) and uv for the bundled Python validator."
+argument-hint: "<pr-number>"
 ---
 
 # Post PR Comments

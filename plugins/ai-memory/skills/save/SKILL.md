@@ -1,6 +1,6 @@
 ---
-name: gs:ai-memory:save
-description: Use when the user wants to save, capture, or record a summary of the current session's work for future Claude Code sessions — e.g. "write handoff notes", "before we wrap up, save what we did", "remember this for next session". Also use when the user invokes /gs:ai-memory:save.
+name: "gs:ai-memory:save"
+description: "Write a succinct handoff document capturing this session's work, decisions, and gotchas for future Claude Code sessions. Use when the user wants to save, capture, or record a summary of the current session's work — e.g. \"write handoff notes\", \"before we wrap up, save what we did\", \"remember this for next session\". Also use when the user invokes /gs:ai-memory:save."
 ---
 
 # Save Project Memory

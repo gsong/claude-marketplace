@@ -1,6 +1,7 @@
 ---
-name: gs:git-tools:auto-squash
-description: Classifies each uncommitted change to its originating branch commit, creates fixup commits, and runs an autosquash rebase. Use when the user says "fold these changes into my earlier commits", "fixup my commits", "clean up my branch", or invokes /gs:git-tools:auto-squash.
+name: "gs:git-tools:auto-squash"
+description: "Classifies each uncommitted change to its originating branch commit, creates fixup commits, and runs an autosquash rebase. Use when the user says \"fold these changes into my earlier commits\", \"fixup my commits\", \"clean up my branch\", or invokes /gs:git-tools:auto-squash."
+argument-hint: "[base-branch]"
 ---
 
 # Smart fixup and auto-squash

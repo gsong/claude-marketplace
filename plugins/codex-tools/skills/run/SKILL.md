@@ -1,6 +1,7 @@
 ---
-name: gs:codex-tools:run
-description: Assembles a self-contained prompt and delegates it to OpenAI's Codex agent via the codex:rescue runtime. Use when the user asks to run Codex, use Codex CLI, get a second opinion from Codex, or delegate a task to OpenAI's Codex agent. Also use when the user invokes /gs:codex-tools:run.
+name: "gs:codex-tools:run"
+description: "Assembles a self-contained prompt and delegates it to OpenAI's Codex agent via the codex:rescue runtime. Use when the user asks to run Codex, use Codex CLI, get a second opinion from Codex, or delegate a task to OpenAI's Codex agent. Also use when the user invokes /gs:codex-tools:run."
+compatibility: "Requires the Codex CLI, reached through the codex:rescue runtime."
 ---
 
 # Run Codex
