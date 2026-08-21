@@ -1,6 +1,6 @@
 ---
 name: gs:ai-memory:review
-description: Use when the user wants to review, audit, or optimize their project-level CLAUDE.md file for effectiveness and token efficiency. Also use when the user invokes /gs:ai-memory:review.
+description: Use when the user wants to review, audit, or optimize their project-level CLAUDE.md file for effectiveness and token efficiency — e.g. "trim CLAUDE.md", "is my CLAUDE.md too long", "reduce CLAUDE.md token usage". Also use when the user invokes /gs:ai-memory:review.
 ---
 
 # Review Project Memory
@@ -9,12 +9,12 @@ Analyze the project-level CLAUDE.md file for effectiveness and token efficiency.
 
 ## Setup
 
-1. Read `.claude/CLAUDE.md` (the project-level file to analyze)
+1. Locate the project-level file to analyze: check `./CLAUDE.md` first, then `.claude/CLAUDE.md`. If neither exists, tell the user and stop.
 2. Read `~/.claude/CLAUDE.md` (the global file) — this is needed to accurately assess what is "redundant with global instructions" vs. genuinely project-specific
 
 ## Analysis Framework
 
-Evaluate `.claude/CLAUDE.md` across these dimensions:
+Evaluate the project CLAUDE.md across these dimensions:
 
 1. **Clarity**: Are instructions unambiguous and actionable?
 2. **Conciseness**: Can anything be more concise without losing meaning?
@@ -31,7 +31,7 @@ Evaluate `.claude/CLAUDE.md` across these dimensions:
 - Prevent repeated mistakes or questions
 - Context that's not discoverable from code
 - Project-specific workflows that differ from defaults
-- Critical warnings (with **CRITICAL** prefix)
+- Critical warnings (with **CRITICAL** prefix — a convention this skill recommends for must-not-violate rules)
 - Common patterns with non-obvious gotchas
 
 **Low-value instructions:**

@@ -1,6 +1,6 @@
 ---
 name: gs:ai-memory:save
-description: Use when the user wants to save, capture, or record a summary of the current session's work for future Claude Code sessions. Also use when the user invokes /gs:ai-memory:save.
+description: Use when the user wants to save, capture, or record a summary of the current session's work for future Claude Code sessions — e.g. "write handoff notes", "before we wrap up, save what we did", "remember this for next session". Also use when the user invokes /gs:ai-memory:save.
 ---
 
 # Save Project Memory
@@ -14,7 +14,7 @@ Capture a succinct summary of the current session's work to enable future Claude
 2. **Analyze recent work:**
    - Run `git status` and `git diff` to see unstaged changes
    - Run `git log --oneline -10` to see recent commits in this session
-   - If changes are already committed, use `git diff HEAD~N` (where N covers the session's commits) to see the full scope
+   - If changes are already committed, use `git diff HEAD~N` (where N covers the session's commits) to see the full scope. Determine N by counting the session's commits in the `git log` output from the previous step.
    - Identify key files modified
    - Understand the scope of changes
 
@@ -27,8 +27,8 @@ Capture a succinct summary of the current session's work to enable future Claude
 
 4. **Create memory document:**
    - Filename: `ai-swap/memories/{YYYY-MM-DD}-{topic-slug}.md`
-   - `ai-swap/memories/` is a local, git-ignored scratch location for these notes. If the project has no such convention, ask the user where memories should live before writing.
-   - Use ISO date format (e.g., `2025-10-08-commodity-routing.md`). Use the `/gs:utilities:date` skill to get today's date rather than guessing it.
+   - `ai-swap/memories/` is intended as a local, git-ignored scratch location for these notes. Before writing, verify it is ignored (`git check-ignore -q ai-swap` or equivalent); if it isn't, or the project has no such convention, warn the user and ask where memories should live before writing.
+   - Use ISO date format (e.g., `2025-10-08-commodity-routing.md`). Use the `/gs:utilities:date` skill if available to get today's date; otherwise run `date +%F`. Don't guess the date.
    - Follow structure below
 
 ## Document Structure

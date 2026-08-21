@@ -9,6 +9,8 @@ Session memory and project instruction management for Claude Code.
 | `/gs:ai-memory:save`   | Capture session work summary for future sessions         |
 | `/gs:ai-memory:review` | Analyze CLAUDE.md for effectiveness and token efficiency |
 
+`save` uses `/gs:utilities:date` (from the `utilities` plugin) when installed; otherwise it falls back to plain `date`.
+
 ## Installation
 
 ```
