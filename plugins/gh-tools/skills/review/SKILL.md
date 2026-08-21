@@ -28,28 +28,25 @@ Use `uv run "$VALIDATOR" <file>` for all validation commands below.
    ```
    Only delete artifacts this skill produces (`findings-gh-review.json`) or that become stale after a new review (`general-comments.md` from post-comments). Never delete `findings.json` — it contains the user's curated triage decisions and cannot be regenerated.
 2. Checkout the PR branch: `gh pr checkout $ARGUMENTS`
-3. Get PR metadata: `gh pr view $ARGUMENTS --json title,body,files,additions,deletions,headRefOid`
+3. Get PR metadata: `gh pr view $ARGUMENTS --json title,body,files,additions,deletions,headRefOid,baseRefName`
 4. Get repo name: `gh repo view --json nameWithOwner --jq .nameWithOwner`
 5. Get PR diff: `gh pr diff $ARGUMENTS`
-6. Store all of the above — you will pass metadata to review agents and everything to the synthesis agent.
+6. Store all of the above — you will pass metadata to the reviews and everything to the synthesis agent.
 
 ## Phase 2: Reviews (parallel)
 
-Launch these two agents **in a single message** so they run in parallel.
+Two reviews run concurrently:
 
-Both agents receive this preamble at the top of their prompt:
+- **Review A — bugs & security:** the `feature-dev:code-reviewer` agent (Agent tool).
+- **Review B — standards & spec:** the `mattpocock-skills:code-review` skill (Skill tool). If that skill is not in your available skills, fall back to the `superpowers:code-reviewer` agent (Agent tool).
+
+Execution order: launch the Review A agent **first** — it runs in the background while you execute Review B. If Review B uses the superpowers fallback, instead launch both agents **in a single message** so they run in parallel.
+
+Every review sub-agent prompt (both reviews, including the sub-agents the mattpocock skill spawns) receives this preamble at the top:
 
 > **CRITICAL: Do NOT post comments, reviews, or any content to the GitHub PR. Do NOT use `gh pr comment`, `gh api` to create reviews, or any other mechanism to write to the PR. Do NOT write to any files. Your ONLY job is to analyze the code and return your findings as text output.**
 
-### Agent 1: superpowers:code-reviewer (Agent tool)
-
-- `subagent_type`: `superpowers:code-reviewer`
-- Prompt must include:
-  - The no-posting preamble above
-  - PR metadata (title, body, file list with additions/deletions)
-  - "Review PR #$ARGUMENTS. Focus on: architecture, design patterns, maintainability, and testing philosophy. Return your findings as structured text. For each finding include: file path, line number(s), severity (must-fix / should-fix / nit), and description."
-
-### Agent 2: feature-dev:code-reviewer (Agent tool)
+### Review A: feature-dev:code-reviewer (Agent tool)
 
 - `subagent_type`: `feature-dev:code-reviewer`
 - Note: this agent type lacks Bash access — it physically cannot run `gh` commands or post to GitHub.
@@ -58,7 +55,27 @@ Both agents receive this preamble at the top of their prompt:
   - PR metadata (title, body, file list with additions/deletions)
   - "Review PR #$ARGUMENTS. The PR branch is already checked out — read the local files directly. Focus on: bugs, logic errors, security vulnerabilities, code quality, and adherence to project conventions. Return your findings as structured text. For each finding include: file path, line number(s), severity (must-fix / should-fix / nit), confidence score (0-100), and description."
 
-Wait for both agents to complete before proceeding.
+### Review B (preferred): mattpocock-skills:code-review (Skill tool)
+
+Invoke the `mattpocock-skills:code-review` skill and follow its process with these adaptations:
+
+- **Fixed point:** the PR base branch (`baseRefName` from Phase 1). Diff with `git diff origin/<baseRefName>...HEAD`. Do not ask the user for a fixed point.
+- **Spec source:** the PR body plus any issues it links. Do not ask the user for a spec; if none exists, the Spec sub-agent skips and reports "no spec available".
+- **Sub-agent prompts:** prepend the no-posting preamble above, and append to each brief: "For each finding include: file path, line number(s), and severity (must-fix / should-fix / nit)."
+
+The skill's aggregated Standards/Spec report is Review B's output for Phase 3.
+
+### Review B (fallback): superpowers:code-reviewer (Agent tool)
+
+Use only when the mattpocock skill is unavailable.
+
+- `subagent_type`: `superpowers:code-reviewer`
+- Prompt must include:
+  - The no-posting preamble above
+  - PR metadata (title, body, file list with additions/deletions)
+  - "Review PR #$ARGUMENTS. Focus on: architecture, design patterns, maintainability, and testing philosophy. Return your findings as structured text. For each finding include: file path, line number(s), severity (must-fix / should-fix / nit), and description."
+
+Wait for both reviews to complete before proceeding.
 
 ## Phase 3: Synthesis (single agent)
 
@@ -73,8 +90,8 @@ Include ALL of the following in the agent's prompt:
 1. A synthesis-specific preamble: **"CRITICAL: Do NOT post comments, reviews, or any content to the GitHub PR. Do NOT use `gh pr comment`, `gh api` to create reviews, or any other mechanism to write to the PR. Do NOT run any `gh` commands. You MUST write output files under `ai-swap/` as instructed below — that is your primary job."**
 2. PR number: $ARGUMENTS
 3. Head SHA, repo name, and full PR diff (from Phase 1)
-4. Full text output from Agent 1 (superpowers:code-reviewer findings)
-5. Full text output from Agent 2 (feature-dev:code-reviewer findings)
+4. Full text output from Review A (feature-dev:code-reviewer findings)
+5. Full text output from Review B (the mattpocock Standards/Spec report, or the superpowers:code-reviewer findings if the fallback ran), with a note saying which reviewer produced it
 6. The review focus areas (below)
 7. The output format specs (below)
 8. The validator step (below)
@@ -95,11 +112,11 @@ Skip praise and lengthy analysis — actionable items only.
 
 #### Instructions for the synthesis agent
 
-1. **Filter and organize only.** Do not introduce new findings — your job is to deduplicate, categorize, and map the agents' findings. Use the review focus areas above as a lens for prioritization, not as a prompt for new analysis.
-2. **Deduplicate:** Merge findings that describe the same issue from both agents into one item. Keep the higher severity.
+1. **Filter and organize only.** Do not introduce new findings — your job is to deduplicate, categorize, and map the reviews' findings. Use the review focus areas above as a lens for prioritization, not as a prompt for new analysis.
+2. **Deduplicate:** Merge findings that describe the same issue from both reviews into one item. Keep the higher severity.
 3. **Categorize** by severity and actionability.
 4. **Use the PR metadata provided in the prompt** (head SHA, repo name, and diff — all fetched by the orchestrator in Phase 1). Do NOT run any `gh` commands.
-5. **Map findings to diff positions.** For each finding from the review agents — include anything that has not been actively disproven. Only exclude findings that are confirmed false positives or duplicates of another included finding. Do not exclude findings just because they scored below a threshold or were categorized as low-severity — if the issue is real, include it:
+5. **Map findings to diff positions.** For each finding from the reviews — include anything that has not been actively disproven. Only exclude findings that are confirmed false positives or duplicates of another included finding. Do not exclude findings just because they scored below a threshold or were categorized as low-severity — if the issue is real, include it:
    - Identify the `path` (file path relative to repo root)
    - Identify the `line` (end line in the new version of the file) and optional `start_line` (for multi-line ranges)
    - Verify both `line` and `start_line` fall within a diff hunk for that file — if not, include the finding in `findings-gh-review.json` with `"unmappable": true` set on it. Do not exclude any findings from the JSON based on diff position.
@@ -136,8 +153,8 @@ Skip praise and lengthy analysis — actionable items only.
       "source_detail": [
         {
           "skill": "gs:gh-tools:review",
-          "agent": "superpowers:code-reviewer",
-          "agent_label": "architecture & design"
+          "agent": "mattpocock-skills:code-review",
+          "agent_label": "standards"
         }
       ]
     }
@@ -145,16 +162,22 @@ Skip praise and lengthy analysis — actionable items only.
 }
 ```
 
-`source_detail` is **always an array**, even for single-source findings. For findings both agents flagged, include both entries:
+Set `agent` and `agent_label` to whichever reviewer produced the finding:
+
+- `mattpocock-skills:code-review` — `agent_label` is `standards` or `spec`, matching the axis the finding came from
+- `superpowers:code-reviewer` — `agent_label` is `architecture & design` (fallback runs only)
+- `feature-dev:code-reviewer` — `agent_label` is `bugs & security`
+
+`source_detail` is **always an array**, even for single-source findings. For findings both reviews flagged, include both entries:
 
 ```json
 "source_detail": [
-  {"skill": "gs:gh-tools:review", "agent": "superpowers:code-reviewer", "agent_label": "architecture & design"},
+  {"skill": "gs:gh-tools:review", "agent": "mattpocock-skills:code-review", "agent_label": "standards"},
   {"skill": "gs:gh-tools:review", "agent": "feature-dev:code-reviewer", "agent_label": "bugs & security"}
 ]
 ```
 
-The body should note when both agents flagged the same issue.
+The body should note when both reviews flagged the same issue.
 
 `title` and `recommendation` are optional — include when the reviewer provided them.
 

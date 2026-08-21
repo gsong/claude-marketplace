@@ -19,14 +19,16 @@ GitHub CLI workflow skills for Claude Code.
 
 The `gs:gh-tools:review` skill depends on external plugins:
 
-- `superpowers` — provides the `superpowers:code-reviewer` agent
+- `mattpocock-skills` — provides the `mattpocock-skills:code-review` skill (preferred standards & spec review)
 - `feature-dev` — provides the `feature-dev:code-reviewer` agent
+- `superpowers` — provides the `superpowers:code-reviewer` agent (optional; fallback when `mattpocock-skills` is not installed)
 
 Install them:
 
 ```
-/plugin install superpowers@claude-plugins-official
+/plugin install mattpocock-skills@claude-plugins-official
 /plugin install feature-dev@claude-plugins-official
+/plugin install superpowers@claude-plugins-official
 ```
 
 The review pipeline uses a shared findings schema validated by
