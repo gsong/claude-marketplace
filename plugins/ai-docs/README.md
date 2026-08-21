@@ -32,6 +32,13 @@ check ──diagnoses──────┤  (read-only staleness report)
 lookup ◀──reads────────┘  (convention queries)
 ```
 
+## Verification Stamp
+
+Every generated doc starts with `<!-- verified-against: [full-commit-sha] -->`. The stamp
+records the commit the doc was last generated or verified against. `init`, `update`, and
+`audit` write it; `check` and `lookup` use it as the staleness baseline, with the doc's git
+timestamp as fallback for unstamped docs.
+
 ## Path Resolution
 
 All skills and the hook search for docs in this order:

@@ -11,6 +11,17 @@ structured enough for an AI agent to parse reliably.
 
 ## Required Structure
 
+### 0. Verification Stamp
+
+```markdown
+<!-- verified-against: [full-commit-sha] -->
+```
+
+The first line of the file (and of every doc in the docs directory). It records the commit
+the doc was last generated or verified against. gs:ai-docs:init, gs:ai-docs:update, and
+gs:ai-docs:audit write it; gs:ai-docs:check and gs:ai-docs:lookup use it as the staleness
+baseline. It may be absent in repos without git history.
+
 ### 1. Header
 
 ```markdown
@@ -61,6 +72,6 @@ The core of the README. Organized as categorized tables with three columns:
 
 ### 4. No Other Sections
 
-README.md should contain only the header, reference convention, and topic index.
+README.md should contain only the verification stamp, header, reference convention, and topic index.
 Do not add usage instructions, contribution guides, or other content.
 The goal is a clean, scannable lookup table.

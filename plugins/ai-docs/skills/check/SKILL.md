@@ -5,7 +5,7 @@ description: "Check documentation freshness and detect drift. Use when you want 
 
 # Check Docs AI Freshness
 
-Orchestrated documentation freshness check using parallel per-doc checker agents. Two phases: discovery → parallel checking fanout → consolidated report.
+Orchestrated documentation freshness check using parallel per-doc checker agents. Three phases: discovery → parallel checking fanout → consolidated report.
 
 ## Process
 
@@ -52,24 +52,29 @@ Each checker performs:
 
 **If git is available:**
 
-1. Get doc's last-modified git timestamp:
+1. Establish the baseline. Read the doc's first line. If it is a verification stamp:
 
-```
-git log -1 --format=%ct -- [docs-dir]/[filename].md
-```
-
-2. For each Key Path in the doc's topic table row:
-
-```
-git log -1 --format=%ct -- [key-path]
+```markdown
+<!-- verified-against: [full-commit-sha] -->
 ```
 
-3. If any Key Path was modified after the doc, flag as potentially stale
-4. Count how many commits behind:
+and the SHA is a known commit (`git cat-file -e [sha]^{commit}` succeeds), use that SHA as the baseline. The stamp is the commit the doc was last generated or verified against — it is more precise than the doc's own git timestamp.
+
+2. If there is no stamp (or the SHA is unknown, e.g. after a rebase or in a shallow clone), fall back to the doc's last-modified commit:
 
 ```
-git rev-list --count [doc-commit]..HEAD -- [key-path]
+git log -1 --format=%H -- [docs-dir]/[filename].md
 ```
+
+Note in the result that the doc is unstamped.
+
+3. For each Key Path in the doc's topic table row, count commits since the baseline:
+
+```
+git rev-list --count [baseline]..HEAD -- [key-path]
+```
+
+4. If any Key Path count is greater than zero, flag as potentially stale.
 
 **Always (git or not):**
 
@@ -84,6 +89,7 @@ git rev-list --count [doc-commit]..HEAD -- [key-path]
 
 - Doc filename
 - Rating: `fresh`, `possibly stale`, or `likely stale`
+- Baseline used: stamp SHA or doc timestamp fallback (unstamped)
 - Key Path change details (commits behind, if git available)
 - Broken references (list of `file::Symbol` that failed validation)
 - Missing Key Paths (files/directories that no longer exist)
@@ -124,6 +130,7 @@ Collect all checker results. Output in this format:
 
 - Run `/gs:ai-docs:update "[description]"` to fix [specific doc]
 - Run `/gs:ai-docs:audit` for comprehensive review ([N] docs need attention)
+[If any docs are unstamped: "- [N] docs have no verification stamp. Run `/gs:ai-docs:audit` to verify and stamp them."]
 ```
 
 ## Critical Rules

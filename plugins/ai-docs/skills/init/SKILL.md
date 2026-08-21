@@ -96,7 +96,21 @@ Populate `[docs-dir]/README.md` following this format exactly.
 
 **Verification:** Before presenting to the user, check that every `.md` file in the docs directory (except README.md and quick-reference.md) appears in the topic index. If any are missing, add them.
 
-### 7. Summary
+### 7. Stamp Docs
+
+Run `git rev-parse HEAD` to get the current commit SHA. Add this stamp as the first line of every file in the docs directory (including README.md and quick-reference.md):
+
+```markdown
+<!-- verified-against: [full-commit-sha] -->
+```
+
+The stamp records which commit the docs were generated against. gs:ai-docs:check and gs:ai-docs:lookup use it as the staleness baseline.
+
+If `git rev-parse HEAD` fails (no git, no commits), skip stamping.
+
+If the working tree has uncommitted changes, note in the summary that docs were generated against HEAD plus uncommitted changes.
+
+### 8. Summary
 
 Show:
 

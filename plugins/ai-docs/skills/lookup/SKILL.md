@@ -44,10 +44,9 @@ For each doc read:
 
 1. Check if files listed in Key Paths still exist (use Glob)
 2. If git is available (`git log -1 -- [doc-path]` succeeds):
-   - Get doc's last-modified git timestamp
-   - Get most recent commit timestamp for each Key Path
-   - If any Key Path was modified after the doc, flag as potentially stale
-3. If git is unavailable (no commits, shallow clone): skip timestamp check, note "staleness detection unavailable (no git history)"
+   - If the doc's first line is a `<!-- verified-against: [sha] -->` stamp and the SHA is a known commit, use it as the baseline: `git rev-list --count [sha]..HEAD -- [key-path]` for each Key Path. A count greater than zero means potentially stale.
+   - Otherwise fall back to timestamps: get the doc's last-modified git timestamp and the most recent commit timestamp for each Key Path. If any Key Path was modified after the doc, flag as potentially stale.
+3. If git is unavailable (no commits, shallow clone): skip the git check, note "staleness detection unavailable (no git history)"
 
 ### 5. Supplement with Code Search
 

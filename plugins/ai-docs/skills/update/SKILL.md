@@ -96,6 +96,18 @@ If docs were added or removed:
 - Remove deleted docs from the topic index
 - Verify every `.md` file (except README.md and quick-reference.md) appears in the index
 
-### 7. Summary
+### 7. Stamp Updated Docs
+
+Run `git rev-parse HEAD` to get the current commit SHA. In every doc that was updated or created (plus README.md if it changed), set the first line to:
+
+```markdown
+<!-- verified-against: [full-commit-sha] -->
+```
+
+Replace an existing stamp line; otherwise insert it as the first line. Leave untouched docs alone — their stamps still reflect when they were last verified.
+
+If `git rev-parse HEAD` fails (no git, no commits), skip stamping.
+
+### 8. Summary
 
 Show what was updated, created, and removed. Flag any sections that still need manual attention.

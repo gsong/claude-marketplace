@@ -116,7 +116,19 @@ QA validates:
 
 QA reports all issues found — both minor (typos, broken links, formatting) and significant. The orchestrating agent then applies minor fixes directly and presents significant issues for manual resolution.
 
-#### 8. Summary
+#### 8. Stamp Verified Docs
+
+Run `git rev-parse HEAD` to get the current commit SHA. Set the first line of **every** doc in the docs directory (including README.md and quick-reference.md) to:
+
+```markdown
+<!-- verified-against: [full-commit-sha] -->
+```
+
+Replace an existing stamp line; otherwise insert it as the first line. Stamp all docs, not just edited ones — the audit verified them all against the current codebase.
+
+If `git rev-parse HEAD` fails (no git, no commits), skip stamping.
+
+#### 9. Summary
 
 Present to user:
 
