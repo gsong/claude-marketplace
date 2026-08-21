@@ -62,12 +62,12 @@ find ~/.claude/plugins/cache $(jq -r '.[].installLocation' ~/.claude/plugins/kno
 
 If no path is found, stop with: "Error: codex plugin not installed. Run `/codex:setup` first."
 
-7. Verify the schema validator is available (requires gh-tools sibling plugin):
+7. Verify the schema validator is available (ships with this plugin):
 
 ```bash
 VALIDATOR="${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py"
 if [ ! -f "$VALIDATOR" ]; then
-  echo "ERROR: validate-findings.py not found. The gh-tools plugin must be installed from the same marketplace." >&2
+  echo "ERROR: validate-findings.py not found in the codex-tools plugin. Reinstall codex-tools from the marketplace." >&2
   exit 1
 fi
 ```
