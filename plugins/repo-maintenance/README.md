@@ -14,9 +14,11 @@ Repository maintenance skills for Claude Code — dependency upgrades and CI/CD 
 
 ## Prerequisites
 
-- [pnpm](https://pnpm.io/) — for dependency upgrades
+- [pnpm](https://pnpm.io/) — for dependency upgrades (`pnpm-deps` only; the `pnpm` skill uses `npm view` and file edits, so it doesn't need pnpm installed)
 - [mise](https://mise.jdx.dev/) — for upgrading mise-managed tool versions
 - [zizmor](https://docs.zizmor.sh/) — for GitHub Actions security auditing
+- [gh CLI](https://cli.github.com/), authenticated — provides the GitHub tokens used by `gha` and `zizmor`
+- [Node.js](https://nodejs.org/) with `npx` — runs actions-up for `gha`
 - [actions-up](https://github.com/azat-io/actions-up) — for GitHub Actions dependency upgrades (runs via `npx`, no install needed)
 
 ## Installation

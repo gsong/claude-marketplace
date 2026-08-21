@@ -9,11 +9,14 @@ Run a security audit of GitHub Actions workflows using zizmor, a static analysis
 
 ## Process
 
-1. **Pre-flight check:** Verify `.github/workflows/` exists. If not, abort: "This repo doesn't use GitHub Actions workflows."
+1. **Pre-flight checks:**
+   - **Check zizmor is available**: Run `command -v zizmor`. If not installed, abort: "zizmor is not installed — see https://docs.zizmor.sh/installation/"
+   - **Check there's something to audit**: Verify `.github/workflows/` exists, or a root `action.yml`/`action.yaml`. If neither, abort: "This repo has no GitHub Actions workflows or action definitions to audit."
 
 2. **Run the audit:**
-   - Execute: `zizmor --gh-token $(gh auth token) .`
-   - Disable sandbox for this command
+   - If `gh` is authenticated, execute: `GH_TOKEN=$(gh auth token) zizmor .` — passing the token via the environment keeps it out of process listings
+   - If `gh` isn't authenticated, fall back to `zizmor --offline .` and note to the user that online audits were skipped
+   - Disable sandbox for this command — online audits need network access to the GitHub API
    - Present the full audit output to the user before proceeding
 
 3. **Research findings:**
@@ -41,8 +44,8 @@ Present findings in a structured format:
 
 ## Important Notes
 
-- Zizmor requires GitHub authentication via `gh auth token`
-- The tool analyzes `.github/workflows/` directory by default
-- Some findings may have auto-fix capabilities
+- GitHub authentication is only needed for zizmor's online audits — `--offline` (or `--no-online-audits`) runs the static checks without it
+- Auditing `.` collects workflow files, `action.yml`/`action.yaml` definitions, and `dependabot.yml` (zizmor's default `--collect` behavior) — not just `.github/workflows/`
+- zizmor's `--fix` flag is experimental — prefer manual edits, which keep the user in control of each change
 - Prioritize high-severity findings first
 - Verify changes don't break existing workflows

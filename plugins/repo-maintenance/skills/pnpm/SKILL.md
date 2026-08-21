@@ -11,7 +11,7 @@ Upgrade pnpm version references across the project, respecting `minimumReleaseAg
 
 ### 1. Parse arguments
 
-If `$ARGUMENTS` contains a version string (e.g., `10.33.0`, `11.0.0-beta.4`), use it as the requested target version. Otherwise, auto-resolve the target.
+If the user specified a version (via `$ARGUMENTS` or in their request — e.g., `10.33.0`, `11.0.0-beta.4`), use it as the requested target version. Otherwise, auto-resolve the target.
 
 ### 2. Detect current pnpm version
 
@@ -25,27 +25,7 @@ If no current version is found, abort: "Could not detect pnpm version in this re
 
 ### 3. Resolve minimumReleaseAge
 
-Check both config files and normalize to minutes:
-
-**pnpm-workspace.yaml:**
-
-- Read the file if it exists
-- Look for a top-level `minimumReleaseAge` field — this is an integer in minutes (e.g., `1440` = 1 day)
-
-**renovate.json:**
-
-- Read the file if it exists
-- Check top-level `minimumReleaseAge` (applies globally)
-- Check `packageRules` array for entries where `matchPackageNames` includes `"pnpm"` and extract their `minimumReleaseAge`
-- Parse duration strings to minutes: `"3 days"` → 4320, `"24 hours"` → 1440, `"90 minutes"` → 90
-  - Split on space: `{number} {unit}`
-  - Multiply: days × 1440, hours × 60, minutes × 1
-
-**Combine:**
-
-- If both exist, use the **larger** (stricter) value
-- If neither exists, default to **7 days** (10080 minutes) and inform the user: "No minimumReleaseAge found in pnpm-workspace.yaml or renovate.json — defaulting to a 7-day cool-down."
-- Report the effective constraint to the user (e.g., "Using minimumReleaseAge of 3 days (4320 minutes) from renovate.json" or "Using 7-day default cool-down (10080 minutes)")
+Read `${CLAUDE_PLUGIN_ROOT}/references/release-age.md` and resolve the effective value — for renovate `packageRules`, match entries where `matchPackageNames` includes `"pnpm"`. Normalize to **minutes** (e.g., `"3 days"` → 4320), and report the constraint and its source per the reference.
 
 ### 4. Resolve target version
 

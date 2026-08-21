@@ -25,11 +25,9 @@ Mise supports a [`minimum_release_age`](https://mise.jdx.dev/configuration/setti
 
 **If not set in mise config**, check for a project-wide cool-down hint to recommend aligning:
 
-1. **`renovate.json`**: Check top-level `minimumReleaseAge` and any `packageRules` matching mise-managed tools — parse duration strings like `"7 days"`, `"72 hours"`, `"4320 minutes"` and convert to mise's `Nd`/`Nh`/`Nm` format
-2. **`pnpm-workspace.yaml`**: Look for top-level `minimumReleaseAge` (integer in minutes) — convert to days (e.g., `10080` → `7d`)
-3. If multiple values found, prefer the **largest** (strictest)
-4. If a project-wide value is found, recommend adding `minimum_release_age = "Nd"` under `[settings]` in `mise.toml` to align mise with the existing policy. Use AskUserQuestion to confirm before editing.
-5. If no project-wide value is found, inform the user that mise will resolve `latest` pins immediately and proceed without adding the setting.
+1. Read `${CLAUDE_PLUGIN_ROOT}/references/release-age.md`, resolve the project-wide value (for renovate `packageRules`, match entries covering mise-managed tools), and convert to mise's `Nd`/`Nh`/`Nm` format (e.g., `10080` minutes → `7d`). Deliberate divergence from the reference: do **not** apply the 7-day default here — this step only mirrors an explicit project policy.
+2. If a project-wide value is found, recommend adding `minimum_release_age = "Nd"` under `[settings]` in `mise.toml` to align mise with the existing policy — this recommendation is deliberate, since mise only honors the cool-down from its own config. Use AskUserQuestion to confirm before editing.
+3. If no project-wide value is found, inform the user that mise will resolve `latest` pins immediately and proceed without adding the setting.
 
 ### 3. Check for outdated tools
 
@@ -42,7 +40,7 @@ Run: `mise outdated --bump`
 
 ### 4. Research significant updates
 
-For tools with major or minor version changes shown in the outdated output, research changelogs and release notes for new features and breaking changes that could affect this project. Present findings to the user alongside the outdated results.
+For tools with major or minor version changes, research changelogs and release notes for new features and breaking changes that could affect this project. Present findings to the user before proceeding.
 
 ### 5. Confirm with user
 
