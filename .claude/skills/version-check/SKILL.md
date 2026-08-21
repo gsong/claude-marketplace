@@ -1,6 +1,7 @@
 ---
 name: version-check
-description: Use when the user wants to check if plugin versions need bumping, audit version status, or prepare a release. Also use when the user invokes /version-check.
+description: "Audit every plugin's version against its changes since the last bump, using one parallel agent per plugin. Use when the user wants to check if plugin versions need bumping, audit version status, or prepare a release. Also use when the user invokes /version-check."
+disable-model-invocation: true
 ---
 
 # Plugin Version Check
@@ -9,7 +10,7 @@ Analyze all plugins in this marketplace to determine if their version numbers ne
 
 ## Phase 1 — Discovery
 
-1. Run `ls plugins/` to enumerate all plugin subdirectories.
+1. Run `/bin/ls plugins/` to enumerate all plugin subdirectories.
 2. For each plugin, read `plugins/{name}/.claude-plugin/plugin.json` and extract the current `"version"` value.
 3. Build a working list:
    ```
@@ -27,16 +28,19 @@ Each agent receives the following prompt (fill in `{PLUGIN_NAME}`, `{PLUGIN_DIR}
 > Analyze the plugin `{PLUGIN_NAME}` at `{PLUGIN_DIR}` (current version: `{CURRENT_VERSION}`) to determine if a version bump is needed.
 >
 > **Step 1 — Find the version anchor commit:**
-> Run: `git log --format="%H" -- {PLUGIN_DIR}/.claude-plugin/plugin.json`
-> Take the first SHA from the output (most recent commit that touched plugin.json).
-> If the command returns empty output, report: bump = "none", reasoning = "Plugin has no git history yet."
+> Run: `git log -L '/"version"/,+1:{PLUGIN_DIR}/.claude-plugin/plugin.json' --format="%H" -s`
+> Take the first SHA from the output. This finds the most recent commit that changed the `version` line itself. Do not anchor on just any commit that touched plugin.json — a description or keyword edit would reset the anchor and hide real changes since the last bump.
+> If the command errors or returns empty output, report: bump = "none", reasoning = "Plugin has no version history yet."
 >
 > **Step 2 — Get changes since the anchor:**
-> Run: `git diff {SHA}..HEAD -- {PLUGIN_DIR}/`
-> If the diff is empty, report: bump = "none", reasoning = "No changes since last version bump."
+> Run: `git diff {SHA} -- {PLUGIN_DIR}/` — diff against the working tree, so uncommitted edits count.
+> Also run: `git status --porcelain -- {PLUGIN_DIR}/` — untracked files are changes too (a new skill that isn't committed yet still warrants a bump).
+> If both are empty, report: bump = "none", reasoning = "No changes since last version bump."
 >
 > **Step 3 — Semantic analysis:**
-> If changes exist, read the full diff output carefully. Classify the changes using this guide:
+> If changes exist, read the full diff output carefully. Also run `git log --format="%s" {SHA}..HEAD -- {PLUGIN_DIR}/` — this repo uses conventional commits, so the subjects signal intent (`feat:` → minor, `fix:`/`docs:`/`chore:` → patch, `!` or BREAKING CHANGE → major). The diff content is the ground truth; use commit subjects to confirm or question your classification, not to replace it.
+>
+> Classify the changes using this guide:
 >
 > | Bump              | Criteria                                                                                                                                                        |
 > | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |

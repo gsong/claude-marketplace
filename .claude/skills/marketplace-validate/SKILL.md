@@ -1,6 +1,7 @@
 ---
 name: marketplace-validate
-description: Validate internal consistency of the marketplace and all its plugins. Use when you want to check that plugin manifests, skills, hooks, resources, READMEs, and the marketplace registry are all accurate and consistent with each other. Also use when the user invokes /marketplace-validate.
+description: "Validate internal consistency of the marketplace and all its plugins, fixing issues directly where possible. Use when checking that plugin manifests, skills, hooks, resources, READMEs, and the marketplace registry are accurate and consistent with each other. Also use when the user invokes /marketplace-validate."
+disable-model-invocation: true
 ---
 
 # Marketplace Consistency Validation
@@ -46,8 +47,11 @@ Fill in `{PLUGIN_NAME}` and `{PLUGIN_DIR}`:
 > 1. Contains a `SKILL.md` file
 > 2. `SKILL.md` has valid YAML frontmatter (between `---` delimiters at the top)
 > 3. Frontmatter has a `description` field (required)
-> 4. If frontmatter has a `name` field, it matches the skill directory name
-> 5. **Preamble accuracy**: Read the FULL skill body (everything after the frontmatter). Check that the `description` field is an accurate summary of what the skill actually does. Flag if the description is misleading, outdated, or missing key functionality. Be specific about what's wrong.
+> 4. If frontmatter has a `name` field, it is the namespaced form `gs:{PLUGIN_NAME}:{skill-dir-name}` — this marketplace namespaces every skill name. Flag it if the final segment does not match the skill directory name, or if the plugin segment is wrong. Do **not** flag the colons or the directory-name mismatch as spec violations: the Agent Skills spec restricts `name` to `a-z0-9-` matching the parent directory, and this marketplace diverges from that on purpose so every skill carries its `/gs:` invocation.
+> 5. **Frontmatter key spelling**: The keys this marketplace uses are `name`, `description`, and `compatibility` (from the Agent Skills spec), plus the Claude Code extensions `argument-hint`, `allowed-tools`, `disable-model-invocation`, `context`, `agent`, and `model`. Flag lookalike keys such as `allowed_tools`, `allowedTools`, `tools`, or `when-to-use` — Claude Code silently ignores unknown keys, so a misspelled key means the behavior it was meant to apply never takes effect.
+> 6. **Model pins**: A `model` field is only safe alongside `context: fork`, where it applies to the spawned subagent. On an inline skill it overrides the model for the whole conversation while the skill is active, which has already caused context-window failures here. Flag any `model` without `context: fork`.
+> 7. **Invocation reference**: If the description mentions a slash invocation, it must be `/gs:{PLUGIN_NAME}:{skill-dir-name}` — the namespaced form this marketplace uses.
+> 8. **Preamble accuracy**: Read the FULL skill body (everything after the frontmatter). Check that the `description` field is an accurate summary of what the skill actually does. Flag if the description is misleading, outdated, or missing key functionality. Be specific about what's wrong.
 >
 > ### C. Hooks (`{PLUGIN_DIR}/hooks/`)
 >
@@ -55,27 +59,29 @@ Fill in `{PLUGIN_NAME}` and `{PLUGIN_DIR}`:
 >
 > 1. `hooks.json` exists and is valid JSON
 > 2. Has a top-level `hooks` object
-> 3. Each hook event key is a valid event type (e.g., `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `Notification`, `Stop`, `SubagentStop`)
+> 3. Each hook event key is a valid event type (`PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `Notification`, `Stop`, `SubagentStop`, `SessionStart`, `SessionEnd`, `PreCompact`)
 > 4. Each hook entry has `hooks` array with objects containing `type` and `command`
 > 5. Any script files referenced by commands exist on disk (resolve `${CLAUDE_PLUGIN_ROOT}` to `{PLUGIN_DIR}`)
 > 6. If the plugin.json has a `hooks` field:
 >    - The referenced file must exist and be valid JSON
 >    - **Duplicate detection**: `hooks/hooks.json` is auto-loaded by Claude Code. If the `hooks` field resolves to `hooks/hooks.json` (e.g., `"./hooks/hooks.json"`), flag it as an error — the field should be removed to avoid duplicate loading. The `hooks` field should only reference _additional_ hook files beyond the standard `hooks/hooks.json`.
 >
-> ### D. Resources (`{PLUGIN_DIR}/resources/`)
+> ### D. Supporting Files (`{PLUGIN_DIR}/resources/`, `scripts/`, `references/`)
 >
-> If a resources directory exists:
+> For each of these directories that exists:
 >
 > 1. Every file in the directory is non-empty
-> 2. Any resources referenced from SKILL.md files (via `$CLAUDE_SKILL_DIR` relative paths or direct references) actually exist
+> 2. Every supporting file referenced from a SKILL.md or hook (via `${CLAUDE_PLUGIN_ROOT}`, `$CLAUDE_SKILL_DIR`, or relative paths) actually exists on disk
+> 3. Scripts invoked directly (not through an interpreter like `bash script.sh`) have the executable bit set
+> 4. Note (as a NOTE, not a failure) any file that no SKILL.md, hook, or command references — it may be dead weight
 >
 > ### E. Agents (`{PLUGIN_DIR}/agents/`)
 >
 > If an agents directory exists:
 >
-> 1. Each subdirectory contains an `AGENT.md` file
-> 2. `AGENT.md` has valid YAML frontmatter with at minimum a `description` field
-> 3. If frontmatter has a `name` field, it matches the agent directory name
+> 1. Each agent is a `.md` file directly inside `agents/` — Claude Code does not load agents from subdirectories
+> 2. Each `.md` file has valid YAML frontmatter with at minimum a `description` field
+> 3. If frontmatter has a `name` field, it matches the file name (without `.md`)
 >
 > ### F. Commands (`{PLUGIN_DIR}/commands/`)
 >
@@ -170,4 +176,4 @@ If any issues were found:
 3. After all fixes, present a summary of changes made
 4. For issues that can't be auto-fixed (e.g., ambiguous intent), report them and ask the user
 
-Do NOT commit changes — leave them staged for the user to review.
+Do NOT commit changes — leave them uncommitted in the working tree for the user to review.
