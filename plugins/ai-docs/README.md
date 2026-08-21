@@ -18,6 +18,8 @@ Full lifecycle AI documentation for Claude Code projects: bootstrap, lookup, upd
 | ------------------ | -------------------------------------------------------------------------------------------------------- |
 | `UserPromptSubmit` | Reminds Claude to consult `gs:ai-docs:lookup` before code changes. Silent when no docs directory exists. |
 
+The reminder fires at most once per session (and skips slash commands and very short prompts). When 60% or more of docs still contain `<!-- NEEDS CONTENT` stubs, it instead says most docs need content and suggests populating them before relying on lookups.
+
 ## Lifecycle
 
 ```

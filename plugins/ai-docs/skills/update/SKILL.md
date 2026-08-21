@@ -36,15 +36,9 @@ If git history is unavailable (no commits, shallow clone, errors), ask the user 
 
 ### 2. Resolve Docs Directory
 
-Check these locations in order. Use the **first match**:
+!`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-dir-resolution.md"`
 
-1. `docs-ai/`
-2. `docs/ai/`
-3. `.claude/docs/`
-
-If more than one exists, emit a warning: "Multiple docs directories found: [list]. Using [chosen]. Consider consolidating to a single location."
-
-If none exist, output: "No docs-ai directory found. Run `/gs:ai-docs:init` to bootstrap documentation."
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/docs-dir-resolution.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
 ### 3. Identify Affected Docs
 
@@ -81,7 +75,7 @@ Wait for user approval.
 
 ### 5. Execute Updates
 
-Spawn writer agents (one per affected doc, parallelized). Each writer:
+Spawn writer agents (general-purpose type — writers need Write, which Explore lacks; one per affected doc, parallelized). Each writer:
 
 - Reads current doc content + changed source files
 - Updates doc to reflect new reality, preserving accurate existing content
@@ -98,15 +92,13 @@ If docs were added or removed:
 
 ### 7. Stamp Updated Docs
 
-Run `git rev-parse HEAD` to get the current commit SHA. In every doc that was updated or created (plus README.md if it changed), set the first line to:
+!`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/verification-stamp.md"`
 
-```markdown
-<!-- verified-against: [full-commit-sha] -->
-```
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/verification-stamp.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
-Replace an existing stamp line; otherwise insert it as the first line. Leave untouched docs alone — their stamps still reflect when they were last verified.
+Stamp only the docs that were updated or created (plus README.md if it changed). Leave untouched docs alone — their stamps still reflect when they were last verified.
 
-If `git rev-parse HEAD` fails (no git, no commits), skip stamping.
+If the working tree has uncommitted changes, note in the summary that docs were verified against HEAD plus uncommitted changes.
 
 ### 8. Summary
 

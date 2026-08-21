@@ -1,6 +1,6 @@
 ---
 name: gs:ai-docs:check
-description: "Check documentation freshness and detect drift. Use when you want to know which docs-ai/ files may be outdated relative to code changes, without modifying anything. Returns a staleness report with recommended actions."
+description: "Check documentation freshness and detect drift. Use when the user wants to know which docs-ai/ files may be outdated relative to code changes, without modifying anything. Also use when the user invokes /gs:ai-docs:check. Returns a staleness report with recommended actions."
 ---
 
 # Check Docs AI Freshness
@@ -13,19 +13,15 @@ Orchestrated documentation freshness check using parallel per-doc checker agents
 
 #### 1. Resolve Docs Directory
 
-Check these locations in order. Use the **first match**:
+!`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-dir-resolution.md"`
 
-1. `docs-ai/`
-2. `docs/ai/`
-3. `.claude/docs/`
-
-If more than one exists, emit a warning: "Multiple docs directories found: [list]. Using [chosen]. Consider consolidating to a single location."
-
-If none exist, output: "No docs-ai directory found. Run `/gs:ai-docs:init` to bootstrap documentation."
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/docs-dir-resolution.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
 #### 2. Read README.md
 
 Read `[docs-dir]/README.md`. Parse the topic index to get the full list of docs with their Key Paths.
+
+README.md and quick-reference.md carry no Key Paths and are deliberately excluded here — `/gs:ai-docs:audit` verifies them instead.
 
 #### 3. Git Availability Check
 
@@ -96,7 +92,7 @@ git rev-list --count [baseline]..HEAD -- [key-path]
 
 **Rating criteria:**
 
-- **fresh** — Key Paths unchanged since doc was last modified, all checked references valid
+- **fresh** — Key Paths unchanged since the baseline, all checked references valid
 - **possibly stale** — Key Paths had changes but references still valid
 - **likely stale** — references broken OR Key Paths significantly changed (10+ commits behind)
 

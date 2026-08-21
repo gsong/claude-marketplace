@@ -1,6 +1,6 @@
 ---
 name: gs:ai-docs:audit
-description: "Comprehensive audit of docs-ai/ documentation using coordinated agent teams. Use when the user wants a full review of all documentation for accuracy, completeness, and quality. Heavier than /gs:ai-docs:update — use for periodic deep reviews, not routine maintenance."
+description: "Comprehensive audit of docs-ai/ documentation using coordinated agent teams. Use when the user wants a full review of all documentation for accuracy, completeness, and quality. Also use when the user invokes /gs:ai-docs:audit. Heavier than /gs:ai-docs:update — use for periodic deep reviews, not routine maintenance."
 ---
 
 # Audit Docs AI
@@ -22,15 +22,9 @@ Improve docs as quick reference material for Claude Code lookups. Prioritize:
 
 #### 1. Resolve Docs Directory
 
-Check these locations in order. Use the **first match**:
+!`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-dir-resolution.md"`
 
-1. `docs-ai/`
-2. `docs/ai/`
-3. `.claude/docs/`
-
-If more than one exists, emit a warning: "Multiple docs directories found: [list]. Using [chosen]. Consider consolidating to a single location."
-
-If none exist, output: "No docs-ai directory found. Run `/gs:ai-docs:init` to bootstrap documentation."
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/docs-dir-resolution.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
 #### 2. Spawn Analyst Agent
 
@@ -70,7 +64,7 @@ Apply any approved structural changes (create/remove/consolidate files) before c
 
 #### 4. Spawn Reviewer Agents
 
-Spawn parallel **read-only** reviewer agents using the Agent tool (Explore type). Assign each reviewer 1 doc (or 2-3 related docs for small files).
+Spawn parallel **read-only** reviewer agents using the Agent tool (Explore type). Assign each reviewer 1 doc (or 2-3 related docs for small doc sets with fewer than 4 total docs).
 
 Each reviewer's prompt must include:
 
@@ -96,8 +90,8 @@ Collect all reviewer results. Resolve cross-doc conflicts (if reviewer A and rev
 
 Apply all approved edits. Either:
 
-- Apply directly (if changes are straightforward)
-- Spawn a single writer agent with the full edit plan
+- Apply directly (edits touching ≤2 docs)
+- Spawn a single writer agent (general-purpose type — it needs Write, which Explore lacks) with the full edit plan (3+ docs)
 
 #### 7. QA Check
 
@@ -118,15 +112,11 @@ QA reports all issues found — both minor (typos, broken links, formatting) and
 
 #### 8. Stamp Verified Docs
 
-Run `git rev-parse HEAD` to get the current commit SHA. Set the first line of **every** doc in the docs directory (including README.md and quick-reference.md) to:
+!`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/verification-stamp.md"`
 
-```markdown
-<!-- verified-against: [full-commit-sha] -->
-```
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/verification-stamp.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
-Replace an existing stamp line; otherwise insert it as the first line. Stamp all docs, not just edited ones — the audit verified them all against the current codebase.
-
-If `git rev-parse HEAD` fails (no git, no commits), skip stamping.
+Stamp **every** doc in the docs directory (including README.md and quick-reference.md), not just edited ones — the audit verified them all against the current codebase.
 
 #### 9. Summary
 

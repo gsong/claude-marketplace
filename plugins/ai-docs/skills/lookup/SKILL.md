@@ -20,15 +20,9 @@ The question to answer: $ARGUMENTS
 
 ### 1. Resolve Docs Directory
 
-Check these locations in order. Use the **first match**:
+!`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-dir-resolution.md"`
 
-1. `docs-ai/`
-2. `docs/ai/`
-3. `.claude/docs/`
-
-If more than one exists, emit a warning: "Multiple docs directories found: [list]. Using [chosen]. Consider consolidating to a single location."
-
-If none exist, output: "No docs-ai directory found. Run `/gs:ai-docs:init` to bootstrap documentation."
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/docs-dir-resolution.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
 ### 2. Read README.md
 
@@ -43,7 +37,7 @@ Read the identified documentation files. Extract only the specific, actionable i
 For each doc read:
 
 1. Check if files listed in Key Paths still exist (use Glob)
-2. If git is available (`git log -1 -- [doc-path]` succeeds):
+2. If the repo has git history (`git log -1 --format=%ct` succeeds — repo-level, so an untracked doc doesn't trigger meaningless comparisons):
    - If the doc's first line is a `<!-- verified-against: [sha] -->` stamp and the SHA is a known commit, use it as the baseline: `git rev-list --count [sha]..HEAD -- [key-path]` for each Key Path. A count greater than zero means potentially stale.
    - Otherwise fall back to timestamps: get the doc's last-modified git timestamp and the most recent commit timestamp for each Key Path. If any Key Path was modified after the doc, flag as potentially stale.
 3. If git is unavailable (no commits, shallow clone): skip the git check, note "staleness detection unavailable (no git history)"
@@ -74,13 +68,6 @@ If no documentation covers the topic:
 **Not Found**: No documentation covers [topic].
 Consider running `/gs:ai-docs:update "added [topic]"` to create documentation.
 ```
-
-## When NOT to Use
-
-- Pure conversation / explanations
-- Trivial one-line fixes to code already being read
-- Topics already looked up this session
-- Git operations, dependency management, non-code-pattern questions
 
 ## Critical Rules
 
