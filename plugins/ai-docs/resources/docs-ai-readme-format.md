@@ -60,7 +60,13 @@ The core of the README. Organized as categorized tables with three columns:
 
 - **Topic**: Short label describing what this doc covers (1-3 words)
 - **Doc**: Link to the markdown file in docs-ai/
-- **Key Paths**: Most important file paths or directories related to this topic
+- **Key Paths**: Most important file paths or directories related to this topic, written
+  **relative to the `[path-root]`** — the directory left after stripping the recognized docs
+  directory name. For `docs-ai/`, `docs/ai/`, or `.claude/docs/` at a repo root, that is the repo
+  root; for `apps/woody/docs-ai/` it is `apps/woody/`, so the entry reads `app/routes.ts`, not
+  `apps/woody/app/routes.ts`. Keeping paths relative to the code they describe lets a package move
+  without rewriting its docs. Every consumer joins `[path-root]/[key-path]` before touching the
+  filesystem or git.
 
 **Category guidelines:**
 
