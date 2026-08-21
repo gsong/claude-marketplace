@@ -1,6 +1,6 @@
 ---
 name: gs:git-tools:auto-squash
-description: Use when the user wants to distribute uncommitted changes across existing branch commits via fixup and auto-squash, or when the user invokes /gs:git-tools:auto-squash.
+description: Classifies each uncommitted change to its originating branch commit, creates fixup commits, and runs an autosquash rebase. Use when the user says "fold these changes into my earlier commits", "fixup my commits", "clean up my branch", or invokes /gs:git-tools:auto-squash.
 ---
 
 # Smart fixup and auto-squash
@@ -28,7 +28,7 @@ Distribute uncommitted changes across the current branch's commits via fixup, cr
 
 For each uncommitted change, determine its fixup target:
 
-1. **Direct match**: Run `git log --oneline --follow <fork-point>..HEAD -- <file>`
+1. **Direct match**: Run `git log --oneline <fork-point>..HEAD -- <file>`
    - One commit found → use it as the fixup target
    - Multiple commits found → examine the diff and commit messages to pick the most appropriate target
 2. **Logical match** (file has no direct branch history): Examine the change and branch commit messages/diffs to determine if it logically belongs with a branch commit:
@@ -61,11 +61,13 @@ For each target commit group:
 For any remaining unmatched files:
 
 1. Stage the files with `git add <files>`
-2. Create commit(s) with appropriate conventional commit messages — group by feature area or change type, preferring fewer cohesive commits over many tiny ones
+2. Create commit(s) with appropriate conventional commit messages (see the gs:git-tools:commit skill for message format) — group by feature area or change type, preferring fewer cohesive commits over many tiny ones
 
 ## 6. Rebase (conditional)
 
 **Only if at least one fixup commit was created in step 4:**
+
+This rebase rewrites the branch's history. Before running it, check whether the branch is shared: `git rev-parse --abbrev-ref @{upstream}` succeeding means the branch is pushed and someone else could be working from it — warn the user if so. (Don't use `git branch -r --contains HEAD` here: the fixup commits just created make HEAD unreachable from any remote, so it always comes back empty.)
 
 ```
 GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash --rebase-merges <fork-point>
@@ -74,3 +76,4 @@ GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash --rebase-merges <fork-point>
 - `GIT_SEQUENCE_EDITOR=true` accepts the reordered todo list without opening an editor
 - `--rebase-merges` preserves merge commits if any exist (no-op on linear branches)
 - If the rebase encounters conflicts, stop and inform the user — do not attempt automatic resolution
+- After a successful rebase, if the branch was already pushed, tell the user their next push needs `git push --force-with-lease` (never `--force`) since the rewritten history diverges from the remote

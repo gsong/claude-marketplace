@@ -1,6 +1,6 @@
 ---
 name: gs:git-tools:worktree
-description: Use when the user wants to create a new git worktree with intelligent branch naming and directory setup, or when the user invokes /gs:git-tools:worktree.
+description: Creates a git worktree under .worktrees/ with an intelligently named branch, copies .env, trusts mise/direnv, and installs dependencies per the lockfile. Use when the user says "work on X in parallel", "spin up a worktree", "separate checkout", or invokes /gs:git-tools:worktree.
 ---
 
 # Create Git Worktree
@@ -49,9 +49,12 @@ Examples:
 
 ## Step 3: Check for Conflicts
 
-1. Create `.worktrees/` directory if it doesn't exist: `mkdir -p .worktrees`
-2. List the contents of `.worktrees/` directory and check if the proposed directory name exists
-3. Check if the branch name already exists: `git branch --list {branch-name}`
+1. Change to the repo root so relative paths land correctly when invoked from a subdirectory: `cd "$(git rev-parse --show-toplevel)"` — all subsequent commands (`.worktrees/`, `cp .env`) assume the repo root
+2. Ensure `.worktrees/` is gitignored (append it to `.gitignore` if missing) so worktrees and copied `.env` files can't be staged
+3. Create `.worktrees/` directory if it doesn't exist: `mkdir -p .worktrees`
+4. List the contents of `.worktrees/` directory and check if the proposed directory name exists
+5. Check if the branch name already exists: `git branch --list {branch-name}`
+6. If the branch exists, check `git worktree list` — if the branch is already checked out in another worktree, or is the branch currently checked out here, `git worktree add` will refuse; tell the user and stop instead of attempting it
 
 **If directory name conflicts**, intelligently resolve:
 
@@ -92,16 +95,15 @@ cd .worktrees/{short-dir-name} && mise trust
 cd .worktrees/{short-dir-name} && direnv allow
 ```
 
-5. If `package.json` exists in the new worktree, install dependencies with the package manager indicated by the lockfile:
+5. If `package.json` exists in the new worktree, install dependencies with the package manager the lockfile indicates — run exactly one of these in the new worktree:
 
 ```bash
-# Detect the lockfile in the new worktree and run the matching command:
-#   pnpm-lock.yaml     → pnpm install
-#   package-lock.json  → npm install
-#   yarn.lock          → yarn
-#   bun.lockb          → bun install
-# If only package.json is present (no lockfile), fall back to pnpm install.
-cd .worktrees/{short-dir-name} && pnpm install
+cd .worktrees/{short-dir-name}
+# pnpm-lock.yaml        → pnpm install
+# package-lock.json     → npm install
+# yarn.lock             → yarn install
+# bun.lockb or bun.lock → bun install
+# No lockfile but package.json present → pnpm install (fallback per repo owner preference)
 ```
 
 Note: Run the worktree creation (Step 4.1) as its own step. Do not chain these setup commands onto the `git worktree add` command.

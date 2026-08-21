@@ -12,7 +12,7 @@ Git workflow skills for Claude Code.
 
 ## Prerequisites
 
-- [pnpm](https://pnpm.io/) — for dependency installation in worktrees
+- [pnpm](https://pnpm.io/) — fallback for dependency installation in worktrees when no lockfile is present (projects with a lockfile use the package manager it indicates)
 
 ## Installation
 
