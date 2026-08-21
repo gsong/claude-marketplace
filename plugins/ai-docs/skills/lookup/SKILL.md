@@ -35,17 +35,18 @@ Read the identified documentation files. Extract only the specific, actionable i
 
 ### 4. Staleness Check
 
-For each doc read:
+Key Paths are relative to `[path-root]`, so resolve each one as `[path-root]/[key-path]` before you Glob it or hand it to git. For each doc read:
 
-1. Check if files listed in Key Paths still exist (use Glob)
+1. Check if the files listed in Key Paths still exist (use Glob on the joined path). If none of a doc's Key Paths resolve, you have the wrong `[path-root]` — fix the resolution rather than reporting the doc as broken.
 2. If the repo has git history (`git log -1 --format=%ct` succeeds — repo-level, so an untracked doc doesn't trigger meaningless comparisons):
-   - If the doc's first line is a `<!-- verified-against: [sha] -->` stamp and the SHA is a known commit, use it as the baseline: `git rev-list --count [sha]..HEAD -- [key-path]` for each Key Path. A count greater than zero means potentially stale.
-   - Otherwise fall back to timestamps: get the doc's last-modified git timestamp and the most recent commit timestamp for each Key Path. If any Key Path was modified after the doc, flag as potentially stale.
+   - Read the first line of **each doc you read**, not just the README — every doc carries its own stamp, and they can differ. If that line is a `<!-- verified-against: [sha] -->` stamp and the SHA is a known commit, use it as the baseline: `git rev-list --count [sha]..HEAD -- [path-root]/[key-path]` for each Key Path. A count greater than zero means potentially stale.
+   - Only when that line is absent or names an unknown commit, fall back to timestamps: get the doc's last-modified git timestamp and the most recent commit timestamp for each Key Path. If any Key Path was modified after the doc, flag as potentially stale. Say in the answer that you used the timestamp fallback, because it is the noisier of the two — a formatting-only commit to a Key Path looks like drift, so a stale flag from timestamps carries less weight than one from a stamp.
+   - A count of zero only means "unchanged" when the path exists. Git reports zero for a path that has never existed, so confirm step 1 passed before you read zero as fresh.
 3. If git is unavailable (no commits, shallow clone): skip the git check, note "staleness detection unavailable (no git history)"
 
 ### 5. Supplement with Code Search
 
-If documentation doesn't fully answer the question, use Grep/Glob to find relevant code examples in the codebase.
+If documentation doesn't fully answer the question, use Grep/Glob to find relevant code examples in the codebase. Search `[path-root]` first — that is the code the docs describe — before widening to the whole repo.
 
 ### 6. Output Format
 
@@ -73,7 +74,8 @@ Consider running `/gs:ai-docs:update "added [topic]"` to create documentation.
 ## Critical Rules
 
 - Be concise and actionable — the main agent needs to code, not read essays
-- Always provide `file::Symbol` references when mentioning specific code
+- Always provide `file::Symbol` references when mentioning specific code, relative to `[path-root]` as the docs write them; when several docs directories were in play, name the path root so the main agent can find the file
+- State which `[docs-dir]` you answered from — a wrong resolution is invisible otherwise
 - If docs don't contain the answer, search the codebase and say so
 - Focus on "how to do X" not "what X is" — assume technical competence
 - **Never invent patterns** — if you can't find a canonical pattern in the docs or codebase, omit the Pattern section entirely
