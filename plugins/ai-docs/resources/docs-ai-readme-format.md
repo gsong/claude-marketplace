@@ -76,8 +76,16 @@ The core of the README. Organized as categorized tables with three columns:
 - Each doc file must appear in exactly one category
 - Every .md file in docs-ai/ (except README.md and quick-reference.md) must appear in the index
 
-### 4. No Other Sections
+### 4. Scope Note (multi-tier repos only)
 
-README.md should contain only the verification stamp, header, reference convention, and topic index.
-Do not add usage instructions, contribution guides, or other content.
-The goal is a clean, scannable lookup table.
+When the project has more than one docs directory — a monorepo root plus its workspaces —
+the README may carry one or two lines under the header saying what this tier covers and
+where the others are. Without it, a reader who lands on the wrong tier reads a missing
+topic as an undocumented one. Skip it when there is only one docs directory: it would state
+the obvious.
+
+### 5. No Other Sections
+
+Beyond the above, README.md should contain only the verification stamp, header, reference
+convention, and topic index. Do not add usage instructions, contribution guides, or other
+content. The goal is a clean, scannable lookup table.
