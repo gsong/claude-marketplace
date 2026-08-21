@@ -1,6 +1,6 @@
 ---
 name: gs:gh-tools:project-manager
-description: Use when the user wants to create a specialized agent for managing a GitHub project board, or when the user invokes /gs:gh-tools:project-manager with a project URL.
+description: Use when the user wants to generate a specialized agent for managing a GitHub project board — e.g. "set up an agent for my project board", "move issues between columns", "manage my GitHub project" — or when the user invokes /gs:gh-tools:project-manager with a project URL.
 ---
 
 # GitHub Project Manager
@@ -23,8 +23,8 @@ Create a specialized agent for managing GitHub project board operations using a 
 
 ### 1. Validate Environment
 
-- Check if current directory is a git repository
-- Verify GitHub CLI (`gh`) is available and authenticated
+- If current directory is not a git repository: show "This command must be run in a git repository" and stop
+- If GitHub CLI (`gh`) is not available or not authenticated: show "GitHub CLI must be installed and authenticated" and stop
 - If no URL in `$ARGUMENTS`: show "Usage: /gs:gh-tools:project-manager <project-url>" and stop
 
 ### 2. Parse URL and Extract Project Info
@@ -38,9 +38,10 @@ Supported URL formats:
 
 ```bash
 # Parse owner and project number from URL (handles both orgs/ and users/)
+# ERE via -E works on both BSD and GNU sed; # delimiter avoids clashing with URL slashes
 PROJECT_URL="$ARGUMENTS"
-OWNER=$(echo "$PROJECT_URL" | sed -n 's|https://github.com/\(orgs\|users\)/\([^/]*\)/projects/.*|\2|p')
-PROJECT_NUMBER=$(echo "$PROJECT_URL" | sed -n 's|.*/projects/\([0-9]*\).*|\1|p')
+read -r OWNER PROJECT_NUMBER <<< "$(echo "$PROJECT_URL" |
+  sed -E -n 's#^https://github\.com/(orgs|users)/([^/]+)/projects/([0-9]+).*#\2 \3#p')"
 ```
 
 If either value is empty, show "Invalid GitHub project URL format" and stop.
@@ -64,8 +65,8 @@ STATUS_MAPPINGS=$(echo "$STATUS_FIELD" | jq -r '.options[] | "- \"\(.name | asci
 ### 4. Generate Agent
 
 1. Create `.claude/agents/` directory if it doesn't exist
-2. If `github-project-manager.md` already exists, ask for confirmation before overwriting
-3. Generate the agent file with extracted project IDs, status mappings, and pre-configured commands
+2. If `github-project-manager.md` already exists, ask for confirmation before overwriting — the user may have hand-edited it, and the write is destructive
+3. Generate the agent file from the template below, substituting the `{placeholder}` values with the data extracted in steps 2-3
 4. Write to `.claude/agents/github-project-manager.md`
 5. Confirm creation and provide usage instructions
 
@@ -74,43 +75,59 @@ STATUS_MAPPINGS=$(echo "$STATUS_FIELD" | jq -r '.options[] | "- \"\(.name | asci
 Beyond the numbered Process steps, hold to these non-obvious constraints:
 
 - **Stop if `gh` auth fails** — every generated command depends on it; a half-authenticated run produces an agent with empty IDs.
-- **Confirm before overwriting an existing `github-project-manager.md`** — the user may have hand-edited it, and the write is destructive.
 - **Never guess project structure or status names** — derive every ID and status option from the GitHub API data, since a wrong mapping silently moves issues to the wrong column.
 
 ## Error Handling
 
-- If no URL provided: "Usage: /gs:gh-tools:project-manager <project-url>"
-- If invalid URL format: "Invalid GitHub project URL format"
-- If not in a git repository: "This command must be run in a git repository"
-- If `gh` CLI not available: "GitHub CLI must be installed and authenticated"
 - If project not accessible: "Cannot access project - check permissions and URL"
-- If .claude directory doesn't exist: Create it automatically
-- If github-project-manager.md exists: Ask for confirmation before overwriting
 
-## Example Generated Agent
+## Generated Agent Template
 
-The command will generate an agent similar to:
+`{placeholder}` values come from the variables computed in steps 2-3:
 
-```yaml
+````markdown
 ---
 name: github-project-manager
 description: Manage GitHub project board operations for moving issues between status columns
 tools: Bash
 ---
 
-You are a specialized agent for managing GitHub project board operations for the [Project Title] project.
+You are a specialized agent for managing GitHub project board operations for the {PROJECT_TITLE} project.
 
 ## Project Details
 
-- **Project URL:** [actual project URL from $ARGUMENTS]
-- **Project ID:** `[actual-project-id]`
-- **Status Field ID:** `[actual-status-field-id]`
+- **Project URL:** {PROJECT_URL}
+- **Owner:** `{OWNER}`
+- **Project Number:** `{PROJECT_NUMBER}`
+- **Project ID:** `{PROJECT_ID}`
+- **Status Field ID:** `{STATUS_FIELD_ID}`
 
 ## Available Status Options
 
-[Auto-generated from actual project status options]
+{STATUS_OPTIONS}
+
+## Status Mappings
+
+Map the user's natural-language status to a single-select option ID:
+
+{STATUS_MAPPINGS}
 
 ## Core Functions
 
-[Pre-configured commands using actual project IDs]
+### List items on the board
+
+```bash
+gh project item-list {PROJECT_NUMBER} --owner {OWNER} --format json
 ```
+
+Use this to find an item's `id` and its current status.
+
+### Move an item to a status column
+
+```bash
+gh project item-edit --id <item-id> --project-id {PROJECT_ID} \
+  --field-id {STATUS_FIELD_ID} --single-select-option-id <option-id>
+```
+
+`<item-id>` comes from the item-list output; `<option-id>` comes from the status mappings above.
+````

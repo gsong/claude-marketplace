@@ -131,6 +131,11 @@ You are an investigation agent. Deeply investigate this code review finding and 
 - `remove` — the finding is a false positive, already addressed, or not actionable
 - `reword` — the finding is valid but the body should be revised (provide `suggested_body`)
 
+**Verdict-to-action defaults:**
+
+- `pre-existing` — default `recommended_action` to `remove`, and note in `evidence` that the issue predates this PR (the human can still choose to keep it)
+- `unclear` — default `recommended_action` to `keep`, and provide a `suggested_body` that states the uncertainty so the human decides with full context
+
 ---
 
 After all agents complete, parse each result as JSON. If an agent fails or returns unparseable output, mark that finding's investigation as failed.
@@ -149,7 +154,7 @@ Sort by severity (must-fix → should-fix → nit), then by investigation confid
 
    `sha256(path + ":" + line + ":" + (side || "RIGHT") + ":" + sorted_agent_labels + ":" + (title || body[:64]))`
 
-   Where `sorted_agent_labels` is a comma-joined string of all `agent_label` values from `source_detail`, sorted alphabetically (e.g. `"Correctness & Safety,architecture & design"`). This ensures the hash is stable regardless of `source_detail` merge order during deduplication.
+   Where `sorted_agent_labels` is a comma-joined string of all `agent_label` values from `source_detail`, sorted byte-wise and case-sensitive (LC_ALL=C order — uppercase sorts before lowercase, e.g. `"Correctness & Safety,architecture & design"`). This ensures the hash is stable regardless of `source_detail` merge order during deduplication.
 
    Truncate to the first 12 hex characters. This is the finding's stable identity hash used for checkpointing. Store it on the finding as `_identity_hash` for use in the triage loop.
 

@@ -1,6 +1,6 @@
 ---
 name: gs:gh-tools:post-comments
-description: Use when the user wants to post code-level review comments to a GitHub PR as a pending review, or when the user invokes /gs:gh-tools:post-comments. Requires running /gs:gh-tools:triage first to curate findings.
+description: Use when the user wants to post code-level review comments to a GitHub PR as a pending review, or when the user invokes /gs:gh-tools:post-comments with a PR number. Requires running /gs:gh-tools:triage first to curate findings.
 ---
 
 # Post PR Comments
@@ -37,10 +37,18 @@ Use `uv run "$VALIDATOR" <file>` for all validation commands below.
 3. If they match, proceed to Step 3.
 4. If they differ, compute staleness context and present an interactive warning:
 
+   **Fetch the PR head first** — the commits may not be local:
+
+   ```bash
+   git fetch origin {current_sha}
+   ```
+
    **Compute context:**
    - Commit list: `git log --oneline {head_sha}..{current_sha}`
    - Changed files: `git diff --name-status {head_sha}..{current_sha}`
    - Cross-reference finding paths against changed files to count affected findings
+
+   If the objects still aren't available after the fetch (the `git log`/`git diff` commands fail), warn the user that the staleness diff is unavailable and skip the commit/file lists — still report the SHA mismatch and ask whether to proceed.
 
    **Present to user:**
 
@@ -143,7 +151,7 @@ After the user selects findings to post, ask (via AskUserQuestion):
 2. **Preflight: check for existing pending review.** A user can only have one pending review per PR — the POST will 422 if one already exists.
 
    ```bash
-   gh api /repos/{repo}/pulls/$ARGUMENTS/reviews --jq '[.[] | select(.state == "PENDING")] | first'
+   gh api --paginate --slurp /repos/{repo}/pulls/$ARGUMENTS/reviews --jq '[.[][] | select(.state == "PENDING")] | first'
    ```
 
    - If no pending review exists → proceed to sub-step 3.

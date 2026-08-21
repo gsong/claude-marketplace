@@ -9,7 +9,7 @@ Perform a comprehensive code review for PR #$ARGUMENTS
 
 **All output goes to `ai-swap/pr-review-$ARGUMENTS/` — never post comments to GitHub directly.**
 
-## Setup
+## Locate the validator
 
 Locate the schema validator (used in Phase 3 and Phase 4):
 
@@ -18,7 +18,7 @@ VALIDATOR="${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py"
 if [ ! -f "$VALIDATOR" ]; then echo "ERROR: validate-findings.py not found at $VALIDATOR" >&2; exit 1; fi
 ```
 
-Use `uv run "$VALIDATOR" <file>` for all validation commands below.
+Use `uv run "$VALIDATOR" <file>` for all validation commands below. The `$VALIDATOR` variable only exists in your (the orchestrator's) shell — when assembling the Phase 3 synthesis prompt, substitute the resolved absolute path for every `$VALIDATOR` occurrence before sending it.
 
 ## Phase 1: Setup
 
@@ -94,7 +94,7 @@ Include ALL of the following in the agent's prompt:
 5. Full text output from Review B (the mattpocock Standards/Spec report, or the superpowers:code-reviewer findings if the fallback ran), with a note saying which reviewer produced it
 6. The review focus areas (below)
 7. The output format specs (below)
-8. The validator step (below)
+8. The validator step (below) — replace `$VALIDATOR` with the absolute path resolved in "Locate the validator" before sending; the synthesis agent never ran that step and does not inherit the variable
 9. The hard gate (below)
 
 #### Review focus areas
@@ -193,6 +193,8 @@ The body should note when both reviews flagged the same issue.
    uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
    ```
 
+   (Orchestrator: substitute the absolute validator path for `$VALIDATOR` in this command before sending the prompt.)
+
    If validation fails, fix the errors in the JSON and re-validate before proceeding.
 
 #### Hard gate
@@ -207,7 +209,7 @@ After the synthesis agent completes, the orchestrator (you) verifies the output:
 
 1. Check that `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json` exists: `ls ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`
 2. **Check for stale triage output:** `ls ai-swap/pr-review-$ARGUMENTS/findings.json` — if this file exists alongside `findings-gh-review.json`: `findings.json` is likely from a previous triage run containing the user's curated decisions. **Do not auto-delete.** Warn the user and ask (via AskUserQuestion) whether to delete it or keep it. It won't interfere with the new review output, but may be stale.
-3. If `findings-gh-review.json` is still missing after step 2: report the failure to the user. Show what the synthesis agent returned so the user can debug.
+3. If `findings-gh-review.json` is missing: the synthesis agent failed its hard gate. Re-run the synthesis agent (Phase 3) once; if the file is still missing after the re-run, report the failure to the user and show what the synthesis agent returned so they can debug.
 4. If the file exists:
    - **Run the schema validator** (the synthesis agent may have skipped it):
      ```bash
@@ -215,5 +217,4 @@ After the synthesis agent completes, the orchestrator (you) verifies the output:
      ```
      If validation fails, fix the JSON yourself (common issues: missing top-level `"source": "gh-review"`, missing `"source_detail"` on findings) and re-validate until it passes.
    - Show the synthesis agent's summary (finding counts, mapped vs unmappable)
-   - If step 2 renamed the file, warn: "The synthesis agent wrote `findings.json` instead of `findings-gh-review.json` — renamed automatically, but this indicates the agent didn't follow the naming instruction."
    - Remind the user: "Run `/gs:gh-tools:triage $ARGUMENTS` to investigate and curate findings before posting."
