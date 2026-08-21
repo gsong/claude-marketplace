@@ -41,12 +41,16 @@ If git history is unavailable (no commits, shallow clone, errors), ask the user 
 
 > **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/docs-dir-resolution.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
+The changed paths git reports are relative to the repo root. Key Paths are relative to `[path-root]`. Strip the `[path-root]` prefix from each changed path before you compare — `apps/woody/app/routes.ts` matches the Key Path `app/routes.ts`. Comparing the two forms directly finds nothing, and finding nothing looks the same as having nothing to update.
+
+When the change spans several path roots (a diff touching two packages that each have their own docs directory), handle one docs directory per run and tell the user which other path roots the diff touched, so they can rerun for those. Updating one and staying silent about the rest leaves docs wrong without saying so.
+
 ### 3. Identify Affected Docs
 
 Spawn an analyst agent (Explore type, read-only) to:
 
 1. Read `[docs-dir]/README.md` topic index
-2. Map changed files/directories to Key Paths in topic tables
+2. Map changed files/directories to Key Paths in topic tables, comparing them under a common root as described above
 3. Read potentially affected docs
 4. Return structured findings:
    - Which existing docs need updating, and what specifically changed
@@ -59,6 +63,9 @@ Show:
 
 ```
 ## Proposed Documentation Updates
+
+Docs directory: [docs-dir] (path root [path-root])
+[If the diff touched other path roots with their own docs: "Also changed: [path-root list] — rerun there."]
 
 ### Docs to Update
 - [filename].md — [what changed and why]

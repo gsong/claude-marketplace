@@ -36,11 +36,13 @@ Run `git log -1 --format=%ct` to verify the repo has git history.
 
 Spawn parallel **read-only** checker agents using the Agent tool (Explore type). Assign each agent 1 doc (or 2-3 related docs for small doc sets with fewer than 4 total docs).
 
+Cap the fanout at 10 agents. Large docs directories exist — a monorepo package can carry 30+ docs — and one agent per doc stops being parallelism at that point. Above 10 docs, group related docs into 10 batches.
+
 Each checker agent's prompt must include:
 
-- The docs directory path
+- The docs directory path `[docs-dir]` and the path root `[path-root]`
 - Its assigned doc file path(s)
-- The Key Paths for each assigned doc (from the topic index)
+- The Key Paths for each assigned doc (from the topic index), plus the instruction to resolve each as `[path-root]/[key-path]`
 - Whether git is available (`git_available`)
 - Instructions to return structured results (not edit files)
 
@@ -64,13 +66,15 @@ git log -1 --format=%H -- [docs-dir]/[filename].md
 
 Note in the result that the doc is unstamped.
 
-3. For each Key Path in the doc's topic table row, count commits since the baseline:
+3. For each Key Path in the doc's topic table row, count commits since the baseline. Key Paths are relative to `[path-root]`, so join first:
 
 ```
-git rev-list --count [baseline]..HEAD -- [key-path]
+git rev-list --count [baseline]..HEAD -- [path-root]/[key-path]
 ```
 
 4. If any Key Path count is greater than zero, flag as potentially stale.
+
+Read a zero count as "unchanged" only for a path that exists. Git prints `0` for a path it has never seen, so an unjoined or misspelled path looks exactly like a fresh doc. Confirm the path resolves (step 6) before you trust its count — this is the one failure mode that makes the whole report a quiet lie.
 
 **Always (git or not):**
 
@@ -79,7 +83,7 @@ git rev-list --count [baseline]..HEAD -- [key-path]
 - Does the referenced file exist? (use Glob)
 - Does the referenced symbol exist in that file? (use Grep)
 
-6. Check if Key Path files/directories still exist (use Glob)
+6. Check if Key Path files/directories still exist (use Glob on `[path-root]/[key-path]`)
 
 **Each checker returns a structured result:**
 
@@ -92,7 +96,8 @@ git rev-list --count [baseline]..HEAD -- [key-path]
 
 **Rating criteria:**
 
-- **fresh** — Key Paths unchanged since the baseline, all checked references valid
+- **fresh** — Key Paths resolve, are unchanged since the baseline, and all checked references are valid
+- **unresolved** — none of the doc's Key Paths resolve under `[path-root]`. This is a resolution problem, not a doc problem: report it as such instead of rating the doc
 - **possibly stale** — Key Paths had changes but references still valid
 - **likely stale** — references broken OR Key Paths significantly changed (10+ commits behind)
 
@@ -106,6 +111,8 @@ Collect all checker results. Output in this format:
 
 ```
 ## Docs Freshness Report
+
+Checked [docs-dir] (path root [path-root])
 
 [If git unavailable: "⚠ Staleness detection limited (no git history). Results based on reference validity only."]
 
@@ -122,6 +129,10 @@ Collect all checker results. Output in this format:
 
 - [filename].md, [filename].md
 
+### Unresolved
+
+- [filename].md — no Key Path resolved under [path-root]; staleness not checked
+
 ### Recommended Actions
 
 - Run `/gs:ai-docs:update "[description]"` to fix [specific doc]
@@ -132,5 +143,6 @@ Collect all checker results. Output in this format:
 ## Critical Rules
 
 - **Read-only** — do not modify any files
+- Never rate a doc `fresh` on git counts alone — a zero count on a path that does not resolve means the check did not run
 - Be specific about what's broken (which references, which Key Paths)
 - If git is unavailable, clearly state this limitation in the report header

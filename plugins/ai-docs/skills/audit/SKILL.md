@@ -36,7 +36,7 @@ Spawn a single analyst agent (Explore type, read-only). Include the shared analy
 
 In addition to the project analysis, the analyst must also evaluate the existing docs:
 
-- Read all current docs in `[docs-dir]/`
+- Read all current docs in `[docs-dir]/`. Source paths in those docs, and Key Paths in the README, are relative to `[path-root]` — join before reading or globbing, or every reference looks broken
 - **Gaps**: Topics that should be documented but aren't
 - **Redundancy**: Overlapping content that should be consolidated
 - **Extraneous docs**: Docs that don't match current codebase reality
@@ -64,11 +64,11 @@ Apply any approved structural changes (create/remove/consolidate files) before c
 
 #### 4. Spawn Reviewer Agents
 
-Spawn parallel **read-only** reviewer agents using the Agent tool (Explore type). Assign each reviewer 1 doc (or 2-3 related docs for small doc sets with fewer than 4 total docs).
+Spawn parallel **read-only** reviewer agents using the Agent tool (Explore type). Assign each reviewer 1 doc (or 2-3 related docs for small doc sets with fewer than 4 total docs), and cap the fanout at 10 agents — a monorepo package can carry 30+ docs, and one agent each stops buying anything at that point. Above 10 docs, group related docs into 10 batches.
 
 Each reviewer's prompt must include:
 
-- Its assigned doc file path(s)
+- Its assigned doc file path(s), plus `[path-root]` for resolving the code they reference
 - Relevant Phase 1 findings for those docs
 - Instructions to return structured results (not edit files)
 
@@ -116,7 +116,7 @@ QA reports all issues found — both minor (typos, broken links, formatting) and
 
 > **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/verification-stamp.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
-Stamp **every** doc in the docs directory (including README.md and quick-reference.md), not just edited ones — the audit verified them all against the current codebase.
+Stamp **every** doc in the docs directory (including README.md and quick-reference.md), not just edited ones — the audit verified them all against the current codebase. The audit covers the one `[docs-dir]` it resolved; if the project has other docs directories under other path roots, say so in the summary rather than implying the whole project was audited.
 
 #### 9. Summary
 
