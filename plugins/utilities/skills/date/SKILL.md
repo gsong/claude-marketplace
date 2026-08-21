@@ -1,10 +1,10 @@
 ---
 name: gs:utilities:date
-description: Calculate dates and datetimes from natural-language descriptions — relative days/weeks/months/years, weekdays, hours, timestamps, and date ranges — using macOS `date`. Use whenever a request involves a relative or computed date, e.g. "commits from last week", "logs from the last 3 hours", "last month's report", "schedule this for next Monday", or "30 days ago", including proactively when scheduling or planning. Return the computed value, then continue the task that needed it.
-tools: Bash, Read, Glob, Grep
+description: Calculate dates and datetimes from natural-language descriptions — relative days/weeks/months/years, weekdays, hours, timestamps, and date ranges — using macOS `date`. Use whenever a request involves a relative or computed date, e.g. "commits from last week", "logs from the last 3 hours", "last month's report", "schedule this for next Monday", or "30 days ago", including proactively when scheduling or planning.
+allowed-tools: Bash
 ---
 
-Calculate the requested date or datetime using BSD `date` commands (macOS). Return only the calculated value. If a request is ambiguous (e.g., "last week" could mean 7 days ago or the previous calendar week), ask for clarification.
+Calculate the requested date or datetime using BSD `date` commands (macOS). If a request is ambiguous (e.g., "last week" could mean 7 days ago or the previous calendar week), ask for clarification.
 
 Anchor every relative calculation to the actual current date rather than an assumed one. Let `date` read the clock (e.g. `date -v-7d`) instead of computing from a date you assume is today — this is what keeps the result correct regardless of when the skill runs.
 
@@ -17,8 +17,6 @@ Return only the calculated value. Do not show the command used. Example:
 ```
 2025-10-02
 ```
-
-When this calculation is part of a larger task, use the value to continue that task rather than treating the output as a final response.
 
 ## Command Standards
 
@@ -45,8 +43,8 @@ When this calculation is part of a larger task, use the value to continue that t
 
 ## Edge Cases
 
-- Month/year boundaries (e.g., "30 days ago" when current date is early in month)
-- Leap years when calculating year-relative dates
+- Month boundaries: `-v` month arithmetic clamps to the last valid day, so no correction is needed (verified: `-v+1m` on 2026-01-31 gives 2026-02-28, and on 2024-01-31 gives 2024-02-29). Day arithmetic crosses month/year boundaries correctly too.
+- Leap years: day arithmetic handles Feb 29 correctly (verified: `-v+1d` on 2024-02-28 gives 2024-02-29), but year arithmetic from Feb 29 does _not_ clamp — `-v+1y` on 2024-02-29 gives 2025-03-01, not 2025-02-28. If the user wants the end of February, step back a day after the year adjustment (verified: `-v+1y -v-1d` on 2024-02-29 gives 2025-02-28).
 - Weekday flags count _today_ as a match: `-v+mon` run on a Monday returns that same Monday, not the following one. When the user clearly means the _upcoming_ weekday, step forward a day first (e.g., `date -v+1d -v+mon`). The order of `-v` flags matters — they apply left to right, so `-v+1d -v+mon` and `-v+mon -v+1d` give different results.
 - Ambiguous requests like "last week" -- clarify before calculating
 
