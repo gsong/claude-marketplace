@@ -50,9 +50,21 @@ For each target commit group:
 1. Stage the relevant files with `git add <files>` (this also stages deletions when the file is absent from the working tree)
 2. If the changes meaningfully alter the commit's purpose or scope, compose a new commit message reflecting the combined change and run `git commit --fixup=amend:<SHA> -m "<new message>"`. This creates an `amend!` commit that squashes the staged content **and** replaces the target's message on rebase.
    - Do **not** use `--fixup=reword:<SHA>` here — `reword:` is shorthand for `--fixup=amend:<SHA> --only` and silently ignores staged content, leaving it to leak into a subsequent commit.
-   - If `-m` is rejected (older git), fall back to two steps: `GIT_EDITOR=true git commit --fixup=amend:<SHA>` then `git commit --amend -m "<new message>"`. The `amend!` commit's own message is what replaces the target's on autosquash.
+   - `-m` is the only message flag `--fixup` accepts. `-F` is rejected outright (`fatal: options '-F' and '--fixup' cannot be used together`), so pass a multi-line body through `-m`, which takes embedded newlines — not through a heredoc.
+   - If `-m` is rejected (older git), or you need a heredoc, fall back to two steps: `GIT_EDITOR=true git commit --fixup=amend:<SHA>`, then `git commit --amend` to set the message. **The amended message must keep the `amend!` header line the first step generated** — that line is what autosquash matches on. Write the whole message in this shape:
+
+     ```
+     amend! <target's original subject>
+
+     <new subject>
+
+     <new body>
+     ```
+
+     Everything after the first blank line replaces the target's message; the `amend!` line itself is consumed by the rebase. Overwrite the whole message and the commit stops being an `amend!` commit — autosquash no longer recognizes it and leaves it sitting as an ordinary commit on top, with the target unchanged.
 3. Otherwise, use `git commit --fixup <SHA>`
-4. **Verify the fixup captured the expected files.** Run `git show --name-only --format= HEAD` and compare against the files you just staged for this group. If the lists differ (missing or extra paths):
+4. **Verify the `amend!` header survived.** Only when you used `--fixup=amend:` — run `git log -1 --format=%s` and confirm the subject starts with `amend! `. If it does not, the message got clobbered; rewrite it with `git commit --amend` in the shape above before going on. This is a message defect, not a content defect — do not unwind for it.
+5. **Verify the fixup captured the expected files.** Run `git show --name-only --format= HEAD` and compare against the files you just staged for this group. If the lists differ (missing or extra paths):
    - Run `git reset --mixed <start_sha>` to unwind every fixup commit created during this run (including earlier groups that already succeeded). This restores HEAD to its pre-skill state and leaves all changes unstaged in the working tree — nothing is lost.
    - Tell the user: `Fixup for <SHA> captured <actual> but expected <staged>. I've unwound all fixups from this run; your changes are back in the working tree. Use the gs:git-tools:commit skill to commit them manually.`
    - Stop the skill — do not continue iterating and do not proceed to step 6.
