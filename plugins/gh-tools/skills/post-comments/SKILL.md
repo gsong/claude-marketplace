@@ -153,8 +153,10 @@ After the user selects findings to post, ask (via AskUserQuestion):
 2. **Preflight: check for existing pending review.** A user can only have one pending review per PR — the POST will 422 if one already exists.
 
    ```bash
-   gh api --paginate --slurp /repos/{repo}/pulls/$ARGUMENTS/reviews --jq '[.[][] | select(.state == "PENDING")] | first'
+   gh api --paginate --slurp /repos/{repo}/pulls/$ARGUMENTS/reviews | jq '[.[][] | select(.state == "PENDING")] | first'
    ```
+
+   Pipe to a separate `jq` — `gh` rejects `--slurp` together with `--jq` or `--template`. `--slurp` returns an array of pages, so the filter needs `.[][]` to reach individual reviews.
 
    - If no pending review exists → proceed to sub-step 3.
    - If a pending review is found → report its ID and comment count, then ask the user (via AskUserQuestion) how to proceed:
