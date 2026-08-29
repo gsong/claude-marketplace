@@ -98,6 +98,7 @@ Include ALL of the following in the agent's prompt:
 7. The output format specs (below)
 8. The validator step (below) — replace `$VALIDATOR` with the absolute path resolved in "Locate the validator" before sending; the synthesis agent never ran that step and does not inherit the variable
 9. The hard gate (below)
+10. The voice rules (below)
 
 #### Review focus areas
 
@@ -111,6 +112,12 @@ Include ALL of the following in the agent's prompt:
   - Tests that only exist to bump coverage without catching real bugs should be flagged for removal
 
 Skip praise and lengthy analysis — actionable items only.
+
+#### Voice
+
+Skip this section if `~/.claude/skills/writing-line/` does not exist. Nothing else changes when it is absent.
+
+When it does exist, read the Judgment section of `rules/common.md` and of `rules/technical.md` under that directory, plus every file in its `references/`. Write every finding `body` to those rules. Ignore the Greppable blocks — they are the gate's business, not yours.
 
 #### Instructions for the synthesis agent
 
@@ -126,7 +133,20 @@ Skip praise and lengthy analysis — actionable items only.
    - Set `side` to `LEFT` only if the comment targets a deleted line; otherwise omit (defaults to `RIGHT`)
    - Validate `body` is under 65536 characters
 
-6. **Write `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`:** The file MUST be named exactly `findings-gh-review.json`, NOT `findings.json`. The downstream triage skill globs for `findings-*.json` to discover source files — `findings.json` is reserved for triage's own output and will be ignored.
+6. **Run the voice gate.** Skip if `~/.claude/skills/writing-line/` does not exist.
+
+   The gate is a PostToolUse hook. It fires on any write under `ai-swap/drafts/<profile>/`, so writing the bodies there is what runs it.
+
+   - Write every finding's `body` to `ai-swap/drafts/technical/pr-$ARGUMENTS-review.md`, one section per finding, headed `## {index} — {path}:{line}`.
+   - Fence any code a body quotes. The gate never scans fenced blocks, which is what keeps a `--` inside quoted code from reporting as a double hyphen.
+
+   Write the file with the **Write tool**, not a shell heredoc. The gate is a PostToolUse hook that matches `Write`, `Edit`, and `MultiEdit` by tool name, so a `cat >` in Bash writes the file and fires nothing.
+
+   Expect one standing misread: a code review body is dense with `file:line-line` references, and the en dash rule reads every one of them as a number range. Those are source line numbers, not a range in prose. Leave them alone.
+   - Read the gate's report. Fix what is a real violation. Ignore what a rule misread, and say so if the same rule misreads the same passage twice.
+   - Carry the corrected text into the JSON below, then delete the draft file.
+
+7. **Write `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`:** The file MUST be named exactly `findings-gh-review.json`, NOT `findings.json`. The downstream triage skill globs for `findings-*.json` to discover source files — `findings.json` is reserved for triage's own output and will be ignored.
 
    **REQUIRED top-level fields** (validation fails without these):
    - `"source"`: always `"gh-review"` for this skill
@@ -187,9 +207,9 @@ The body should note when both reviews flagged the same issue.
 
 **You MUST write this file even if zero findings** (use `"findings": []`).
 
-7. **Report** how many findings were mapped to diff positions and how many were flagged as unmappable.
+8. **Report** how many findings were mapped to diff positions and how many were flagged as unmappable.
 
-8. **Run the schema validator** on the findings file:
+9. **Run the schema validator** on the findings file:
 
    ```bash
    uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
