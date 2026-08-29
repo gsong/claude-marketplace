@@ -138,11 +138,53 @@ You are an investigation agent. Deeply investigate this code review finding and 
 - `pre-existing` — default `recommended_action` to `remove`, and note in `evidence` that the issue predates this PR (the human can still choose to keep it)
 - `unclear` — default `recommended_action` to `keep`, and provide a `suggested_body` that states the uncertainty so the human decides with full context
 
+**Writing `suggested_body`:**
+
+Skip this if `~/.claude/skills/writing-line/` does not exist. Nothing else changes when it is absent.
+
+When it does exist, read the Judgment section of `rules/common.md` and of `rules/technical.md` under that directory, plus every file in its `references/`. Write `suggested_body` to those rules. Ignore the Greppable blocks — they are the gate's business, not yours.
+
 ---
 
 After all agents complete, parse each result as JSON. If an agent fails or returns unparseable output, mark that finding's investigation as failed.
 
 Report: "Investigation complete. {N} findings investigated, {F} investigation(s) failed."
+
+## Phase 2.5: Voice Pass
+
+Skip this phase if `~/.claude/skills/writing-line/` does not exist. Say nothing about it and go to Phase 3.
+
+The gate is a PostToolUse hook. It fires on any write under `ai-swap/drafts/<profile>/`, so writing the candidate text there is what runs it.
+
+1. **Collect every string that could reach GitHub.** That is each finding's `body`, plus every non-null `suggested_body` returned in Phase 2.
+
+2. **Write them to `ai-swap/drafts/technical/pr-{PR}-bodies.md`**, a path relative to the repo root. It is a sibling of `ai-swap/pr-review-{PR}/`, not a child. One section per string:
+
+   ```markdown
+   ## {index} body — {path}:{line}
+
+   {body text}
+
+   ## {index} suggested — {path}:{line}
+
+   {suggested_body text}
+   ```
+
+   Fence any code a body quotes. The gate never scans fenced blocks, which is what keeps a `--` inside quoted code from reporting as a double hyphen.
+
+   Write the file with the **Write tool**, not a shell heredoc. The gate is a PostToolUse hook that matches `Write`, `Edit`, and `MultiEdit` by tool name, so a `cat >` in Bash writes the file and fires nothing.
+
+   Expect one standing misread: a code review body is dense with `file:line-line` references, and the en dash rule reads every one of them as a number range. Those are source line numbers, not a range in prose. Leave them alone.
+
+3. **Read the gate's report.** Fix what is a real violation. Ignore what a rule misread, and say so if the same rule misreads the same passage twice — that is a signal the rule is wrong.
+
+4. **Fold the corrected text back** onto the findings and the stored investigation results.
+
+5. **Delete the draft file.**
+
+Phase 3 then presents text that has already been through the gate, so what the user approves in the triage loop is what posts. Never run this pass after Phase 3 — that would rewrite text the user already approved.
+
+Report: "Voice pass complete. {V} violations reported, {F} fixed."
 
 ## Phase 3: Triage Findings
 
