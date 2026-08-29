@@ -117,7 +117,7 @@ Skip praise and lengthy analysis — actionable items only.
 
 Skip this section if `~/.claude/skills/writing-line/` does not exist. Nothing else changes when it is absent.
 
-When it does exist, read the Judgment section of `rules/common.md` and of `rules/technical.md` under that directory, plus every file in its `references/`. Write every finding `body` to those rules. Ignore the Greppable blocks — they are the gate's business, not yours.
+When it does exist, read the Judgment section of `rules/technical.md` under that directory, plus every file in its `references/`. Write every finding `body` to those rules. Ignore the Greppable blocks — they are the gate's business, not yours. Skip `rules/common.md`. It carries no Judgment section, by design.
 
 #### Instructions for the synthesis agent
 
