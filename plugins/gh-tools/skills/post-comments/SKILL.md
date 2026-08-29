@@ -145,6 +145,12 @@ The gate is a PostToolUse hook. It fires on any write under `ai-swap/drafts/<pro
 
 3. **Fold the corrected text back** onto the findings, then delete the draft file.
 
+   Deleting it is safe. A second hook keeps a snapshot of each draft so it can tell a
+   later edit from the original, and a third sweeps that snapshot at the end of the turn
+   once the draft is gone. Leave the file behind instead and the next run on this PR
+   diffs its fresh bodies against this run's, which records the whole file as if you had
+   corrected it.
+
 Step 5 then presents gated text, and Step 6 still lets the user edit any of it before posting.
 
 ## Step 5: Present for Approval
