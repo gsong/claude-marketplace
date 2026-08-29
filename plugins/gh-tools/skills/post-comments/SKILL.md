@@ -111,7 +111,40 @@ Use `uv run "$VALIDATOR" <file>` for all validation commands below.
    - If `general-comments.md` was written: "{N} findings written to `general-comments.md`"
    - If `general-comments.md` was deleted (stale from previous run): note that it was cleaned up
 
-## Step 4: Present for Approval
+## Step 4: Voice Gate
+
+Skip this step if `~/.claude/skills/writing-line/` does not exist. Say nothing about it and go to Step 5.
+
+This is the last point before the text reaches GitHub, and it is the only one that sees every source: findings from `gs:gh-tools:review` and from `gs:codex-tools:review` both arrive here. Gating here also gates exactly what ships, since triage has already dropped everything the user rejected.
+
+The gate is a PostToolUse hook. It fires on any write under `ai-swap/drafts/<profile>/`, so writing the bodies there is what runs it.
+
+1. **Write every postable body** to `ai-swap/drafts/technical/pr-{PR}-bodies.md`, a path relative to the repo root. It is a sibling of `ai-swap/pr-review-{PR}/`, not a child. One section per finding:
+
+   ```markdown
+   ## {index} / {path}:{line}
+
+   {body text}
+   ```
+
+   Use the **Write tool**, not a shell heredoc. The gate matches `Write`, `Edit`, and `MultiEdit` by tool name, so a `cat >` in Bash writes the file and fires nothing.
+
+   Keep the heading punctuation plain. An em dash in your own section headings counts toward the em dash density the gate reports on the draft as a whole.
+
+   Fence any code a body quotes. The gate never scans fenced blocks, which is what keeps a `--` inside quoted code from reporting as a double hyphen.
+
+2. **Read the gate's report and fix what is a real violation.** Two misreads are expected in this material:
+
+   - A review body is dense with `file:line-line` references. The en dash rule reads every one as a number range. They are source line numbers. Leave them.
+   - A sentence ending inside a closing quotation mark is not seen as a sentence end, so two sentences merge and report as one long run. Rephrase to move the quote off the boundary, or drop the quotation marks.
+
+   Say so if a rule misreads the same passage twice. That is a signal the rule is wrong, and the user can retire it.
+
+3. **Fold the corrected text back** onto the findings, then delete the draft file.
+
+Step 5 then presents gated text, and Step 6 still lets the user edit any of it before posting.
+
+## Step 5: Present for Approval
 
 Present **inline-postable** findings grouped by severity (must-fix first, then should-fix, then nit). General-comment findings were already curated during triage and are handled by Step 3.
 
@@ -125,7 +158,7 @@ For each finding, display:
 Then use AskUserQuestion (multiSelect: true) to ask which findings to post. Each option should be labeled as:
 `[{severity}] {path}:{line} — {first 60 chars of body}...`
 
-## Step 5: Edit Comments (optional)
+## Step 6: Edit Comments (optional)
 
 After the user selects findings to post, ask (via AskUserQuestion):
 "Want to edit any comment text before posting?"
@@ -133,7 +166,7 @@ After the user selects findings to post, ask (via AskUserQuestion):
 - If yes: for each approved finding, show the body and ask if they want to change it
 - If no: proceed to posting
 
-## Step 6: Post Review
+## Step 7: Post Review
 
 1. Build the comments array from approved findings. Each comment's `body` MUST be prefixed with the severity tag in square brackets, e.g. `[nit] {body}`, `[must-fix] {body}`, `[should-fix] {body}`. Each comment object:
 
@@ -177,7 +210,7 @@ After the user selects findings to post, ask (via AskUserQuestion):
 
 4. If the API call fails, show the full error and stop. Do not retry.
 
-## Step 7: Report
+## Step 8: Report
 
 - Show count of posted comments
 - Link to the PR: `https://github.com/{repo}/pull/$ARGUMENTS`
