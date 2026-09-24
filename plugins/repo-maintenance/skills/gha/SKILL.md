@@ -6,7 +6,7 @@ compatibility: "Requires npx and the gh CLI (authenticated), plus network access
 
 # Upgrade GitHub Actions Dependencies
 
-Upgrade GitHub Actions workflow dependencies using [actions-up](https://github.com/azat-io/actions-up), respecting `minimumReleaseAge` constraints from `renovate.json`.
+Upgrade GitHub Actions workflow dependencies using [actions-up](https://github.com/azat-io/actions-up), respecting the project's release-age cool-down (`minimumReleaseAge` from `renovate.json` or `pnpm-workspace.yaml`, or a 7-day default).
 
 ## Process
 
