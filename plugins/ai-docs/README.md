@@ -43,13 +43,21 @@ timestamp as fallback for unstamped docs.
 
 ## Path Resolution
 
-All skills and the hook search for docs in this order:
+All skills and the hook recognize these docs directory names, in preference order:
 
 1. `docs-ai/`
 2. `docs/ai/`
 3. `.claude/docs/`
 
-First match wins. A warning is emitted if multiple directories exist.
+Skills look for them at the working directory and inside workspace packages, so monorepos
+resolve. When several candidates exist, a skill picks by the workspace named in the task, then
+by where the changed files are, then by the working directory. It then checks that candidate's
+topic index and falls through to the others if the topic is missing. Several docs directories
+in a monorepo is normal. A skill warns only when two sit at the same path root. The hook finds
+every docs directory up to two levels deep. Its reminder names them all, unless the only one is
+`docs-ai/` at the project root.
+
+Full rules: [`resources/docs-dir-resolution.md`](resources/docs-dir-resolution.md).
 
 ## Installation
 
