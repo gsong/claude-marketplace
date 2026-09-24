@@ -1,6 +1,6 @@
 ---
 name: "gs:gh-tools:review"
-description: "Comprehensive code review of a GitHub PR with parallel agents. The first step of review → triage → post-comments."
+description: "Review a GitHub PR with parallel reviewers and write the findings for triage, posting nothing. The first step of review → triage → post-comments."
 disable-model-invocation: true
 compatibility: "Requires the gh CLI (authenticated) and uv for the bundled Python validator."
 argument-hint: "<pr-number>"
@@ -95,7 +95,7 @@ Use only when the mattpocock skill is unavailable.
   - The no-posting preamble above
   - PR metadata (title, body, file list with additions/deletions)
   - The spec block from Phase 1
-  - "Review PR #$ARGUMENTS. Focus on: architecture, design patterns, maintainability, and testing philosophy. Return your findings as structured text. For each finding include: file path, line number(s), severity (must-fix / should-fix / nit), and description."
+  - "Review PR #$ARGUMENTS. Focus on: architecture, design patterns, maintainability, and testing philosophy. You are also the only reviewer checking the change against the spec: flag requirements that are missing or implemented wrong, and scope creep. Return your findings as structured text. For each finding include: file path, line number(s), severity (must-fix / should-fix / nit), and description."
 
 Wait for both reviews to complete before proceeding.
 
