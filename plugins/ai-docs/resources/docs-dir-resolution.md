@@ -16,7 +16,7 @@ The recognized directory names, in preference order:
 Look for them in two places:
 
 - **At the working directory** — `docs-ai/`, `docs/ai/`, `.claude/docs/`.
-- **Inside workspace packages**, so monorepos resolve. Read the workspace globs from `pnpm-workspace.yaml`, the `workspaces` field in `package.json`, `lerna.json`, `nx.json`, `go.work`, or `[workspace].members` in `Cargo.toml`, and check each matching directory for the three names. With no workspace manifest, fall back to globbing two levels deep (`*/docs-ai`, `*/*/docs-ai`, and the same for the other two names). Exclude `node_modules/`, `vendor/`, `.venv/`, `dist/`, `build/`, and `.git/`.
+- **Inside workspace packages**, so monorepos resolve. Read the workspace globs from `pnpm-workspace.yaml`, the `workspaces` field in `package.json`, `lerna.json`, `nx.json`, `go.work`, or `[workspace].members` in `Cargo.toml`, and check each matching directory for the three names. With no workspace manifest, fall back to globbing two levels deep (`*/docs-ai`, `*/*/docs-ai`, and the same for the other two names). Exclude `node_modules/`, `vendor/`, `dist/`, `build/`, `target/`, `.git/`, `.venv/`, `.next/`, `.turbo/`, and `.cache/` — the same list the `docs-reminder.sh` hook skips.
 
 Each hit is a candidate with its own `[docs-dir]` and `[path-root]`.
 
@@ -33,4 +33,4 @@ Each hit is a candidate with its own `[docs-dir]` and `[path-root]`.
 
   Read-only skills (`lookup`, `check`) may cover several candidates when the task genuinely spans them; say which ones you used. Skills that write (`update`, `audit`, `init`) must settle on one — ask the user when steps 1–3 leave it ambiguous, because writing to the wrong docs tree is worse than a question.
 
-Report the choice as `[docs-dir]` (path root `[path-root]`) so the user can see a mis-resolution immediately. Several candidates in a monorepo is the normal, correct layout — do not warn about it. Warn only when candidates sit at the *same* path root, e.g. both `docs-ai/` and `docs/ai/` in one package: "Multiple docs directories at [path-root]: [list]. Using [chosen]. Consider consolidating to a single location."
+Report the choice as `[docs-dir]` (path root `[path-root]`) so the user can see a mis-resolution immediately. Several candidates in a monorepo is the normal, correct layout — do not warn about it. Warn only when candidates sit at the _same_ path root, e.g. both `docs-ai/` and `docs/ai/` in one package: "Multiple docs directories at [path-root]: [list]. Using [chosen]. Consider consolidating to a single location."
