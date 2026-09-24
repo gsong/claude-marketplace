@@ -219,10 +219,20 @@ For each finding in sorted order:
 
    If investigation failed, show: "Investigation failed — showing raw finding only."
 
-2. **Ask the user** (via AskUserQuestion):
+2. **Ask the user** (via AskUserQuestion). The three options are:
    - "Keep" — include in output as-is (description: "Include this finding in the curated output")
    - "Remove" — exclude from output (description: "Exclude this finding — won't be posted")
    - "Edit body" — rewrite the comment (description: "Revise the comment text before including. {if suggested_body: 'Agent suggests: ' + first 80 chars of suggested_body + '...'}")
+
+   Rank them by the investigation's `recommended_action`, and append " (Recommended)" to the first label:
+
+   | `recommended_action` | Option order            |
+   | -------------------- | ----------------------- |
+   | `keep`               | Keep, Edit body, Remove |
+   | `reword`             | Edit body, Keep, Remove |
+   | `remove`             | Remove, Keep, Edit body |
+
+   If the investigation failed, list Keep, Remove, Edit body, with no label marked as recommended.
 
 3. **Execute the user's choice:**
 
