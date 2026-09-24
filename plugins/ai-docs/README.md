@@ -10,7 +10,7 @@ Full lifecycle AI documentation for Claude Code projects: bootstrap, lookup, upd
 | `/gs:ai-docs:lookup` | Look up project conventions before code changes (read-only, fast)   |
 | `/gs:ai-docs:update` | Update specific docs after code changes (targeted, lightweight)     |
 | `/gs:ai-docs:check`  | Check documentation freshness and detect drift (read-only)          |
-| `/gs:ai-docs:audit`  | Comprehensive audit using coordinated agent teams                   |
+| `/gs:ai-docs:audit`  | Comprehensive audit and cleanup using parallel subagents            |
 
 ## Hooks
 
