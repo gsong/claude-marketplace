@@ -11,19 +11,19 @@ Orchestrated documentation freshness check using parallel per-doc checker agents
 
 ### Phase 1: Discovery
 
-#### 1. Resolve Docs Directory
+#### Resolve Docs Directory
 
 !`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/docs-dir-resolution.md"`
 
 > **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/docs-dir-resolution.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
-#### 2. Read README.md
+#### Read README.md
 
 Read `[docs-dir]/README.md`. Parse the topic index to get the full list of docs with their Key Paths.
 
 README.md and quick-reference.md carry no Key Paths and are deliberately excluded here — `/gs:ai-docs:audit` verifies them instead.
 
-#### 3. Git Availability Check
+#### Git Availability Check
 
 Run `git log -1 --format=%ct` to verify the repo has git history.
 
@@ -32,7 +32,7 @@ Run `git log -1 --format=%ct` to verify the repo has git history.
 
 ### Phase 2: Parallel Freshness Check
 
-#### 4. Spawn Checker Agents
+#### Spawn Checker Agents
 
 Spawn parallel **read-only** checker agents using the Agent tool (Explore type). Assign each agent 1 doc (or 2-3 related docs for small doc sets with fewer than 4 total docs).
 
@@ -105,7 +105,7 @@ Rate conservatively — "possibly stale" is better than a false "likely stale".
 
 ### Phase 3: Consolidate and Report
 
-#### 5. Report
+#### Report
 
 Collect all checker results. Output in this format:
 
