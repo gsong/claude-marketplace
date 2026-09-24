@@ -1,6 +1,6 @@
 ---
 name: "gs:codex-tools:review"
-description: "Code review a pull request using parallel Codex adversarial reviews. Use when the user asks for a Codex code review, wants a GPT-based review, or invokes /gs:codex-tools:review."
+description: "Code review a pull request using parallel Codex adversarial reviews, writing findings for gs:gh-tools:triage. Use when the user asks for a Codex code review, wants a GPT-based review, or invokes /gs:codex-tools:review."
 compatibility: "Requires the Codex CLI (via the codex:rescue runtime), the gh CLI, and uv."
 ---
 
@@ -25,16 +25,23 @@ Follow these steps precisely:
 
 Run these directly (no subagents):
 
-1. `gh pr view <number> --json state,additions,deletions,title,body,author,comments,labels,baseRefName,headRefOid` — check eligibility:
+1. `gh pr view <number> --json state,additions,deletions,title,body,author,comments,labels,baseRefName,headRefOid,closingIssuesReferences` — check eligibility:
    - If closed → stop
    - If < 5 lines changed → stop
    - Drafts ARE allowed
    - Also run `gh repo view --json nameWithOwner --jq .nameWithOwner` — Step 3.5 needs the repo name and the head SHA (`headRefOid`)
-2. Parse the PR body and comments for issue references:
-   - **GitHub issues:** `#123` or full GitHub issue URLs → resolve via `gh issue view <number> --json title,body`
-   - **Other references** (Linear URLs, Jira IDs, etc.): include the raw reference text in the context block. Instruct agents to resolve using available skills/tools if present.
-   - If resolution fails for any reference, include the raw text and move on.
-3. Build a **PR context block** to prepend to each agent's focus text:
+2. Collect the spec. Linked issues are the PR's spec: what the change should do. Codex cannot reach GitHub or any other tracker, so you resolve every reference here. Gather references from:
+   - `closingIssuesReferences` — issues linked in the PR sidebar or with a closing keyword such as "Closes #12"
+   - `#123` and GitHub issue URLs in the PR title, body, and comments
+
+   Resolve each reference:
+   - **GitHub issues:** `gh issue view <number-or-url> --json number,title,body,url`. Pass the URL for an issue in another repo.
+   - **Other trackers** (Linear URLs, Jira IDs): resolve with an available skill or tool.
+   - **Unresolvable:** keep the raw reference text.
+
+   The step is done when every reference is resolved or kept raw.
+
+3. Build a **PR context block** to prepend to each agent's focus text. Copy each issue's body verbatim — acceptance criteria often sit at the end:
 
 <!-- prettier-ignore -->
 ```text
@@ -43,10 +50,13 @@ Author: <author>
 Description: <body, truncated to ~500 chars if long>
 Labels: <labels>
 PR Comments: <conversation comments, truncated>
-Referenced Issues:
-- #<gh-issue>: <title> — <body summary>
-- <external-ref>: (agent should resolve using available tools)
+Spec (linked issues) — what this change is meant to do:
+- #<gh-issue>: <title>
+  <full body>
+- <external-ref>: <resolved title and body, or the raw reference if unresolved>
 ```
+
+With no references, the spec section reads `Spec (linked issues): none`.
 
 4. Check out the PR branch locally:
 
@@ -99,8 +109,7 @@ node "<companion-path>" adversarial-review --base <base-ref> --wait --model gpt-
 - Always add `--model gpt-5.6-terra` before `--`
 
 3. Captures the structured JSON output (verdict, findings, next_steps)
-4. For any external issue references encountered, attempts resolution using available skills/tools
-5. Returns the parsed findings
+4. Returns the parsed findings
 
 **The 3 agent roles and focus text:**
 
@@ -120,7 +129,7 @@ Prepend the PR context block, then:
 
 Prepend the PR context block, then:
 
-> Focus on whether tests verify the claimed behavior change, whether assertions are meaningful or tautological, whether edge cases from the implementation are covered, and whether existing tests or code comments are now stale or misleading due to the changes.
+> Check the change against the spec: requirements that are missing or implemented wrong, and scope creep. Focus also on whether tests verify the claimed behavior change, whether assertions are meaningful or tautological, whether edge cases from the implementation are covered, and whether existing tests or code comments are now stale or misleading due to the changes.
 
 ### Step 3: Result Aggregation
 
