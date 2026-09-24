@@ -1,12 +1,12 @@
 ---
 name: "gs:repo-maintenance:pnpm-deps"
-description: "Upgrade pnpm project dependencies and run the test suite, respecting the project's release-age cool-down. Works for single projects and workspaces. Use when the user asks to upgrade, update, or bump pnpm project dependencies (not the pnpm version itself — use /gs:repo-maintenance:pnpm for that), or wants to check for outdated packages. Also use when the user invokes /gs:repo-maintenance:pnpm-deps."
+description: "Upgrade pnpm project dependencies and run the test suite, respecting pnpm's minimumReleaseAge setting. Works for single projects and workspaces. Use when the user asks to upgrade, update, or bump pnpm project dependencies (not the pnpm version itself — use /gs:repo-maintenance:pnpm for that), or wants to check for outdated packages. Also use when the user invokes /gs:repo-maintenance:pnpm-deps."
 compatibility: "Requires pnpm and network access to the npm registry."
 ---
 
 # Upgrade project dependencies
 
-Upgrade pnpm project dependencies, respecting the project's release-age cool-down.
+Upgrade pnpm project dependencies, respecting pnpm's `minimumReleaseAge` setting.
 
 ## Process
 
@@ -49,4 +49,4 @@ Show the user the `package.json` and lockfile (`pnpm-lock.yaml`) diff so they ca
 
 - This skill updates dependencies and runs tests only — it does not perform git operations (branch, commit, push, PR)
 - Works for both single-project repos and pnpm workspaces/monorepos (`-r` is safe in both contexts)
-- **Release-age cool-down**: pnpm natively honors a `minimumReleaseAge` setting read from `pnpm-workspace.yaml` (resolution details in `${CLAUDE_PLUGIN_ROOT}/references/release-age.md`). It applies to all dependencies including transitive ones during resolution, so `pnpm up` will skip any release still inside the cool-down window automatically — no extra flag needed. This is the primary supply-chain guard for third-party packages; if the repo does not set it, consider recommending it to the user (align with any project-wide value found in `renovate.json` if present)
+- **Release-age cool-down**: pnpm natively honors a `minimumReleaseAge` setting read from `pnpm-workspace.yaml`. It applies to all dependencies including transitive ones during resolution, so `pnpm up` will skip any release still inside the cool-down window automatically — no extra flag needed. This is the primary supply-chain guard for third-party packages; if the repo does not set it, consider recommending it to the user. To pick a value, resolve the project-wide cool-down with `${CLAUDE_PLUGIN_ROOT}/references/release-age.md`
