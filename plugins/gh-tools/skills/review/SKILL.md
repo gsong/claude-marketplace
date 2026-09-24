@@ -31,10 +31,27 @@ Use `uv run "$VALIDATOR" <file>` for all validation commands below. The `$VALIDA
    ```
    Only delete artifacts this skill produces (`findings-gh-review.json`) or that become stale after a new review (`general-comments.md` from post-comments). Never delete `findings.json` — it contains the user's curated triage decisions and cannot be regenerated.
 2. Checkout the PR branch: `gh pr checkout $ARGUMENTS`
-3. Get PR metadata: `gh pr view $ARGUMENTS --json title,body,files,additions,deletions,headRefOid,baseRefName`
+3. Get PR metadata: `gh pr view $ARGUMENTS --json title,body,files,additions,deletions,headRefOid,baseRefName,closingIssuesReferences`
 4. Get repo name: `gh repo view --json nameWithOwner --jq .nameWithOwner`
 5. Get PR diff: `gh pr diff $ARGUMENTS`
-6. Store all of the above — you will pass metadata to the reviews and everything to the synthesis agent.
+6. **Build the spec block.** Linked issues are the PR's spec: what the change should do. Review A has no Bash and cannot fetch them, so you resolve them here. Gather references from:
+   - `closingIssuesReferences` — issues linked in the PR sidebar or with a closing keyword such as "Closes #12"
+   - `#123` and GitHub issue URLs in the PR title and body
+
+   Resolve each reference:
+   - **GitHub issues:** `gh issue view <number-or-url> --json number,title,body,url`. Pass the URL for an issue in another repo.
+   - **Other trackers** (Linear URLs, Jira IDs): resolve with an available skill or tool.
+   - **Unresolvable:** keep the raw reference text.
+
+   Start the block with this header, then list each issue's reference, title, and full body verbatim:
+
+   ```text
+   Spec (linked issues) — what this change is meant to do:
+   ```
+
+   With no references, the header is followed by `none`. The block is done when every reference appears in it, resolved or raw.
+
+7. Store all of the above — you will pass metadata and the spec block to the reviews, and everything to the synthesis agent.
 
 ## Phase 2: Reviews (parallel)
 
@@ -56,6 +73,7 @@ Every review sub-agent prompt (both reviews, including the sub-agents the mattpo
 - Prompt must include:
   - The no-posting preamble above
   - PR metadata (title, body, file list with additions/deletions)
+  - The spec block from Phase 1
   - "Review PR #$ARGUMENTS. The PR branch is already checked out — read the local files directly. Focus on: bugs, logic errors, security vulnerabilities, code quality, and adherence to project conventions. Return your findings as structured text. For each finding include: file path, line number(s), severity (must-fix / should-fix / nit), confidence score (0-100), and description."
 
 ### Review B (preferred): mattpocock-skills:code-review (Skill tool)
@@ -63,7 +81,7 @@ Every review sub-agent prompt (both reviews, including the sub-agents the mattpo
 Invoke the `mattpocock-skills:code-review` skill and follow its process with these adaptations:
 
 - **Fixed point:** the PR base branch (`baseRefName` from Phase 1). Diff with `git diff origin/<baseRefName>...HEAD`. Do not ask the user for a fixed point.
-- **Spec source:** the PR body plus any issues it links. Do not ask the user for a spec; if none exists, the Spec sub-agent skips and reports "no spec available".
+- **Spec source:** the PR body plus the spec block from Phase 1. Pass both to the Spec sub-agent as the fetched spec, in place of the skill's own spec lookup (its step 2). If the spec block lists `none` and the PR body states no requirements, the Spec sub-agent skips and reports "no spec available".
 - **Sub-agent prompts:** prepend the no-posting preamble above, and append to each brief: "For each finding include: file path, line number(s), and severity (must-fix / should-fix / nit)."
 
 The skill's aggregated Standards/Spec report is Review B's output for Phase 3.
@@ -76,6 +94,7 @@ Use only when the mattpocock skill is unavailable.
 - Prompt must include:
   - The no-posting preamble above
   - PR metadata (title, body, file list with additions/deletions)
+  - The spec block from Phase 1
   - "Review PR #$ARGUMENTS. Focus on: architecture, design patterns, maintainability, and testing philosophy. Return your findings as structured text. For each finding include: file path, line number(s), severity (must-fix / should-fix / nit), and description."
 
 Wait for both reviews to complete before proceeding.
