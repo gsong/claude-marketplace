@@ -44,7 +44,7 @@ OpenAI Codex CLI integration for parallel PR reviews and headless task delegatio
 
 ### gh-tools
 
-GitHub CLI PR review, comment posting, triage, and project management skills.
+GitHub CLI PR review, triage, comment posting, review replies, and project management skills.
 
 ```
 /plugin install gh-tools@gsong-marketplace

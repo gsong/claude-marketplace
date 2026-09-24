@@ -34,7 +34,7 @@
     {
       "name": "gh-tools",
       "source": "./plugins/gh-tools",
-      "description": "GitHub CLI PR review, comment posting, triage, and project management commands",
+      "description": "GitHub CLI PR review, triage, comment posting, review replies, and project management commands",
       "author": { "name": "George Song" },
       "category": "development",
       "keywords": ["github", "gh", "pr", "review", "project"]
