@@ -1,6 +1,6 @@
 ---
 name: "gs:utilities:date"
-description: "Calculate dates and datetimes from natural-language descriptions — relative days/weeks/months/years, weekdays, hours, timestamps, and date ranges — using macOS `date`. Use whenever a request involves a relative or computed date, e.g. \"commits from last week\", \"logs from the last 3 hours\", \"last month's report\", \"schedule this for next Monday\", or \"30 days ago\", including proactively when scheduling or planning."
+description: 'Calculate dates and datetimes from natural-language descriptions — relative days/weeks/months/years, weekdays, hours, timestamps, and date ranges — using macOS `date`. Use whenever a request involves a relative or computed date, e.g. "commits from last week", "logs from the last 3 hours", "last month''s report", "schedule this for next Monday", or "30 days ago", including proactively when scheduling or planning.'
 compatibility: "Requires macOS/BSD `date` — the recipes use -v flags, which GNU/Linux `date` does not support."
 ---
 
@@ -35,7 +35,7 @@ Return only the calculated value. Do not show the command used. Example:
 **Relative Weeks**: Use `-v±Nw` (e.g., `-v-2w` for 2 weeks ago)
 **Relative Months**: Use `-v±Nm` (e.g., `-v+1m` for next month)
 **Relative Years**: Use `-v±Ny` (e.g., `-v-1y` for last year)
-**Weekdays**: Use `-v+day` or `-v-day` (e.g., `-v+mon` for next Monday)
+**Weekdays**: Step off today first, then use `-v+day` or `-v-day` (e.g., `-v+1d -v+mon` for next Monday, `-v-1d -v-mon` for last Monday)
 **Hours**: Use `-v±NH` (e.g., `-v-3H` for 3 hours ago)
 **Minutes**: Use `-v±NM` (e.g., `-v+45M` for 45 minutes from now)
 **First day of month**: `-v1d` (e.g., `date -v-1m -v1d` for the first of last month)
@@ -45,7 +45,7 @@ Return only the calculated value. Do not show the command used. Example:
 
 - Month boundaries: `-v` month arithmetic clamps to the last valid day, so no correction is needed (verified: `-v+1m` on 2026-01-31 gives 2026-02-28, and on 2024-01-31 gives 2024-02-29). Day arithmetic crosses month/year boundaries correctly too.
 - Leap years: day arithmetic handles Feb 29 correctly (verified: `-v+1d` on 2024-02-28 gives 2024-02-29), but year arithmetic from Feb 29 does _not_ clamp — `-v+1y` on 2024-02-29 gives 2025-03-01, not 2025-02-28. If the user wants the end of February, step back a day after the year adjustment (verified: `-v+1y -v-1d` on 2024-02-29 gives 2025-02-28).
-- Weekday flags count _today_ as a match: `-v+mon` run on a Monday returns that same Monday, not the following one. When the user clearly means the _upcoming_ weekday, step forward a day first (e.g., `date -v+1d -v+mon`). The order of `-v` flags matters — they apply left to right, so `-v+1d -v+mon` and `-v+mon -v+1d` give different results.
+- Weekday flags count _today_ as a match in both directions: on a Monday, `-v+mon` and `-v-mon` both return that same Monday (verified on 2026-09-21). That is why the Weekdays pattern steps a day off today first — `-v+1d -v+mon` gives 2026-09-28 and `-v-1d -v-mon` gives 2026-09-14. Use the bare `-v+mon` only when the user means "this Monday, or today if it is Monday". The order of `-v` flags matters — they apply left to right, so `-v+mon -v+1d` gives a Tuesday.
 - Ambiguous requests like "last week" -- clarify before calculating
 
 Be concise. Lead with the value.
