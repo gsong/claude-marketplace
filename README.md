@@ -34,7 +34,7 @@ Session memory and project instruction management for Claude Code.
 
 ### codex-tools
 
-OpenAI Codex CLI integration for parallel PR reviews and headless task delegation.
+OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi-round consensus discussions.
 
 ```
 /plugin install codex-tools@gsong-marketplace

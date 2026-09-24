@@ -1,6 +1,6 @@
 # codex-tools
 
-OpenAI Codex CLI integration for Claude Code — parallel PR reviews, task delegation, and multi-round consensus discussions via codex:rescue runtime.
+OpenAI Codex CLI integration for Claude Code — parallel PR reviews, task delegation, and multi-round consensus discussions via the codex plugin.
 
 ## Skills
 
