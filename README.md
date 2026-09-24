@@ -50,7 +50,7 @@ GitHub CLI PR review, comment posting, triage, and project management skills.
 /plugin install gh-tools@gsong-marketplace
 ```
 
-**Skills:** `/gs:gh-tools:review`, `/gs:gh-tools:triage`, `/gs:gh-tools:post-comments`, `/gs:gh-tools:project-manager`
+**Skills:** `/gs:gh-tools:review`, `/gs:gh-tools:triage`, `/gs:gh-tools:post-comments`, `/gs:gh-tools:address-review`, `/gs:gh-tools:project-manager`
 
 ### git-tools
 
