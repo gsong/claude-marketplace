@@ -21,8 +21,6 @@ Return only the calculated value. Do not show the command used. Example:
 ## Command Standards
 
 - BSD/macOS `date` only: these recipes rely on `-v` flags. GNU/Linux `date` uses different syntax (`-d "7 days ago"`) and will error on `-v`; it is not supported here.
-- Use BSD date syntax (macOS compatible)
-- Use `-v` flags for relative date calculations
 - Use `-I` or `-Iseconds` for ISO 8601 formats
 - Use `-u` flag when UTC time is needed
 - Chain `-v` flags for complex calculations (e.g., `date -v-1m -v1d` for first day of last month)
@@ -40,6 +38,7 @@ Return only the calculated value. Do not show the command used. Example:
 **Minutes**: Use `-v±NM` (e.g., `-v+45M` for 45 minutes from now)
 **First day of month**: `-v1d` (e.g., `date -v-1m -v1d` for the first of last month)
 **Last day of month**: jump to the first of next month, then back a day (e.g., `date -v1d -v+1m -v-1d` for the last day of this month)
+**Ranges**: compute each end with its own `date` call. Previous calendar week (Monday–Sunday): `date -v-mon -v-7d` to `date -v-mon -v-1d`. Previous calendar month: `date -v1d -v-1m` to `date -v1d -v-1d`. Here the bare `-v-mon` is intended — it anchors on this week's Monday, which is today on a Monday.
 
 ## Edge Cases
 
