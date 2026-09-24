@@ -1,7 +1,7 @@
 ---
 name: "gs:codex-tools:review"
 description: "Code review a pull request using parallel Codex adversarial reviews, writing findings for gs:gh-tools:triage. Use when the user asks for a Codex code review, wants a GPT-based review, or invokes /gs:codex-tools:review."
-compatibility: "Requires the Codex CLI (via the codex:rescue runtime), the gh CLI, and uv."
+compatibility: "Requires the Codex CLI and the codex plugin, whose companion script it runs with node, plus the gh CLI and uv."
 ---
 
 # Codex Code Review
