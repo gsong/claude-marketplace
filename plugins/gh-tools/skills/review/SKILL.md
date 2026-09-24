@@ -1,6 +1,7 @@
 ---
 name: "gs:gh-tools:review"
-description: "Comprehensive code review for a GitHub pull request, and the first step of the review → triage → post-comments pipeline. Use when the user wants a thorough code review of a GitHub pull request, or invokes /gs:gh-tools:review with a PR number."
+description: "Comprehensive code review of a GitHub PR with parallel agents. The first step of review → triage → post-comments."
+disable-model-invocation: true
 compatibility: "Requires the gh CLI (authenticated) and uv for the bundled Python validator."
 argument-hint: "<pr-number>"
 ---
