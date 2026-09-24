@@ -88,7 +88,7 @@ Read a zero count as "unchanged" only for a path that exists. Git prints `0` for
 **Each checker returns a structured result:**
 
 - Doc filename
-- Rating: `fresh`, `possibly stale`, or `likely stale`
+- Rating: `fresh`, `possibly stale`, `likely stale`, or `unresolved`
 - Baseline used: stamp SHA or doc timestamp fallback (unstamped)
 - Key Path change details (commits behind, if git available)
 - Broken references (list of `file::Symbol` that failed validation)
