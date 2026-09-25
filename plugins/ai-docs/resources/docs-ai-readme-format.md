@@ -5,7 +5,7 @@ that generate or validate README.md must follow this format.
 
 ## Purpose
 
-README.md is the documentation map — the single entry point that gs:ai-docs:lookup uses to
+README.md is the documentation map — the single entry point that ai-docs:lookup uses to
 route questions to the right documentation files. It must be both human-readable and
 structured enough for an AI agent to parse reliably.
 
@@ -18,8 +18,8 @@ structured enough for an AI agent to parse reliably.
 ```
 
 The first line of the file (and of every doc in the docs directory). It records the commit
-the doc was last generated or verified against. gs:ai-docs:init, gs:ai-docs:update, and
-gs:ai-docs:audit write it; gs:ai-docs:check and gs:ai-docs:lookup use it as the staleness
+the doc was last generated or verified against. ai-docs:init, ai-docs:update, and
+ai-docs:audit write it; ai-docs:check and ai-docs:lookup use it as the staleness
 baseline. It may be absent in repos without git history.
 
 ### 1. Header

@@ -1,6 +1,6 @@
 ---
-name: "gs:codex-tools:review"
-description: "Code review a pull request using parallel Codex adversarial reviews, writing findings for gs:gh-tools:triage. Use when the user asks for a Codex code review, wants a GPT-based review, or invokes /gs:codex-tools:review."
+name: "review"
+description: "Code review a pull request using parallel Codex adversarial reviews, writing findings for gh-tools:triage. Use when the user asks for a Codex code review or wants a GPT-based review."
 compatibility: "Requires the Codex CLI and the codex plugin, whose companion script it runs with node, plus the gh CLI and uv."
 ---
 
@@ -171,7 +171,7 @@ After all 3 agents return:
    ```json
    "source_detail": [
      {
-       "skill": "gs:codex-tools:review",
+       "skill": "codex-tools:review",
        "agent": "codex-agent-a",
        "agent_label": "Correctness & Safety"
      }
@@ -195,7 +195,7 @@ After all 3 agents return:
    }
    ```
 
-   **You MUST write this file even if zero findings** (use `"findings": []`) — downstream `gs:gh-tools:triage` globs for `findings-*.json` and treats a missing file as "review never ran".
+   **You MUST write this file even if zero findings** (use `"findings": []`) — downstream `gh-tools:triage` globs for `findings-*.json` and treats a missing file as "review never ran".
 
    No diff-position validation at this stage — Codex reviews the checked-out code, not the diff. Validation happens in post-comments.
 

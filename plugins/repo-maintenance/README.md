@@ -4,13 +4,13 @@ Repository maintenance skills for Claude Code — dependency upgrades and CI/CD 
 
 ## Skills
 
-| Skill                           | Trigger                                                        | Description                                                 |
-| ------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
-| `gs:repo-maintenance:pnpm-deps` | "upgrade dependencies", "update packages", "bump dependencies" | Upgrade project dependencies using pnpm, then run the tests |
-| `gs:repo-maintenance:pnpm`      | "upgrade pnpm", "update pnpm version", "bump pnpm"             | Upgrade pnpm version references across the project          |
-| `gs:repo-maintenance:mise`      | "upgrade mise tools", "bump mise.toml", "mise outdated"        | Upgrade mise-managed tool versions in `mise.toml`           |
-| `gs:repo-maintenance:zizmor`    | "zizmor", "audit GitHub Actions", "security audit workflows"   | Run zizmor security audit on GitHub Actions workflows       |
-| `gs:repo-maintenance:gha`       | "upgrade actions", "update GitHub Actions", "gha upgrade"      | Upgrade GitHub Actions dependencies using actions-up        |
+| Skill                         | Trigger                                                        | Description                                                 |
+| ----------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
+| `/repo-maintenance:pnpm-deps` | "upgrade dependencies", "update packages", "bump dependencies" | Upgrade project dependencies using pnpm, then run the tests |
+| `/repo-maintenance:pnpm`      | "upgrade pnpm", "update pnpm version", "bump pnpm"             | Upgrade pnpm version references across the project          |
+| `/repo-maintenance:mise`      | "upgrade mise tools", "bump mise.toml", "mise outdated"        | Upgrade mise-managed tool versions in `mise.toml`           |
+| `/repo-maintenance:zizmor`    | "zizmor", "audit GitHub Actions", "security audit workflows"   | Run zizmor security audit on GitHub Actions workflows       |
+| `/repo-maintenance:gha`       | "upgrade actions", "update GitHub Actions", "gha upgrade"      | Upgrade GitHub Actions dependencies using actions-up        |
 
 ## Prerequisites
 

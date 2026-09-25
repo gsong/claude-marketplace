@@ -1,6 +1,6 @@
 ---
-name: "gs:ai-docs:audit"
-description: "Comprehensive audit and cleanup of docs-ai/ documentation using parallel subagents: structural analysis, per-doc content review, then user-approved edits, a QA pass, and a fresh verification stamp on every doc. Use when the user wants a full review and cleanup of all documentation for accuracy, completeness, and quality. Also use when the user invokes /gs:ai-docs:audit. Heavier than /gs:ai-docs:update — use for periodic deep reviews, not routine maintenance."
+name: "audit"
+description: "Comprehensive audit and cleanup of docs-ai/ documentation using parallel subagents: structural analysis, per-doc content review, then user-approved edits, a QA pass, and a fresh verification stamp on every doc. Use when the user wants a full review and cleanup of all documentation for accuracy, completeness, and quality. Heavier than ai-docs:update — use for periodic deep reviews, not routine maintenance."
 ---
 
 # Audit Docs AI

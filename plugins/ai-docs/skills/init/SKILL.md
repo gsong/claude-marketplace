@@ -1,6 +1,6 @@
 ---
-name: "gs:ai-docs:init"
-description: "Bootstraps a docs-ai/ directory — analyzes the project, generates docs with auto-populated content, builds the README topic index, and stamps everything. Proposes one docs-ai/ per workspace in a monorepo. When docs already exist, offers a fresh start or a refresh that adds missing docs, flags extraneous ones, and keeps relevant content. Use when the user wants to bootstrap, initialize, or re-scaffold AI-optimized documentation for a project, or set up a docs-ai directory. Also use when the user invokes /gs:ai-docs:init."
+name: "init"
+description: "Bootstraps a docs-ai/ directory — analyzes the project, generates docs with auto-populated content, builds the README topic index, and stamps everything. Proposes one docs-ai/ per workspace in a monorepo. When docs already exist, offers a fresh start or a refresh that adds missing docs, flags extraneous ones, and keeps relevant content. Use when the user wants to bootstrap, initialize, or re-scaffold AI-optimized documentation for a project, or set up a docs-ai directory."
 ---
 
 # Initialize Docs AI
@@ -9,7 +9,7 @@ Bootstrap a `docs-ai/` directory structure with auto-populated content for Claud
 
 ## Goal
 
-Create AI-optimized documentation that enables effective Claude Code assistance via the gs:ai-docs:lookup skill. This produces **real content** (not just TODO stubs) by reading source files identified during analysis.
+Create AI-optimized documentation that enables effective Claude Code assistance via the ai-docs:lookup skill. This produces **real content** (not just TODO stubs) by reading source files identified during analysis.
 
 ## Process
 
@@ -107,7 +107,7 @@ Populate `[docs-dir]/README.md` following this format exactly.
 
 > **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/verification-stamp.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
-Stamp every file in the docs directory (including README.md and quick-reference.md). The stamp records which commit the docs were generated against. gs:ai-docs:check and gs:ai-docs:lookup use it as the staleness baseline.
+Stamp every file in the docs directory (including README.md and quick-reference.md). The stamp records which commit the docs were generated against. ai-docs:check and ai-docs:lookup use it as the staleness baseline.
 
 If the working tree has uncommitted changes, note in the summary that docs were generated against HEAD plus uncommitted changes.
 
@@ -117,10 +117,10 @@ Show:
 
 1. **Files created**: List with line counts
 2. **Stubs needing attention**: Files/sections with `<!-- NEEDS CONTENT` markers, listed explicitly
-3. **Next steps**: Suggest filling stubs manually or running `/gs:ai-docs:update` after making related code changes
+3. **Next steps**: Suggest filling stubs manually or running `/ai-docs:update` after making related code changes
 
 ## Execution Notes
 
 - Create all files using Write tool
-- Do not create `.claude/agents/` or modify `.claude/CLAUDE.md` — the plugin handles gs:ai-docs:lookup and reminders via its built-in skill and hook
+- Do not create `.claude/agents/` or modify `.claude/CLAUDE.md` — the plugin handles ai-docs:lookup and reminders via its built-in skill and hook
 - Use `file::Symbol` references throughout (e.g., `src/store/useAppStore.ts::useAppStore`), not code blocks

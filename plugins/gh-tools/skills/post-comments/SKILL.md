@@ -1,6 +1,6 @@
 ---
-name: "gs:gh-tools:post-comments"
-description: "Post curated review findings to a GitHub PR as a pending review. Run after gs:gh-tools:triage."
+name: "post-comments"
+description: "Post curated review findings to a GitHub PR as a pending review. Run after gh-tools:triage."
 disable-model-invocation: true
 compatibility: "Requires the gh CLI (authenticated) and uv for the bundled Python validator."
 argument-hint: "<pr-number>"
@@ -10,7 +10,7 @@ argument-hint: "<pr-number>"
 
 Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 
-**Prerequisite:** Run `/gs:gh-tools:triage $ARGUMENTS` first to curate findings.
+**Prerequisite:** Run `/gh-tools:triage $ARGUMENTS` first to curate findings.
 
 ## Setup
 
@@ -30,8 +30,8 @@ Use `uv run "$VALIDATOR" <file>` for all validation commands below.
    - If valid: read and parse it. Report: "{N} findings loaded for PR #{pr} in {repo}"
    - If it does NOT exist:
      - Check for `findings-*.json` files in the directory
-     - If `findings-*.json` files exist: tell the user "Source findings exist but haven't been triaged. Run `/gs:gh-tools:triage $ARGUMENTS` first." and stop.
-     - If no `findings-*.json` files exist: tell the user "No findings found. Run `/gs:gh-tools:review $ARGUMENTS` first." and stop.
+     - If `findings-*.json` files exist: tell the user "Source findings exist but haven't been triaged. Run `/gh-tools:triage $ARGUMENTS` first." and stop.
+     - If no `findings-*.json` files exist: tell the user "No findings found. Run `/gh-tools:review $ARGUMENTS` first." and stop.
 
 ## Step 2: Staleness Check
 
@@ -116,7 +116,7 @@ Use `uv run "$VALIDATOR" <file>` for all validation commands below.
 
 Skip this step if `~/.claude/skills/writing-line/` does not exist. Say nothing about it and go to Step 5.
 
-This is the last point before the text reaches GitHub, and it is the only one that sees every source: findings from `gs:gh-tools:review` and from `gs:codex-tools:review` both arrive here. Gating here also gates exactly what ships, since triage has already dropped everything the user rejected.
+This is the last point before the text reaches GitHub, and it is the only one that sees every source: findings from `gh-tools:review` and from `codex-tools:review` both arrive here. Gating here also gates exactly what ships, since triage has already dropped everything the user rejected.
 
 The gate is a PostToolUse hook. It fires on any write under `ai-swap/drafts/<profile>/`, so writing the bodies there is what runs it.
 

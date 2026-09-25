@@ -1,5 +1,5 @@
 ---
-name: "gs:gh-tools:review"
+name: "review"
 description: "Review a GitHub PR with parallel reviewers and write the findings for triage, posting nothing. The first step of review → triage → post-comments."
 disable-model-invocation: true
 compatibility: "Requires the gh CLI (authenticated) and uv for the bundled Python validator."
@@ -181,7 +181,7 @@ When it does exist, read the Judgment section of `rules/technical.md` under that
       "recommendation": "Concrete fix suggestion",
       "source_detail": [
         {
-          "skill": "gs:gh-tools:review",
+          "skill": "gh-tools:review",
           "agent": "mattpocock-skills:code-review",
           "agent_label": "standards"
         }
@@ -201,8 +201,8 @@ Set `agent` and `agent_label` to whichever reviewer produced the finding:
 
 ```json
 "source_detail": [
-  {"skill": "gs:gh-tools:review", "agent": "mattpocock-skills:code-review", "agent_label": "standards"},
-  {"skill": "gs:gh-tools:review", "agent": "feature-dev:code-reviewer", "agent_label": "bugs & security"}
+  {"skill": "gh-tools:review", "agent": "mattpocock-skills:code-review", "agent_label": "standards"},
+  {"skill": "gh-tools:review", "agent": "feature-dev:code-reviewer", "agent_label": "bugs & security"}
 ]
 ```
 
@@ -246,4 +246,4 @@ After the synthesis agent completes, the orchestrator (you) verifies the output:
      ```
      If validation fails, fix the JSON yourself (common issues: missing top-level `"source": "gh-review"`, missing `"source_detail"` on findings) and re-validate until it passes.
    - Show the synthesis agent's summary (finding counts, mapped vs unmappable)
-   - Remind the user: "Run `/gs:gh-tools:triage $ARGUMENTS` to investigate and curate findings before posting."
+   - Remind the user: "Run `/gh-tools:triage $ARGUMENTS` to investigate and curate findings before posting."

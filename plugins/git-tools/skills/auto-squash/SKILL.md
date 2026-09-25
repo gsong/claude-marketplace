@@ -1,6 +1,6 @@
 ---
-name: "gs:git-tools:auto-squash"
-description: "Classifies each uncommitted change to its originating branch commit, creates fixup commits, makes new commits for changes that match no commit, and runs an autosquash rebase. Use when the user says \"fold these changes into my earlier commits\", \"fixup my commits\", \"clean up my branch\", or invokes /gs:git-tools:auto-squash."
+name: "auto-squash"
+description: "Classifies each uncommitted change to its originating branch commit, creates fixup commits, makes new commits for changes that match no commit, and runs an autosquash rebase. Use when the user says \"fold these changes into my earlier commits\", \"fixup my commits\", or \"clean up my branch\"."
 argument-hint: "[base-branch]"
 ---
 
@@ -66,7 +66,7 @@ For each target commit group:
 4. **Verify the `amend!` header survived.** Only when you used `--fixup=amend:` — run `git log -1 --format=%s` and confirm the subject starts with `amend! `. If it does not, the message got clobbered; rewrite it with `git commit --amend` in the shape above before going on. This is a message defect, not a content defect — do not unwind for it.
 5. **Verify the fixup captured the expected files.** Run `git show --name-only --format= HEAD` and compare against the files you just staged for this group. If the lists differ (missing or extra paths):
    - Run `git reset --mixed <start_sha>` to unwind every fixup commit created during this run (including earlier groups that already succeeded). This restores HEAD to its pre-skill state and leaves all changes unstaged in the working tree — nothing is lost.
-   - Tell the user: `Fixup for <SHA> captured <actual> but expected <staged>. I've unwound all fixups from this run; your changes are back in the working tree. Use the gs:git-tools:commit skill to commit them manually.`
+   - Tell the user: `Fixup for <SHA> captured <actual> but expected <staged>. I've unwound all fixups from this run; your changes are back in the working tree. Run /git-tools:commit to commit them manually.`
    - Stop the skill — do not continue iterating and do not proceed to step 6.
 
 ## 5. Create new commits
@@ -74,7 +74,7 @@ For each target commit group:
 For any remaining unmatched files:
 
 1. Stage the files with `git add <files>`
-2. Create commit(s) with appropriate conventional commit messages (see the gs:git-tools:commit skill for message format) — group by feature area or change type, preferring fewer cohesive commits over many tiny ones
+2. Create commit(s) with appropriate conventional commit messages (see the git-tools:commit skill for message format) — group by feature area or change type, preferring fewer cohesive commits over many tiny ones
 
 ## 6. Rebase (conditional)
 

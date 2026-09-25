@@ -1,6 +1,6 @@
 ---
-name: "gs:gh-tools:triage"
-description: "Merge, investigate and curate the findings of a PR review. Run after gs:gh-tools:review or gs:codex-tools:review."
+name: "triage"
+description: "Merge, investigate and curate the findings of a PR review. Run after gh-tools:review or codex-tools:review."
 disable-model-invocation: true
 compatibility: "Requires the gh CLI (authenticated) and uv for the bundled Python validator."
 argument-hint: "<pr-number>"
@@ -17,7 +17,7 @@ Investigate and triage code review findings for PR #$ARGUMENTS.
 1. Glob for `findings-*.json` in the directory (this matches `findings-gh-review.json`, `findings-codex.json`, etc. but NOT `findings.json` which is triage's own output).
 2. If no `findings-*.json` files are found:
    - If `triage-state.json` exists in the directory, delete it silently (`rm -f`).
-   - Stop with: "No source findings found. Run `/gs:gh-tools:review $ARGUMENTS` and/or `/gs:codex-tools:review $ARGUMENTS` first."
+   - Stop with: "No source findings found. Run `/gh-tools:review $ARGUMENTS` and/or `/codex-tools:review $ARGUMENTS` first."
 3. If `triage-state.json` exists in the directory:
    - Attempt to parse it as JSON. If unparseable, delete it silently (`rm -f`) and continue to step 4 as if it didn't exist. If the parsed JSON is missing the `decisions` object or `finding_order` array, also treat it as corrupt: delete silently and continue to step 4.
    - Read the `decisions` object and the `finding_order` array.
@@ -73,7 +73,7 @@ Execute directly — no subagent needed.
    | findings-gh-review.json | def5678... | N commits behind |
 
    Re-run the stale review(s) before triaging:
-   - `/gs:codex-tools:review $ARGUMENTS`  ← stale
+   - `/codex-tools:review $ARGUMENTS`  ← stale
    ```
 
    Compute "Age" via `git log --oneline {stale_sha}..{newest_sha} | wc -l`. Label the newest SHA as "current". List re-run commands only for stale sources.
@@ -297,5 +297,5 @@ For each finding in sorted order:
    **Output:** ai-swap/pr-review-$ARGUMENTS/findings.json
    **Sources merged:** {comma-separated input_sources}
 
-   Run `/gs:gh-tools:post-comments $ARGUMENTS` to review and post these as GitHub PR comments.
+   Run `/gh-tools:post-comments $ARGUMENTS` to review and post these as GitHub PR comments.
    ```

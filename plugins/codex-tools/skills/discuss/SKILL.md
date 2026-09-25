@@ -1,6 +1,6 @@
 ---
-name: "gs:codex-tools:discuss"
-description: "Runs a multi-round dialogue between Claude and Codex and writes the outcome as a consensus document (consensus.md). Use when the user wants Claude and Codex to discuss a topic together and reach consensus through multi-round dialogue. Also use when the user invokes /gs:codex-tools:discuss."
+name: "discuss"
+description: "Runs a multi-round dialogue between Claude and Codex and writes the outcome as a consensus document (consensus.md). Use when the user wants Claude and Codex to discuss a topic together and reach consensus through multi-round dialogue."
 compatibility: "Requires the Codex CLI, reached through the codex:rescue runtime."
 ---
 
@@ -43,7 +43,7 @@ Then use `AskUserQuestion` to collect:
 
 ### Step 2: Build context and derive slug
 
-**Codex can only access project files in the working directory.** It has no access to external tools, MCP servers, or APIs (Linear, Slack, GitHub issues, Jira, etc.). You MUST inline all relevant external context into the first prompt — same principle as `/gs:codex-tools:run`.
+**Codex can only access project files in the working directory.** It has no access to external tools, MCP servers, or APIs (Linear, Slack, GitHub issues, Jira, etc.). You MUST inline all relevant external context into the first prompt — same principle as `codex-tools:run`.
 
 Before dispatching, gather and embed any context Codex will need:
 
@@ -157,7 +157,7 @@ Reached after <N> round(s) on <YYYY-MM-DD>.
 - <acknowledged downsides or open questions, if any>
 ```
 
-Use the `/gs:utilities:date` skill for the date if it's not already known, or `date +%F` if that skill is unavailable.
+Use the `utilities:date` skill for the date if it's not already known, or `date +%F` if that skill is unavailable.
 
 Print to terminal: a one-paragraph summary of the consensus and the path to the file.
 

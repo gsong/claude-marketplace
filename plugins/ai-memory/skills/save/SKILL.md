@@ -1,6 +1,6 @@
 ---
-name: "gs:ai-memory:save"
-description: "Write a succinct handoff document capturing this session's work, decisions, and gotchas for future Claude Code sessions. Use when the user wants to save, capture, or record a summary of the current session's work — e.g. \"write handoff notes\", \"before we wrap up, save what we did\", \"remember this for next session\". Also use when the user invokes /gs:ai-memory:save."
+name: "save"
+description: "Write a succinct handoff document capturing this session's work, decisions, and gotchas for future Claude Code sessions. Use when the user wants to save, capture, or record a summary of the current session's work — e.g. \"write handoff notes\", \"before we wrap up, save what we did\", \"remember this for next session\"."
 ---
 
 # Save Project Memory
@@ -28,7 +28,7 @@ Capture a succinct summary of the current session's work to enable future Claude
 4. **Create memory document:**
    - Filename: `ai-swap/memories/{YYYY-MM-DD}-{topic-slug}.md`
    - `ai-swap/memories/` is intended as a local, git-ignored scratch location for these notes. Before writing, verify it is ignored (`git check-ignore -q ai-swap` or equivalent); if it isn't, or the project has no such convention, warn the user and ask where memories should live before writing.
-   - Use ISO date format (e.g., `2025-10-08-commodity-routing.md`). Use the `/gs:utilities:date` skill if available to get today's date; otherwise run `date +%F`. Don't guess the date.
+   - Use ISO date format (e.g., `2025-10-08-commodity-routing.md`). Use the `utilities:date` skill if available to get today's date; otherwise run `date +%F`. Don't guess the date.
    - Follow structure below
 
 ## Document Structure

@@ -1,5 +1,5 @@
 ---
-name: "gs:ai-docs:lookup"
+name: "lookup"
 description: "Look up project conventions and patterns from docs-ai/ before writing or modifying code. Use proactively for: implementing features, modifying components, refactoring, routing changes, state management, styling, data flow, hooks, testing patterns, or when uncertain about project conventions. Invoke with a question about the relevant topic."
 argument-hint: "<question>"
 context: fork
@@ -59,7 +59,7 @@ If documentation doesn't fully answer the question, use Grep/Glob to find releva
 
 **See Also**: [Related doc sections for additional context]
 
-**Staleness**: [Only if detected — "⚠ [doc] may be outdated (Key Paths changed since last doc update). Consider running /gs:ai-docs:check for a full freshness report."]
+**Staleness**: [Only if detected — "⚠ [doc] may be outdated (Key Paths changed since last doc update). Consider running /ai-docs:check for a full freshness report."]
 ```
 
 ### 7. Not-Found Feedback
@@ -68,7 +68,7 @@ If no documentation covers the topic:
 
 ```
 **Not Found**: No documentation covers [topic].
-Consider running `/gs:ai-docs:update "added [topic]"` to create documentation.
+Consider running `/ai-docs:update "added [topic]"` to create documentation.
 ```
 
 ## Critical Rules

@@ -1,6 +1,6 @@
 ---
-name: "gs:ai-docs:check"
-description: "Check documentation freshness and detect drift, returning a staleness report with recommended actions. Read-only — modifies nothing. Use when the user wants to know which docs-ai/ files may be outdated relative to code changes. Also use when the user invokes /gs:ai-docs:check."
+name: "check"
+description: "Check documentation freshness and detect drift, returning a staleness report with recommended actions. Read-only — modifies nothing. Use when the user wants to know which docs-ai/ files may be outdated relative to code changes."
 ---
 
 # Check Docs AI Freshness
@@ -21,7 +21,7 @@ Orchestrated documentation freshness check using parallel per-doc checker agents
 
 Read `[docs-dir]/README.md`. Parse the topic index to get the full list of docs with their Key Paths.
 
-README.md and quick-reference.md carry no Key Paths and are deliberately excluded here — `/gs:ai-docs:audit` verifies them instead.
+README.md and quick-reference.md carry no Key Paths and are deliberately excluded here — `ai-docs:audit` verifies them instead.
 
 #### Git Availability Check
 
@@ -135,9 +135,9 @@ Checked [docs-dir] (path root [path-root])
 
 ### Recommended Actions
 
-- Run `/gs:ai-docs:update "[description]"` to fix [specific doc]
-- Run `/gs:ai-docs:audit` for comprehensive review ([N] docs need attention)
-[If any docs are unstamped: "- [N] docs have no verification stamp. Run `/gs:ai-docs:audit` to verify and stamp them."]
+- Run `/ai-docs:update "[description]"` to fix [specific doc]
+- Run `/ai-docs:audit` for comprehensive review ([N] docs need attention)
+[If any docs are unstamped: "- [N] docs have no verification stamp. Run `/ai-docs:audit` to verify and stamp them."]
 ```
 
 ## Critical Rules

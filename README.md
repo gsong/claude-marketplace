@@ -20,7 +20,7 @@ Full lifecycle AI documentation for Claude Code projects: bootstrap, lookup, upd
 /plugin install ai-docs@gsong-marketplace
 ```
 
-**Skills:** `/gs:ai-docs:init`, `/gs:ai-docs:lookup`, `/gs:ai-docs:update`, `/gs:ai-docs:check`, `/gs:ai-docs:audit`
+**Skills:** `/ai-docs:init`, `/ai-docs:lookup`, `/ai-docs:update`, `/ai-docs:check`, `/ai-docs:audit`
 
 ### ai-memory
 
@@ -30,7 +30,7 @@ Session memory and project instruction management for Claude Code.
 /plugin install ai-memory@gsong-marketplace
 ```
 
-**Skills:** `/gs:ai-memory:save`, `/gs:ai-memory:review`
+**Skills:** `/ai-memory:save`, `/ai-memory:review`
 
 ### codex-tools
 
@@ -40,7 +40,7 @@ OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi
 /plugin install codex-tools@gsong-marketplace
 ```
 
-**Skills:** `/gs:codex-tools:review`, `/gs:codex-tools:run`, `/gs:codex-tools:discuss`
+**Skills:** `/codex-tools:review`, `/codex-tools:run`, `/codex-tools:discuss`
 
 ### gh-tools
 
@@ -50,7 +50,7 @@ GitHub CLI PR review, triage, comment posting, review replies, and project manag
 /plugin install gh-tools@gsong-marketplace
 ```
 
-**Skills:** `/gs:gh-tools:review`, `/gs:gh-tools:triage`, `/gs:gh-tools:post-comments`, `/gs:gh-tools:address-review`, `/gs:gh-tools:project-manager`
+**Skills:** `/gh-tools:review`, `/gh-tools:triage`, `/gh-tools:post-comments`, `/gh-tools:address-review`, `/gh-tools:project-manager`
 
 ### git-tools
 
@@ -60,7 +60,7 @@ Git commit, worktree, and auto-squash skills.
 /plugin install git-tools@gsong-marketplace
 ```
 
-**Skills:** `/gs:git-tools:commit`, `/gs:git-tools:worktree`, `/gs:git-tools:auto-squash`
+**Skills:** `/git-tools:commit`, `/git-tools:worktree`, `/git-tools:auto-squash`
 
 ### repo-maintenance
 
@@ -70,7 +70,7 @@ Dependency upgrades and CI/CD security auditing for project repositories.
 /plugin install repo-maintenance@gsong-marketplace
 ```
 
-**Skills:** `/gs:repo-maintenance:pnpm-deps`, `/gs:repo-maintenance:pnpm`, `/gs:repo-maintenance:mise`, `/gs:repo-maintenance:gha`, `/gs:repo-maintenance:zizmor`
+**Skills:** `/repo-maintenance:pnpm-deps`, `/repo-maintenance:pnpm`, `/repo-maintenance:mise`, `/repo-maintenance:gha`, `/repo-maintenance:zizmor`
 
 ### utilities
 
@@ -80,7 +80,7 @@ General-purpose utilities for Claude Code.
 /plugin install utilities@gsong-marketplace
 ```
 
-**Skills:** `/gs:utilities:date`
+**Skills:** `/utilities:date`
 
 ## License
 

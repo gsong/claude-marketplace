@@ -1,5 +1,5 @@
 ---
-name: "gs:gh-tools:address-review"
+name: "address-review"
 description: "Validate, fix or decline, and reply to each review comment others left on your own GitHub PR."
 disable-model-invocation: true
 compatibility: "Requires the gh CLI (authenticated) and push access to the PR branch."

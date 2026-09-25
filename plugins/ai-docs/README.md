@@ -4,19 +4,19 @@ Full lifecycle AI documentation for Claude Code projects: bootstrap, lookup, upd
 
 ## Skills
 
-| Skill                | Description                                                         |
-| -------------------- | ------------------------------------------------------------------- |
-| `/gs:ai-docs:init`   | Bootstrap `docs-ai/` with auto-populated content from code analysis |
-| `/gs:ai-docs:lookup` | Look up project conventions before code changes (read-only, fast)   |
-| `/gs:ai-docs:update` | Update specific docs after code changes (targeted, lightweight)     |
-| `/gs:ai-docs:check`  | Check documentation freshness and detect drift (read-only)          |
-| `/gs:ai-docs:audit`  | Comprehensive audit and cleanup using parallel subagents            |
+| Skill             | Description                                                         |
+| ----------------- | ------------------------------------------------------------------- |
+| `/ai-docs:init`   | Bootstrap `docs-ai/` with auto-populated content from code analysis |
+| `/ai-docs:lookup` | Look up project conventions before code changes (read-only, fast)   |
+| `/ai-docs:update` | Update specific docs after code changes (targeted, lightweight)     |
+| `/ai-docs:check`  | Check documentation freshness and detect drift (read-only)          |
+| `/ai-docs:audit`  | Comprehensive audit and cleanup using parallel subagents            |
 
 ## Hooks
 
-| Event              | Behavior                                                                                                 |
-| ------------------ | -------------------------------------------------------------------------------------------------------- |
-| `UserPromptSubmit` | Reminds Claude to consult `gs:ai-docs:lookup` before code changes. Silent when no docs directory exists. |
+| Event              | Behavior                                                                                              |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| `UserPromptSubmit` | Reminds Claude to consult `ai-docs:lookup` before code changes. Silent when no docs directory exists. |
 
 The reminder fires at most once per session (and skips slash commands and very short prompts). When 60% or more of docs still contain `<!-- NEEDS CONTENT` stubs, it instead says most docs need content and suggests populating them before relying on lookups.
 
