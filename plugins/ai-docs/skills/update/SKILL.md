@@ -1,6 +1,6 @@
 ---
-name: "gs:ai-docs:update"
-description: "Update specific docs-ai/ documentation after code changes — a lightweight alternative to a full audit. Use when the user has made code changes and wants to update related documentation. Also use when the user invokes /gs:ai-docs:update, optionally with a description of the change (e.g., 'added Redis caching layer')."
+name: "update"
+description: "Update specific docs-ai/ documentation after code changes — a lightweight alternative to a full audit. Use when the user has made code changes and wants to update related documentation. Accepts an optional description of the change (e.g., 'added Redis caching layer')."
 argument-hint: "[what changed]"
 ---
 
@@ -12,7 +12,7 @@ Targeted documentation updates after code changes. Analyzes what changed, identi
 
 ### 1. Understand the Change
 
-**If argument provided** (e.g., `/gs:ai-docs:update "added Redis caching layer"`):
+**If argument provided** (e.g., `/ai-docs:update "added Redis caching layer"`):
 Use the argument as the change description.
 
 **If no argument provided:**
@@ -88,7 +88,7 @@ Spawn writer agents (general-purpose type — writers need Write, which Explore 
 - Reads current doc content + changed source files
 - Updates doc to reflect new reality, preserving accurate existing content
 - Uses `file::Symbol` references throughout
-- If creating a new doc: auto-populate with real content using the same approach as gs:ai-docs:init (read source files, write content, use rich stubs for gaps)
+- If creating a new doc: auto-populate with real content using the same approach as ai-docs:init (read source files, write content, use rich stubs for gaps)
 
 ### 6. Update README.md
 

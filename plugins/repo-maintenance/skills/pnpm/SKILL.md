@@ -1,6 +1,6 @@
 ---
-name: "gs:repo-maintenance:pnpm"
-description: "Upgrade the pnpm version itself across every reference in the project, respecting minimumReleaseAge. Use when the user asks to upgrade, update, or bump the pnpm version itself (not project dependencies — use /gs:repo-maintenance:pnpm-deps for that), or wants to update pnpm version references across a project. Also use when the user invokes /gs:repo-maintenance:pnpm."
+name: "pnpm"
+description: "Upgrade the pnpm version itself across every reference in the project, respecting minimumReleaseAge. Use when the user asks to upgrade, update, or bump the pnpm version itself (not project dependencies — use repo-maintenance:pnpm-deps for that), or wants to update pnpm version references across a project."
 compatibility: "Requires npm (for `npm view`) and network access to the npm registry."
 argument-hint: "[version]"
 ---

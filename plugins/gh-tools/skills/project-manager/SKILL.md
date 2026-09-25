@@ -1,6 +1,6 @@
 ---
-name: "gs:gh-tools:project-manager"
-description: "Generates a specialized agent for managing a GitHub project board. Use when the user wants an agent for managing a GitHub project board — e.g. \"set up an agent for my project board\", \"move issues between columns\", \"manage my GitHub project\". Also use when the user invokes /gs:gh-tools:project-manager with a project URL."
+name: "project-manager"
+description: "Generates a specialized agent for managing a GitHub project board from its project URL. Use when the user wants an agent for managing a GitHub project board — e.g. \"set up an agent for my project board\", \"move issues between columns\", \"manage my GitHub project\"."
 compatibility: "Requires the gh CLI (authenticated) with the project scope."
 argument-hint: "<project-url>"
 ---
@@ -9,9 +9,9 @@ argument-hint: "<project-url>"
 
 Create a specialized agent for managing GitHub project board operations using a GitHub project URL.
 
-**Usage:** `/gs:gh-tools:project-manager <project-url>`
+**Usage:** `/gh-tools:project-manager <project-url>`
 
-**Example:** `/gs:gh-tools:project-manager https://github.com/orgs/sahajsoft/projects/112`
+**Example:** `/gh-tools:project-manager https://github.com/orgs/sahajsoft/projects/112`
 
 ## Core Requirements
 
@@ -27,7 +27,7 @@ Create a specialized agent for managing GitHub project board operations using a 
 
 - If current directory is not a git repository: show "This command must be run in a git repository" and stop
 - If GitHub CLI (`gh`) is not available or not authenticated: show "GitHub CLI must be installed and authenticated" and stop
-- If no URL in `$ARGUMENTS`: show "Usage: /gs:gh-tools:project-manager <project-url>" and stop
+- If no URL in `$ARGUMENTS`: show "Usage: /gh-tools:project-manager <project-url>" and stop
 
 ### 2. Parse URL and Extract Project Info
 

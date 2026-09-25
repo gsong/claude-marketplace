@@ -1,5 +1,5 @@
 ---
-name: "gs:utilities:date"
+name: "date"
 description: 'Calculate dates and datetimes from natural-language descriptions — relative days/weeks/months/years, weekdays, hours, timestamps, and date ranges — using macOS `date`. Use whenever a request involves a relative or computed date, e.g. "commits from last week", "logs from the last 3 hours", "last month''s report", "schedule this for next Monday", or "30 days ago", including proactively when scheduling or planning.'
 compatibility: "Requires macOS/BSD `date` — the recipes use -v flags, which GNU/Linux `date` does not support."
 ---

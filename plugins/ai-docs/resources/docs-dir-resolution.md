@@ -22,11 +22,11 @@ Each hit is a candidate with its own `[docs-dir]` and `[path-root]`.
 
 ## 2. Select among candidates
 
-- **No candidates** — output: "No docs directory found. Run `/gs:ai-docs:init` to bootstrap documentation." Do not guess at undocumented locations.
+- **No candidates** — output: "No docs directory found. Run `/ai-docs:init` to bootstrap documentation." Do not guess at undocumented locations.
 - **One candidate** — use it.
 - **Several candidates** — pick by what the task is actually about, in this order:
   1. A workspace named in the question or argument (`woody`, `asset-manager`).
-  2. The `[path-root]` that contains the files being changed or asked about — for `gs:ai-docs:update`, the paths from the git diff.
+  2. The `[path-root]` that contains the files being changed or asked about — for `ai-docs:update`, the paths from the git diff.
   3. The working directory itself, if a candidate sits at it.
 
   Then confirm the choice against the candidate's topic index before you answer from it: if its README has no row matching the question, fall through to the other candidates rather than reporting the topic undocumented. A monorepo root and its workspaces often each hold a docs directory, and only one of them covers any given topic — stopping at the first plausible candidate is how a documented topic looks missing.

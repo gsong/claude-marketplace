@@ -39,7 +39,7 @@ def _minimal_finding(**overrides):
         "body": "Something is wrong here.",
         "severity": "should-fix",
         "source_detail": [
-            {"skill": "gs:gh-tools:review", "agent": "gh-review", "agent_label": "gh-review"}
+            {"skill": "gh-tools:review", "agent": "gh-review", "agent_label": "gh-review"}
         ],
     }
     base.update(overrides)
