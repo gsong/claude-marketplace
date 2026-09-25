@@ -1,7 +1,7 @@
 {
   "name": "repo-maintenance",
   "description": "Dependency upgrades and CI/CD security auditing for project repositories",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "author": {
     "name": "George Song"
   },
