@@ -36,11 +36,10 @@ Investigate and triage code review findings for PR #$ARGUMENTS.
 Locate the schema validator (used throughout this skill):
 
 ```bash
-VALIDATOR="${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py"
-if [ ! -f "$VALIDATOR" ]; then echo "ERROR: validate-findings.py not found at $VALIDATOR" >&2; exit 1; fi
+if [ ! -f "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ]; then echo "ERROR: validate-findings.py not found at ${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" >&2; exit 1; fi
 ```
 
-Use `uv run "$VALIDATOR" <file>` for all validation commands below.
+Every validation command below spells out the validator path. Claude Code replaces `${CLAUDE_PLUGIN_ROOT}` with the absolute plugin path when it loads this skill. Do not store it in a shell variable: each Bash call starts a new shell, so the variable would be gone by the next command.
 
 ## Phase 1: Merge Structured Findings
 
@@ -49,7 +48,7 @@ Execute directly — no subagent needed.
 1. **Load and validate** each `findings-*.json` file:
 
    ```bash
-   uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/<filename>
+   uv run "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ai-swap/pr-review-$ARGUMENTS/<filename>
    ```
 
    If validation fails for a file, use AskUserQuestion to warn the user and ask whether to skip that file or abort entirely.
@@ -271,7 +270,7 @@ For each finding in sorted order:
 3. **Validate the output:**
 
    ```bash
-   uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/findings.json
+   uv run "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ai-swap/pr-review-$ARGUMENTS/findings.json
    ```
 
    If validation fails, fix the errors and re-validate.
