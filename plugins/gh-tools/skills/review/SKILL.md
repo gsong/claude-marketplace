@@ -1,6 +1,6 @@
 ---
 name: "review"
-description: "Review a GitHub PR with parallel reviewers and write the findings for triage, posting nothing. The first step of review → triage → post-comments."
+description: "Review a GitHub PR with parallel reviewers and write the findings for triage, posting nothing. The first step of gh-tools:review → gh-tools:triage → gh-tools:post-comments."
 disable-model-invocation: true
 compatibility: "Requires the gh CLI (authenticated) and uv for the bundled Python validator."
 argument-hint: "<pr-number>"

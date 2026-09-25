@@ -1,6 +1,6 @@
 ---
 name: "project-manager"
-description: "Generates a specialized agent for managing a GitHub project board from its project URL. Use when the user wants an agent for managing a GitHub project board — e.g. \"set up an agent for my project board\", \"move issues between columns\", \"manage my GitHub project\"."
+description: "Generates a specialized agent for managing a GitHub project board from its project URL. Use when the user wants an agent for managing a GitHub project board — e.g. \"set up an agent for my project board\", \"make an agent that moves issues between columns\", \"manage my GitHub project\"."
 compatibility: "Requires the gh CLI (authenticated) with the project scope."
 argument-hint: "<project-url>"
 ---
