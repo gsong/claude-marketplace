@@ -17,16 +17,15 @@ Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 Locate the schema validator (used throughout this skill):
 
 ```bash
-VALIDATOR="${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py"
-if [ ! -f "$VALIDATOR" ]; then echo "ERROR: validate-findings.py not found at $VALIDATOR" >&2; exit 1; fi
+if [ ! -f "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ]; then echo "ERROR: validate-findings.py not found at ${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" >&2; exit 1; fi
 ```
 
-Use `uv run "$VALIDATOR" <file>` for all validation commands below.
+Every validation command below spells out the validator path. Claude Code replaces `${CLAUDE_PLUGIN_ROOT}` with the absolute plugin path when it loads this skill. Do not store it in a shell variable: each Bash call starts a new shell, so the variable would be gone by the next command.
 
 ## Step 1: Load Findings
 
 1. Check for `ai-swap/pr-review-$ARGUMENTS/findings.json`
-   - If it exists: validate it first with `uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/findings.json`. If validation fails, report the errors and stop.
+   - If it exists: validate it first with `uv run "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ai-swap/pr-review-$ARGUMENTS/findings.json`. If validation fails, report the errors and stop.
    - If valid: read and parse it. Report: "{N} findings loaded for PR #{pr} in {repo}"
    - If it does NOT exist:
      - Check for `findings-*.json` files in the directory

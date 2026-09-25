@@ -79,8 +79,7 @@ If no path is found, stop with: "Error: codex plugin not installed. Run `/codex:
 7. Verify the schema validator is available (shared with the gh-tools sibling plugin via symlink):
 
 ```bash
-VALIDATOR="${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py"
-if [ ! -f "$VALIDATOR" ]; then
+if [ ! -f "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ]; then
   echo "ERROR: validate-findings.py not resolvable. It is a symlink into the gh-tools sibling plugin, so the marketplace clone must include the gh-tools plugin directory — reinstalling codex-tools alone won't fix this." >&2
   exit 1
 fi
@@ -202,7 +201,7 @@ After all 3 agents return:
 6. **Validate the JSON** — Run the schema validator (resolved in Step 1.7):
 
    ```bash
-   uv run "$VALIDATOR" ai-swap/pr-review-<number>/findings-codex.json
+   uv run "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ai-swap/pr-review-<number>/findings-codex.json
    ```
 
    If validation fails, fix the errors and re-validate.

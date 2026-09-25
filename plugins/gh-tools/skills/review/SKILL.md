@@ -17,11 +17,10 @@ Perform a comprehensive code review for PR #$ARGUMENTS
 Locate the schema validator (used in Phase 3 and Phase 4):
 
 ```bash
-VALIDATOR="${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py"
-if [ ! -f "$VALIDATOR" ]; then echo "ERROR: validate-findings.py not found at $VALIDATOR" >&2; exit 1; fi
+if [ ! -f "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ]; then echo "ERROR: validate-findings.py not found at ${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" >&2; exit 1; fi
 ```
 
-Use `uv run "$VALIDATOR" <file>` for all validation commands below. The `$VALIDATOR` variable only exists in your (the orchestrator's) shell — when assembling the Phase 3 synthesis prompt, substitute the resolved absolute path for every `$VALIDATOR` occurrence before sending it.
+Every validation command below spells out the validator path. Claude Code replaces `${CLAUDE_PLUGIN_ROOT}` with the absolute plugin path when it loads this skill, so each command already carries the real path. Do not store it in a shell variable: each Bash call starts a new shell, and a subagent never sees the orchestrator's shell. Copy the commands into the Phase 3 synthesis prompt as written.
 
 ## Phase 1: Setup
 
@@ -116,7 +115,7 @@ Include ALL of the following in the agent's prompt:
 5. Full text output from Review B (the mattpocock Standards/Spec report, or the superpowers:code-reviewer findings if the fallback ran), with a note saying which reviewer produced it
 6. The review focus areas (below)
 7. The output format specs (below)
-8. The validator step (below) — replace `$VALIDATOR` with the absolute path resolved in "Locate the validator" before sending; the synthesis agent never ran that step and does not inherit the variable
+8. The validator step (below), copied as written — its command already carries the absolute validator path
 9. The hard gate (below)
 10. The voice rules (below)
 
@@ -219,10 +218,8 @@ The body should note when both reviews flagged the same issue.
 8. **Run the schema validator** on the findings file:
 
    ```bash
-   uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
+   uv run "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
    ```
-
-   (Orchestrator: substitute the absolute validator path for `$VALIDATOR` in this command before sending the prompt.)
 
    If validation fails, fix the errors in the JSON and re-validate before proceeding.
 
@@ -242,7 +239,7 @@ After the synthesis agent completes, the orchestrator (you) verifies the output:
 4. If the file exists:
    - **Run the schema validator** (the synthesis agent may have skipped it):
      ```bash
-     uv run "$VALIDATOR" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
+     uv run "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
      ```
      If validation fails, fix the JSON yourself (common issues: missing top-level `"source": "gh-review"`, missing `"source_detail"` on findings) and re-validate until it passes.
    - Show the synthesis agent's summary (finding counts, mapped vs unmappable)
