@@ -134,7 +134,9 @@ Skip praise and lengthy analysis — actionable items only.
 
 #### Voice
 
-Skip this section if `~/.claude/skills/writing-line/` does not exist. Nothing else changes when it is absent.
+Keep every finding `body` under about 80 words: what is wrong, why it matters, and what to do. Name the subject instead of opening with a bare pronoun. Leave out reviewer-process notes such as "flagged by both reviews". This applies whether or not writing-line exists.
+
+Skip the rest of this section if `~/.claude/skills/writing-line/` does not exist. Nothing else changes when it is absent.
 
 When it does exist, read the Judgment section of `rules/technical.md` under that directory, plus every file in its `references/`. Write every finding `body` to those rules. Ignore the Greppable blocks — they are the gate's business, not yours. Skip `rules/common.md`. It carries no Judgment section, by design.
 

@@ -129,14 +129,25 @@ You are an investigation agent. Deeply investigate this code review finding and 
 
 **Action rules:**
 
-- `keep` — the finding is valid and the body is accurate
+- `keep` — the finding is valid, the body is accurate, and the body meets **Body length and clarity** below
 - `remove` — the finding is a false positive, already addressed, or not actionable
-- `reword` — the finding is valid but the body should be revised (provide `suggested_body`)
+- `reword` — the finding is valid but the body should be revised, including for length or clarity (provide `suggested_body`)
 
 **Verdict-to-action defaults:**
 
 - `pre-existing` — default `recommended_action` to `remove`, and note in `evidence` that the issue predates this PR (the human can still choose to keep it)
 - `unclear` — default `recommended_action` to `keep`, and provide a `suggested_body` that states the uncertainty so the human decides with full context
+
+**Body length and clarity:**
+
+This applies whether or not writing-line exists. post-comments posts only `[{severity}] {body}`, so the `recommendation` field never reaches GitHub. Each body must stand alone: what is wrong, why it matters, and what to do. Keep it under about 80 words.
+
+- Name the subject. The comment sits on a line, but the reader still needs the referent: "The names in `MATRIX_ROWS`", not "These names". Never open with a bare pronoun.
+- When a claim is abstract, give one concrete case.
+- Keep the one fact your investigation corrected, such as "two call sites, not three". Put the rest of your evidence in `evidence`.
+- Leave out reviewer-process notes such as "flagged by both reviews", and commit history the fixer does not need.
+
+A body over about 80 words, or one that breaks these rules, is a `reword` even when the finding is accurate. The verdict does not change.
 
 **Writing `suggested_body`:**
 
