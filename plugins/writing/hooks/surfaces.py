@@ -88,6 +88,18 @@ DOC_SKIP_KEYS = {"target", "ref"}
 
 def _claude_docs(tool_input: dict, cwd: Path) -> Extract:
     texts: list[Text] = []
+    payload = tool_input.get("payload")
+    if isinstance(payload, str):
+        # The schema allows a string payload, most likely the ops object sent
+        # JSON-encoded. Read as prose, JSON's own quotes would look like text.
+        try:
+            decoded = json.loads(payload)
+        except ValueError:
+            decoded = None
+        if isinstance(decoded, (dict, list)):
+            tool_input = {**tool_input, "payload": decoded}
+        else:
+            texts.extend(_strings(("$.payload", payload)))
 
     def walk(node, where: str) -> None:
         if isinstance(node, dict):

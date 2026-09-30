@@ -178,6 +178,22 @@ test("claude docs: a code span is exempt", () => {
   );
 });
 
+test("claude docs update: a JSON-encoded payload is checked, its syntax is not", () => {
+  const encode = (content) =>
+    JSON.stringify({ ops: [{ op: "insert", source: { from: { content } } }] });
+  const tool_name = "mcp__claude_ai_Claude_Docs__update";
+  const ref = { object: "node", id: "n" };
+  const reason = guard({
+    tool_name,
+    tool_input: { ref, payload: encode('It\'s "done".') },
+  });
+  assert.match(reason, /\$\.payload\.ops\[0\]\.source\.from\.content:1:/);
+  assert.equal(
+    guard({ tool_name, tool_input: { ref, payload: encode("It’s “done”.") } }),
+    null,
+  );
+});
+
 test("google drive create_file: textContent is checked", () => {
   const reason = guard({
     tool_name: DRIVE,

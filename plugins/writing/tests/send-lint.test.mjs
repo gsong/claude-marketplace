@@ -276,6 +276,29 @@ test("claude docs update: content deep in ops, find targets ignored", () => {
   assert.doesNotMatch(out.additionalContext, /target/);
 });
 
+test("claude docs update: a JSON-encoded payload is decoded, then read", () => {
+  const payload = JSON.stringify({
+    ops: [{ op: "insert", source: { from: { content: "new techword text" } } }],
+  });
+  const out = lint(
+    call(`${DOCS}update`, { ref: { object: "node", id: "n1" }, payload }),
+  );
+  assertAdvisory(
+    out,
+    /\[\$\.payload\.ops\[0\]\.source\.from\.content\]\nline 1: the word techword/,
+  );
+});
+
+test("claude docs update: a payload string that is not JSON is prose", () => {
+  const out = lint(
+    call(`${DOCS}update`, {
+      ref: { object: "node", id: "n1" },
+      payload: "A techword here",
+    }),
+  );
+  assertAdvisory(out, /\[\$\.payload\]\nline 1: the word techword/);
+});
+
 test("claude docs create: a comment body", () => {
   const out = lint(
     call(`${DOCS}create`, {
