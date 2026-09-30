@@ -59,7 +59,7 @@ Your directory must hold all four files. It replaces the defaults whole, so a mi
 ## Requirements
 
 - `jq`
-- `perl` at `/usr/bin/perl`
+- `perl`: `/usr/bin/perl` when it exists, because a hook may run without a login shell. Otherwise `perl` on `PATH`.
 - [`uv`](https://docs.astral.sh/uv/), for `send-lint.py` and `smart-quotes.py`. Without it, both hooks stay silent.
 
 ## Installation

@@ -18,6 +18,17 @@ writing_rules_dir() {
   fi
 }
 
+# Prints the profile of a draft under ai-swap/drafts/<profile>/, and fails for
+# any other path. The profile is the directory under drafts/. A file sitting
+# loose in drafts/ has no profile, so there is nothing to check it against.
+draft_profile() {
+  local file=$1 rest
+  [[ $file == */ai-swap/drafts/* && -f $file ]] || return 1
+  rest=${file#*/ai-swap/drafts/}
+  [[ ${rest%%/*} != "$rest" ]] || return 1
+  printf '%s' "${rest%%/*}"
+}
+
 # State lives outside the plugin on purpose. CLAUDE_PLUGIN_DATA is deleted when
 # the plugin is uninstalled, and the correction log is the user's history.
 writing_state_dir() {
@@ -26,4 +37,15 @@ writing_state_dir() {
 
 writing_bin_dir() {
   printf '%s' "${WRITING_LINE_BIN:-$plugin_root/bin}"
+}
+
+# Hooks may run without a login shell, where a perl that mise or Homebrew put
+# on PATH is missing. /usr/bin/perl needs no PATH, so it comes first. PATH is
+# the fallback where it is absent, as on some Linux images.
+writing_perl() {
+  if [[ -x /usr/bin/perl ]]; then
+    printf '%s' /usr/bin/perl
+  else
+    printf '%s' perl
+  fi
 }

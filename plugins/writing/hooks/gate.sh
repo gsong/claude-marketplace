@@ -58,6 +58,7 @@ case $tool in Write | Edit | MultiEdit) ;; *) exit 0 ;; esac
 
 rules_dir=$(writing_rules_dir)
 bin_dir=$(writing_bin_dir)
+perl=$(writing_perl)
 scanner=$bin_dir/voice-scan.pl
 [[ -f $scanner ]] || exit 0
 
@@ -87,13 +88,7 @@ say so if the same rule misreads twice."
 
 # --- draft ---------------------------------------------------------------
 if [[ $file == */ai-swap/drafts/* ]]; then
-  [[ -f $file ]] || exit 0
-
-  # The profile is the directory under drafts/. A file sitting loose in drafts/
-  # has no profile, so there is nothing to check it against.
-  rest=${file#*/ai-swap/drafts/}
-  profile=${rest%%/*}
-  [[ $profile != "$rest" ]] || exit 0
+  profile=$(draft_profile "$file") || exit 0
   rule_files_for "$profile" || exit 0
 
   # An HTML draft is markup, not prose. Flatten it before scanning: otherwise the
@@ -109,13 +104,13 @@ if [[ $file == */ai-swap/drafts/* ]]; then
     if tmp=$(mktemp "${TMPDIR:-/tmp}/writing-line.XXXXXX"); then
       trap 'rm -f "$tmp"' EXIT
       # A converter failure must not silence the gate, so fall back to the raw file.
-      if /usr/bin/perl "$converter" "$file" >"$tmp" 2>/dev/null && [[ -s $tmp ]]; then
+      if "$perl" "$converter" "$file" >"$tmp" 2>/dev/null && [[ -s $tmp ]]; then
         scan=$tmp
       fi
     fi
   fi
 
-  report=$(/usr/bin/perl "$scanner" "${rule_files[@]}" "$scan" 2>/dev/null)
+  report=$("$perl" "$scanner" "${rule_files[@]}" "$scan" 2>/dev/null)
   [[ -z $report ]] && exit 0
   emit "writing gate, profile \"$profile\", on ${file##*/}:" "$report"
 fi
@@ -146,7 +141,7 @@ for ((i = 1; i <= count; i++)); do
   text=${fields[i + 2]}
   [[ $text =~ [^[:space:]] ]] || continue
   printf '%s\n' "$text" >"$tmp_dir/$i.md" || continue
-  out=$(/usr/bin/perl "$scanner" "${rule_files[@]}" "$tmp_dir/$i.md" 2>/dev/null)
+  out=$("$perl" "$scanner" "${rule_files[@]}" "$tmp_dir/$i.md" 2>/dev/null)
   [[ -n $out ]] || continue
   ((count > 1)) && out="edit $i:
 $out"
