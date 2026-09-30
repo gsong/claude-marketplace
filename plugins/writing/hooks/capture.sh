@@ -45,8 +45,15 @@ snapshots=$state/snapshots
 mkdir -p "$snapshots" || exit 0
 
 # The snapshot is keyed by path, so two drafts never read as edits of each
-# other. The hash keeps the key flat and safe as a filename.
-key=$(printf '%s' "$file" | shasum -a 256 | cut -c1-40)
+# other. The hash keeps the key flat and safe as a filename. sha256sum comes
+# first: on Linux, shasum is a perl script that needs /usr/bin/perl. Both print
+# the same digest, so a key made by either one finds the same snapshot.
+if command -v sha256sum >/dev/null 2>&1; then
+  key=$(printf '%s' "$file" | sha256sum | cut -c1-40)
+else
+  key=$(printf '%s' "$file" | shasum -a 256 | cut -c1-40)
+fi
+[[ $key =~ ^[0-9a-f]{40}$ ]] || exit 0
 snapshot=$snapshots/$key
 snapshot_turn=$snapshots/$key.turn
 
