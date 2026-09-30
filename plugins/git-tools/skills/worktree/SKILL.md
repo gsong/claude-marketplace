@@ -72,13 +72,13 @@ cp .env .worktrees/{short-dir-name}/.env
 3. If `mise.toml` or `.mise.toml` exists in the new worktree, trust it:
 
 ```bash
-cd .worktrees/{short-dir-name} && mise trust
+mise -C .worktrees/{short-dir-name} trust
 ```
 
 4. If `.envrc` exists in the new worktree, allow direnv:
 
 ```bash
-cd .worktrees/{short-dir-name} && direnv allow
+direnv allow .worktrees/{short-dir-name}
 ```
 
 5. If `package.json` exists in the new worktree, run one install with the package manager the lockfile names; if it fails, report the failure in Step 5 rather than retrying with another manager:
