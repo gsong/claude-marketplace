@@ -13,7 +13,8 @@ set -uo pipefail
 payload=$(cat)
 
 bash_tool='"tool_name"[[:space:]]*:[[:space:]]*"Bash"'
-gh_word='(^|[^[:alnum:]_.-])gh[[:space:]]'
+# The payload is raw JSON, so a newline or tab before gh arrives as `\n` or `\t`.
+gh_word='(^|[^[:alnum:]_.-]|\\[ntr])gh[[:space:]]'
 if [[ $payload =~ $bash_tool ]] && ! [[ $payload =~ $gh_word ]]; then
   exit 0
 fi

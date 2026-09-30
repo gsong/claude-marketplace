@@ -173,7 +173,7 @@ def _gh(tool_input: dict, cwd: Path) -> Extract:
     if not isinstance(command, str) or "gh" not in command:
         return Extract()
     rest, heredocs = _split_heredocs(command)
-    lexer = shlex.shlex(rest, posix=True, punctuation_chars=True)
+    lexer = shlex.shlex(_split_lines(rest), posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     tokens = list(lexer)
 
@@ -239,6 +239,37 @@ def _split_heredocs(command: str) -> tuple[str, list[str]]:
                 body.append(candidate)
             bodies.append("\n".join(body))
     return "\n".join(kept), bodies
+
+
+def _split_lines(command: str) -> str:
+    """Put a `;` after every unquoted newline. shlex reads a newline as plain
+    whitespace, so `cd repo` on one line and `gh pr comment` on the next would
+    lex as one command, with gh out of command position. The newline stays, so
+    a `#` comment still ends where it did. A backslash continuation is left
+    alone, and so is a newline inside quotes."""
+    out, quote, i = [], "", 0
+    while i < len(command):
+        char = command[i]
+        if char == "\\" and quote != "'":
+            out.append(command[i : i + 2])
+            i += 2
+            continue
+        if quote:
+            quote = "" if char == quote else quote
+        elif char in "'\"":
+            quote = char
+        elif char == "#" and (i == 0 or command[i - 1] in " \t\n;&|()"):
+            # A comment may hold an apostrophe. It is not a quote.
+            stop = command.find("\n", i)
+            stop = len(command) if stop < 0 else stop
+            out.append(command[i:stop])
+            i = stop
+            continue
+        elif char == "\n":
+            char = "\n; "
+        out.append(char)
+        i += 1
+    return "".join(out)
 
 
 def _gh_invocations(tokens: list[str]) -> list[list[str]]:
