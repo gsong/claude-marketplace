@@ -98,7 +98,8 @@ def main() -> None:
             "permissionDecisionReason": f'writing send-lint, profile "{surface.profile}", on {where}:\n\n'
             f"{findings}\n\n"
             "This send is bounced once so the findings arrive before the text goes out. "
-            "Fix what is a real violation, or keep the text as is, and send again. The retry goes through.",
+            "Fix what is a real violation, or keep the text as is, and send again. "
+            "The retry within 30 minutes goes through.",
         }
     )
 

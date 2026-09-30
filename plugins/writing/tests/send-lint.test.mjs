@@ -103,7 +103,10 @@ function assertDeny(out, pattern) {
   assert.equal(out.permissionDecision, "deny");
   assert.match(out.permissionDecisionReason, pattern);
   assert.match(out.permissionDecisionReason, /bounced once/);
-  assert.match(out.permissionDecisionReason, /The retry goes through\./);
+  assert.match(
+    out.permissionDecisionReason,
+    /The retry within 30 minutes goes through\./,
+  );
 }
 
 function tempDir() {
