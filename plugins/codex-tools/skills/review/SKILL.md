@@ -100,10 +100,10 @@ node "<companion-path>" adversarial-review --base <base-ref> --wait --json -- "$
 ```
 
 - `--wait` ensures foreground execution (no interactive prompts)
-- `--json` prints the structured result instead of a rendered report, which drops `confidence` and `next_steps`
+- `--json` prints the structured result. The rendered report omits each finding’s `confidence`, which the sort step needs.
 - `--` separates flags from focus text to prevent misparse
 
-3. Captures the JSON output (verdict, summary, findings, next_steps)
+3. Reads the `result` object from the JSON output. It holds `verdict`, `summary`, `findings` and `next_steps`. If `result` is null, Codex output did not parse: return `parseError` and `rawOutput` instead of findings.
 4. Returns the parsed findings
 
 **The 3 agent roles and focus text:**
@@ -130,7 +130,7 @@ Prepend the PR context block, then:
 
 After all 3 agents return:
 
-1. **Collect** — each agent returns structured JSON with `verdict`, `summary`, `findings[]`, and `next_steps[]`. The mapping table in step 5 names every finding field.
+1. **Collect** — each agent returns the `result` object: `verdict`, `summary`, `findings[]`, and `next_steps[]`. The mapping table in step 5 names every finding field. If an agent returned `parseError` instead, report that agent's `parseError` and `rawOutput` to the user, and aggregate the other agents' findings.
 
 2. **Deduplicate** — if two agents flag the same file + overlapping line range, merge into one finding. A merged finding keeps the higher-severity body and carries one `source_detail` entry per agent that flagged it.
 3. **Overall verdict** — `needs-attention` if any agent returns `needs-attention`; `approve` only if all three approve.
