@@ -130,7 +130,7 @@ You are an investigation agent. Deeply investigate this code review finding and 
 
 **Body length and clarity:**
 
-This applies whether or not writing-line exists. post-comments posts only `[{severity}] {body}`, so the `recommendation` field never reaches GitHub. Each body must stand alone: what is wrong, why it matters, and what to do. Keep it under about 80 words.
+This applies whether or not the `writing:draft` skill is available. post-comments posts only `[{severity}] {body}`, so the `recommendation` field never reaches GitHub. Each body must stand alone: what is wrong, why it matters, and what to do. Keep it under about 80 words.
 
 - Name the subject. The comment sits on a line, but the reader still needs the referent: "The names in `MATRIX_ROWS`", not "These names". Never open with a bare pronoun.
 - When a claim is abstract, give one concrete case.
@@ -141,9 +141,9 @@ A body over about 80 words, or one that breaks these rules, is a `reword` even w
 
 **Writing `suggested_body`:**
 
-Skip this if `~/.claude/skills/writing-line/` does not exist. Nothing else changes when it is absent.
+Skip this if the `writing:draft` skill is not available. Nothing else changes when it is absent.
 
-When it does exist, read the Judgment section of `rules/technical.md` under that directory, plus every file in its `references/`. Write `suggested_body` to those rules. Ignore the Greppable blocks — they are the gate's business, not yours.
+When it is available, read the Judgment section of `technical.md` in the rules directory, plus every file in `~/.claude/writing-line/references/`. The rules directory is `~/.claude/writing-line/rules/` if it exists, else the writing plugin's defaults: the highest version of `~/.claude/plugins/cache/*/writing/*/defaults/rules/`. Write `suggested_body` to those rules. Ignore the Greppable blocks — they are the gate's business, not yours.
 
 ---
 
