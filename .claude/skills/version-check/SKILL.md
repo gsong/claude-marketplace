@@ -1,6 +1,6 @@
 ---
 name: version-check
-description: "Audit every plugin's version against its changes since the last bump, using one parallel agent per plugin. Use when the user wants to check if plugin versions need bumping, audit version status, or prepare a release. Also use when the user invokes /version-check."
+description: "Audit every plugin's version against its changes since the last bump, and apply the bumps you pick."
 disable-model-invocation: true
 ---
 
@@ -14,14 +14,14 @@ Analyze all plugins in this marketplace to determine if their version numbers ne
 2. For each plugin, read `plugins/{name}/.claude-plugin/plugin.json` and extract the current `"version"` value.
 3. Build a working list:
    ```
-   plugin: git-workflow,    dir: plugins/git-workflow,    version: 1.1.0
-   plugin: docs-memory,     dir: plugins/docs-memory,     version: 1.1.0
+   plugin: git-tools,       dir: plugins/git-tools,       version: 1.1.0
+   plugin: ai-docs,         dir: plugins/ai-docs,         version: 1.1.0
    ...
    ```
 
 ## Phase 2 — Parallel Analysis
 
-Spawn **one Agent per plugin** using the Agent tool. Run all agents in parallel (send all Agent tool calls in a single message).
+Spawn **one Agent per plugin** using the Agent tool. Run all agents in parallel (send all Agent tool calls in a single message). Use `subagent_type: "general-purpose"` for each agent. Give each agent a descriptive name like `version-check-{PLUGIN_NAME}`.
 
 Each agent receives the following prompt (fill in `{PLUGIN_NAME}`, `{PLUGIN_DIR}`, and `{CURRENT_VERSION}`):
 
@@ -63,8 +63,6 @@ Each agent receives the following prompt (fill in `{PLUGIN_NAME}`, `{PLUGIN_DIR}
 > CHANGES_SUMMARY: {1-2 sentence human-readable summary of what changed}
 > ```
 
-Use `subagent_type: "general-purpose"` for each agent. Give each agent a descriptive name like `version-check-{PLUGIN_NAME}`.
-
 ## Phase 3 — Report
 
 After all agents complete, collect their reports and present a formatted summary:
@@ -72,8 +70,8 @@ After all agents complete, collect their reports and present a formatted summary
 ```
 Plugin          Current  Bump     New      Reason
 ─────────────── ──────── ──────── ──────── ──────────────────────────────
-git-workflow    1.1.0    minor    1.2.0    Added new X capability
-docs-memory     1.1.0    none     1.1.0    No changes since last bump
+git-tools       1.1.0    minor    1.2.0    Added new X capability
+ai-docs         1.1.0    none     1.1.0    No changes since last bump
 codex-tools     1.0.0    patch    1.0.1    Fixed typo in skill description
 utilities       1.1.0    none     1.1.0    No changes since last bump
 ```
@@ -90,12 +88,12 @@ If NO plugins need a bump, report "All plugins are up to date — no version bum
 
 If any plugins need bumps, use AskUserQuestion with `multiSelect: true` to ask which bumps to apply. List each plugin needing a bump as an option with its recommendation as the description.
 
-For each approved bump, use the Edit tool to update the `"version"` field in `plugins/{name}/.claude-plugin/plugin.json`. Change only the version value — do not modify any other fields.
+For each approved bump, use the Edit tool to update the `"version"` field in `plugins/{name}/.claude-plugin/plugin.json`. Change only the version value.
 
 After applying, show the final state:
 
 ```
 Applied version bumps:
-  git-workflow: 1.1.0 → 1.2.0
+  git-tools:    1.1.0 → 1.2.0
   codex-tools:  1.0.0 → 1.0.1
 ```
