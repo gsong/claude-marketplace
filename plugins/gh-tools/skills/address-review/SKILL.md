@@ -73,7 +73,7 @@ Done when each fix and each chosen option is committed, pushed and verified, and
 
 ## Step 5: Reply
 
-If `~/.claude/skills/writing-line/` exists, gate the replies first. Read `${CLAUDE_PLUGIN_ROOT}/references/voice-gate.md` and follow it, writing the bodies to `ai-swap/drafts/technical/pr-$ARGUMENTS-replies.md`.
+If the `writing:draft` skill is available, gate the replies first. Read `${CLAUDE_PLUGIN_ROOT}/references/voice-gate.md` and follow it, writing the bodies to `ai-swap/drafts/technical/pr-$ARGUMENTS-replies.md`.
 
 Reply once to each work-list comment, in its thread:
 

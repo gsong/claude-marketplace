@@ -107,11 +107,11 @@ Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 
 ## Step 4: Voice Gate
 
-Skip this step if `~/.claude/skills/writing-line/` does not exist. Say nothing about it and go to Step 5.
+Skip this step if the `writing:draft` skill is not available. Say nothing about it and go to Step 5.
 
 Otherwise read `${CLAUDE_PLUGIN_ROOT}/references/voice-gate.md` and run the gate on every postable body, writing them to `ai-swap/drafts/technical/pr-$ARGUMENTS-bodies.md`.
 
-Step 5 then presents gated text, and the user can still drop or edit any of it before posting.
+This step is the only one that sees every source: findings from `gh-tools:review` and from `codex-tools:review` both arrive here. Triage has already dropped everything the user rejected, and Step 5 gates any body the user rewords. Together they gate exactly what ships.
 
 ## Step 5: Confirm
 
@@ -131,7 +131,7 @@ Then ask one AskUserQuestion, not `multiSelect`: "Post these {N} comments as a p
 - "Post all {N} (Recommended)": go to Step 6.
 - "Abort": stop the skill.
 
-If the user picks Other, the text names findings to drop or reword, by number. Apply the changes. If none are left, report "No comments left to post." and stop. Otherwise show the changed findings and ask this question again.
+If the user picks Other, the text names findings to drop or reword, by number. Apply the changes. If none are left, report "No comments left to post." and stop. If Step 4 ran and the user reworded any body, run the gate again on the reworded bodies only, at the same draft path. Then show the changed findings and ask this question again.
 
 ## Step 6: Post Review
 
