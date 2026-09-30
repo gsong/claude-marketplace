@@ -10,7 +10,7 @@ OpenAI Codex CLI integration for Claude Code — parallel PR reviews, task deleg
 | `codex-tools:review`  | you, `/codex-tools:review <pr>`                                                   | Review a PR with 3 parallel Codex adversarial reviews (correctness, integration, tests); write findings for `gh-tools:triage` |
 | `codex-tools:run`     | "run Codex", "delegate to Codex", "second opinion from Codex", `/codex-tools:run` | Delegate a task to Codex with a self-contained prompt through the codex:codex-rescue agent                                    |
 
-`run` and `discuss` share `references/codex-prompting.md`: the model pin, the effort and sandbox menus, how to inline external context, and how to dispatch through `codex:codex-rescue`.
+`run` and `discuss` share `references/codex-prompting.md`: the model rule, the effort and sandbox menus, how to inline external context, and how to dispatch through `codex:codex-rescue`.
 
 ## Prerequisites
 

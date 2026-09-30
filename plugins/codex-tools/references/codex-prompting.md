@@ -4,7 +4,7 @@ Shared reference for `codex-tools:run` and `codex-tools:discuss`. Both skills di
 
 ## Model
 
-Always use `gpt-5.6-terra`. Do not ask the user to pick a model.
+Codex picks the model from the user's Codex config. Send no `--model` flag, and do not ask the user to pick a model.
 
 ## Parameters to collect
 
@@ -38,7 +38,6 @@ The prompt Codex receives must be **self-contained** — it should make sense to
 
 All Codex calls go through the Agent tool with `subagent_type: "codex:codex-rescue"`. Pass the assembled prompt as the agent prompt, then:
 
-- Append `--model gpt-5.6-terra` as a CLI flag (not in the prompt text — rescue passes it through to the companion script's argument parser)
 - If the user chose non-default effort, append `--effort <level>` as a CLI flag
 - Sandbox is set through the prompt: for `write`, the rescue agent adds `--write` on its own; for `read-only`, state the read-only intent in the prompt (e.g., "this is a read-only task, no edits")
 - For complex or long-running tasks, set `run_in_background: true`

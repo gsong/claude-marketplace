@@ -24,7 +24,7 @@ Build the prompt per `${CLAUDE_PLUGIN_ROOT}/references/codex-prompting.md`; it m
 
 ### 4. Delegate to Codex
 
-Dispatch through `Agent(subagent_type: "codex:codex-rescue")` as the reference describes, with `--model gpt-5.6-terra` as a CLI flag.
+Dispatch through `Agent(subagent_type: "codex:codex-rescue")` as the reference describes.
 
 ### 5. Present results
 
