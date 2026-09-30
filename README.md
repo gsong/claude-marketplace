@@ -82,6 +82,16 @@ General-purpose utilities for Claude Code.
 
 **Skills:** `/utilities:date`
 
+### writing
+
+Keep text an audience reads in your voice: a drafting pipeline, a send-time lint, a draft gate, and correction capture.
+
+```
+/plugin install writing@gsong-marketplace
+```
+
+**Skills:** `/writing:draft`
+
 ## License
 
 MIT

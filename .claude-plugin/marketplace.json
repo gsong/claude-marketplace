@@ -4,7 +4,7 @@
     "name": "George Song"
   },
   "metadata": {
-    "description": "George Song's Claude Code plugins for git, GitHub, documentation, session memory, Codex integration, repo maintenance, and utilities"
+    "description": "George Song's Claude Code plugins for git, GitHub, documentation, session memory, Codex integration, repo maintenance, writing, and utilities"
   },
   "plugins": [
     {
@@ -71,6 +71,14 @@
       "author": { "name": "George Song" },
       "category": "productivity",
       "keywords": ["date", "utilities"]
+    },
+    {
+      "name": "writing",
+      "source": "./plugins/writing",
+      "description": "Keep text an audience reads in your voice: a drafting pipeline, a send-time lint, a draft gate, and correction capture",
+      "author": { "name": "George Song" },
+      "category": "productivity",
+      "keywords": ["writing", "voice", "style", "lint", "drafts"]
     }
   ]
 }

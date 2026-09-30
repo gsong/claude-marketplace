@@ -1,0 +1,49 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Artifact|mcp__.*[Ss]lack.*__slack_(send_message|send_message_draft|schedule_message|create_canvas|update_canvas)|mcp__.*Gmail__create_draft|mcp__.*Claude_Docs__(create|batch|update)|mcp__.*Google_Drive__create_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/send-lint.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Artifact|mcp__.*[Ss]lack.*__slack_(create_canvas|update_canvas)|mcp__.*Claude_Docs__(create|batch|update)|mcp__.*Google_Drive__create_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/smart-quotes.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gate.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/capture.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/promote.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
