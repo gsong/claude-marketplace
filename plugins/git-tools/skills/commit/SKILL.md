@@ -1,36 +1,22 @@
 ---
 name: "commit"
-description: "Groups staged and unstaged changes into logical commits, runs lint/typecheck first, and writes conventional-commit messages focused on why. Use when the user says \"commit this\", \"commit my changes\", or \"make a commit\"."
+description: "Groups staged and unstaged changes into logical commits, runs lint/typecheck first, and writes conventional-commit messages focused on why. Use when the user asks to commit their changes."
 ---
 
 # Commit Changes
 
 You are tasked with committing changes in the current project repository. Follow these guidelines:
 
-## Core Requirements
-
-- Use conventional commit format (feat:, fix:, docs:, refactor:, test:, chore:, style:, perf:)
-- If the user asks you to push, use `git push --force-with-lease`, never `--force`
-- Separate changes into logical commits if multiple distinct changes exist
-- Run lint and typecheck commands before committing if available
-
 ## Process
 
-1. Run `git status`, `git diff`, and `git diff --cached` to understand all changes (staged and unstaged)
+1. Run `git status`, `git diff`, and `git diff --cached` to understand all changes (staged and unstaged), and confirm the diff holds no secrets — a secret in a commit persists in history even after it's removed from the files
 2. Run lint and typecheck commands if available (check `package.json` scripts, `Makefile`, etc.)
    - Fix any issues before proceeding
-3. Analyze changes and group them logically:
-   - New features (feat:)
-   - Bug fixes (fix:)
-   - Documentation updates (docs:)
-   - Code refactoring (refactor:)
-   - Tests (test:)
-   - Maintenance tasks (chore:)
-   - Formatting/style-only changes (style:)
-   - Performance improvements (perf:)
+3. Group into one commit per logical change, typed per the Examples. Only the changes the user asked for go in; leave unrelated changes staged or unstaged as they were — sweeping them in muddies history and surprises the user. Done when every changed hunk sits in exactly one group or is deliberately left out
 4. Create separate commits for each logical group
+   - If pre-commit hooks modify files, amend the commit to include those changes — otherwise the hooks' edits are left sitting uncommitted in the working tree
 5. Write clear, concise commit messages focusing on "why" not "what"
-6. Verify commits with `git log` and `git status`
+6. Verify: `git status` shows only what you left out; `git log` shows one commit per group
 
 ## Commit Message Format
 
@@ -53,8 +39,5 @@ Optional longer explanation of what changed and why.
 
 ## Important Notes
 
-- Do not create the commit prematurely; finish the status/diff review and any lint/typecheck steps first — committing early bakes in problems those steps would have caught
-- Only commit the changes the user asked for; leave unrelated changes staged or unstaged as they were — sweeping them in muddies history and surprises the user
-- Check for sensitive information before committing — a secret in a commit persists in history even after it's removed from the files
-- If pre-commit hooks modify files, amend the commit to include those changes — otherwise the hooks' edits are left sitting uncommitted in the working tree
-- Do not push to remote unless explicitly requested — publishing commits is a separate decision the user makes
+- Commit only after steps 1-2 complete; committing early bakes in problems those steps would have caught
+- Push only when the user asks, and then with `git push --force-with-lease`, never `--force`

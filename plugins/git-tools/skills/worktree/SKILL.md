@@ -1,6 +1,6 @@
 ---
 name: "worktree"
-description: "Creates a git worktree under .worktrees/ with an intelligently named branch, copies .env, trusts mise/direnv, and installs dependencies per the lockfile. Use when the user says \"work on X in parallel\", \"spin up a worktree\", or \"separate checkout\"."
+description: "Creates a git worktree under .worktrees/ with an intelligently named branch, copies .env, trusts mise/direnv, and installs dependencies per the lockfile. Use when the user asks for a worktree or to work on something in parallel."
 compatibility: "Uses pnpm as the dependency-install fallback when a package.json has no lockfile."
 argument-hint: "<branch-name-or-intent>"
 ---
@@ -20,27 +20,11 @@ The user will provide either:
 
 1. Check if the input contains a conventional commit prefix (`feat/`, `fix/`, `refactor/`, `chore/`, `docs/`, `test/`, `style/`, `perf/`)
 2. If it does, use the input as the branch name as-is
-3. If it doesn't, infer the branch name from the intent:
-   - If it describes adding/creating something new → `feat/`
-   - If it describes fixing something → `fix/`
-   - If it describes restructuring/improving code → `refactor/`
-   - If it describes performance improvements → `perf/`
-   - If it describes styling changes → `style/`
-   - If it describes writing/updating docs → `docs/`
-   - If it describes adding/fixing tests → `test/`
-   - If it describes chores, tooling, or dependency work → `chore/`
-   - Convert the intent to kebab-case
-   - Combine prefix + kebab-case description
+3. Otherwise infer the conventional-commit type from the intent, kebab-case the description, and join them: `type/kebab-description`
 
 ## Step 2: Create Short Directory Name
 
-Create a directory name that:
-
-- Is approximately 15 characters or less (flexible, not rigid)
-- Captures the essence of the branch name
-- Removes the prefix (feat/, fix/, etc.)
-- Uses key words from the branch name
-- Is memorable and recognizable
+Create a slug of about 15 characters built from the branch's key words, prefix dropped.
 
 Examples:
 
@@ -68,7 +52,7 @@ Examples:
 
 ## Step 4: Create Worktree and Setup
 
-Execute the following commands as separate, discrete operations:
+Run each of the following commands as its own operation — a chained `&&` hides which step failed:
 
 1. Create the worktree:
 
@@ -97,7 +81,7 @@ cd .worktrees/{short-dir-name} && mise trust
 cd .worktrees/{short-dir-name} && direnv allow
 ```
 
-5. If `package.json` exists in the new worktree, install dependencies with the package manager the lockfile indicates — run exactly one of these in the new worktree:
+5. If `package.json` exists in the new worktree, run one install with the package manager the lockfile names; if it fails, report the failure in Step 5 rather than retrying with another manager:
 
 ```bash
 cd .worktrees/{short-dir-name}
@@ -108,8 +92,6 @@ cd .worktrees/{short-dir-name}
 # No lockfile but package.json present → pnpm install (fallback per repo owner preference)
 ```
 
-Note: Run the worktree creation (Step 4.1) as its own step. Do not chain these setup commands onto the `git worktree add` command.
-
 ## Step 5: Report
 
 Tell the user:
@@ -117,3 +99,4 @@ Tell the user:
 - The branch name that was created
 - The worktree directory path
 - Which setup steps were performed (.env copied if applicable, mise trusted if applicable, direnv allowed if applicable, dependencies installed if applicable)
+- Any setup step that failed, with its error

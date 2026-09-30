@@ -1,6 +1,6 @@
 ---
 name: "auto-squash"
-description: "Classifies each uncommitted change to its originating branch commit, creates fixup commits, makes new commits for changes that match no commit, and runs an autosquash rebase. Use when the user says \"fold these changes into my earlier commits\", \"fixup my commits\", or \"clean up my branch\"."
+description: "Classifies each uncommitted change to its originating branch commit, creates fixup commits, makes new commits for changes that match no commit, and runs an autosquash rebase. Use when the user asks to fold uncommitted changes into earlier commits, fix up their commits, or clean up their branch."
 argument-hint: "[base-branch]"
 ---
 
@@ -23,7 +23,7 @@ Distribute uncommitted changes across the current branch's commits via fixup, cr
    - **Always confirm**: Show the inferred base branch to the user and ask for confirmation before proceeding — getting this wrong means fixup commits target the wrong history
 2. **Fork point**: `git merge-base HEAD <base-branch>` — if this fails or returns no result (e.g., on the base branch itself), skip to step 5 and treat all changes as new commits
 3. **Branch commits**: `git log --oneline <fork-point>..HEAD` — if empty (HEAD equals fork point), skip to step 5 and treat all changes as new commits
-4. **Uncommitted changes**: `git status --porcelain` to list all modified, untracked, and deleted files
+4. **Uncommitted changes**: the status list from step 1 (modified, untracked, and deleted files)
 
 ## 3. Classify changes and map to commits
 
@@ -39,7 +39,7 @@ For each uncommitted change, determine its fixup target:
    - A modification that supports or completes work from a branch commit
 3. **No match**: No direct or logical association → will become a new commit
 
-Group all matched files by their target commit SHA.
+Group all matched files by their target commit SHA. Done when every path from the status list has exactly one target SHA or is on the new-commit list.
 
 ## 4. Create fixup commits
 
@@ -48,10 +48,9 @@ Before the loop, capture the starting HEAD sha: `start_sha=$(git rev-parse HEAD)
 For each target commit group:
 
 1. Stage the relevant files with `git add <files>` (this also stages deletions when the file is absent from the working tree)
-2. If the changes meaningfully alter the commit's purpose or scope, compose a new commit message reflecting the combined change and run `git commit --fixup=amend:<SHA> -m "<new message>"`. This creates an `amend!` commit that squashes the staged content **and** replaces the target's message on rebase.
+2. If the changes meaningfully alter the commit's purpose or scope, create an `amend!` commit in two steps: `GIT_EDITOR=true git commit --fixup=amend:<SHA>`, then `git commit --amend` with a new message reflecting the combined change. On rebase this squashes the staged content **and** replaces the target's message. Git rejects `-m` and `-F` alongside `--fixup=amend:`, so the second step is the only way to set the message.
    - Do **not** use `--fixup=reword:<SHA>` here — `reword:` is shorthand for `--fixup=amend:<SHA> --only` and silently ignores staged content, leaving it to leak into a subsequent commit.
-   - `-m` is the only message flag `--fixup` accepts. `-F` is rejected outright (`fatal: options '-F' and '--fixup' cannot be used together`), so pass a multi-line body through `-m`, which takes embedded newlines — not through a heredoc.
-   - If `-m` is rejected (older git), or you need a heredoc, fall back to two steps: `GIT_EDITOR=true git commit --fixup=amend:<SHA>`, then `git commit --amend` to set the message. **The amended message must keep the `amend!` header line the first step generated** — that line is what autosquash matches on. Write the whole message in this shape:
+   - **The amended message must keep the `amend!` header line the first step generated** — that line is what autosquash matches on. Write the whole message in this shape:
 
      ```
      amend! <target's original subject>
@@ -61,9 +60,9 @@ For each target commit group:
      <new body>
      ```
 
-     Everything after the first blank line replaces the target's message; the `amend!` line itself is consumed by the rebase. Overwrite the whole message and the commit stops being an `amend!` commit — autosquash no longer recognizes it and leaves it sitting as an ordinary commit on top, with the target unchanged.
+     Everything after the first blank line replaces the target's message; the `amend!` line itself is consumed by the rebase.
 3. Otherwise, use `git commit --fixup <SHA>`
-4. **Verify the `amend!` header survived.** Only when you used `--fixup=amend:` — run `git log -1 --format=%s` and confirm the subject starts with `amend! `. If it does not, the message got clobbered; rewrite it with `git commit --amend` in the shape above before going on. This is a message defect, not a content defect — do not unwind for it.
+4. **Verify the `amend!` header survived.** Only when you used `--fixup=amend:` — run `git log -1 --format=%s` and confirm the subject starts with `amend! `. If it does not, the message got clobbered: autosquash no longer recognizes the commit and leaves it sitting as an ordinary commit on top, with the target unchanged. Rewrite it with `git commit --amend` in the shape above before going on. This is a message defect, not a content defect — do not unwind for it.
 5. **Verify the fixup captured the expected files.** Run `git show --name-only --format= HEAD` and compare against the files you just staged for this group. If the lists differ (missing or extra paths):
    - Run `git reset --mixed <start_sha>` to unwind every fixup commit created during this run (including earlier groups that already succeeded). This restores HEAD to its pre-skill state and leaves all changes unstaged in the working tree — nothing is lost.
    - Tell the user: `Fixup for <SHA> captured <actual> but expected <staged>. I've unwound all fixups from this run; your changes are back in the working tree. Run /git-tools:commit to commit them manually.`
@@ -74,7 +73,7 @@ For each target commit group:
 For any remaining unmatched files:
 
 1. Stage the files with `git add <files>`
-2. Create commit(s) with appropriate conventional commit messages (see the git-tools:commit skill for message format) — group by feature area or change type, preferring fewer cohesive commits over many tiny ones
+2. Create commit(s) with conventional-commit messages that say why — group by feature area or change type, preferring fewer cohesive commits over many tiny ones
 
 ## 6. Rebase (conditional)
 
