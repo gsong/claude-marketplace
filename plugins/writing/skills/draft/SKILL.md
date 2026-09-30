@@ -7,18 +7,18 @@ description: "Voice pipeline for text an audience reads. Use when writing or rev
 
 Text an audience reads goes out in the user's voice. The hooks check the mechanics. This skill carries what they cannot: the profile, the references, the approvals, and the exit passes.
 
-Hooks that run on their own, needing nothing from you:
+Hooks that run on their own:
 
 - **gate** reports voice violations after every write to a draft, and after every edit to human-facing repo markdown.
-- **capture** logs each draft edit against the instruction that caused it. **promote** surfaces repeated corrections at the end of a turn, and the user routes them.
-- **send-lint** lints outgoing text before a send. A send that cannot be taken back (a Slack message, a `gh` comment or PR body) is bounced once when the lint finds violations. The retry goes through.
+- **capture** logs each draft edit against the instruction that caused it. **promote** surfaces repeated corrections at the end of a turn.
+- **send-lint** lints outgoing text before a send. It bounces a send that cannot be taken back (a Slack message, a `gh` comment or PR body) once.
 - **smart-quotes** denies a publish whose prose has straight quotes. Write ’ “ ” from the start.
 
 ## 1. Pick the route and the profile
 
 | Surface                                                           | Route | Profile                                              |
 | ----------------------------------------------------------------- | ----- | ---------------------------------------------------- |
-| Slack message, email reply                                        | short | `comms`                                              |
+| Slack message, email reply saved as a Gmail draft                 | short | `comms`                                              |
 | PR body, review comment, other GitHub text                        | short | `technical`                                          |
 | Small edit to existing repo markdown                              | short | `technical`                                          |
 | Drafted email or announcement the user reviews before it goes     | long  | `comms`                                              |
@@ -26,6 +26,8 @@ Hooks that run on their own, needing nothing from you:
 | `ai-swap/` file meant for sharing                                 | long  | as for a document                                    |
 
 Ask with AskUserQuestion when the surface fits no row, when the audience might be non-technical, or when it is unclear whether an `ai-swap/` file will be shared. An `ai-swap/` file that stays with you is scratch, and this skill ends there.
+
+Done when the route and the profile are set.
 
 ## 2. Load the rules and references
 
@@ -39,12 +41,14 @@ Read, in this order:
 
 The short route loads each profile once per session, before its first item. The long route loads it for every draft.
 
+Done when the Judgment section and every reference file are read.
+
 ## Short route
 
-Write the text to the loaded rules and send it. send-lint reads it on the way out. A repo markdown edit is written in place, and the gate reads the new text.
+Write the text to the loaded rules and send it. send-lint reads it on the way out. A repo markdown edit is written in place, and the gate reads the new text. An email sent from the shell, such as `gws gmail +reply`, is never linted, so save it as a Gmail draft instead.
 
 - An advisory report arrives after the send. Fix a real violation in a follow-up edit if the surface allows one.
-- A bounce is expected, not a failure. Read the findings, fix what is a real violation or keep the text as is, and send again.
+- A bounce is expected, not a failure. Read the findings, fix what is a real violation or keep the text as is, and send again within 30 minutes. A later retry is bounced again.
 
 ## Long route
 
@@ -77,6 +81,8 @@ Put it to the user and wait for approval. Prose starts after it. An outline is c
 
 Write it. The gate reports on every write. Fix real violations on your next turn. When a rule misreads the same passage twice, say so: the rule is wrong, and the user can retire it.
 
+Done when the draft is whole and the gate's last report holds no real violation.
+
 ### 6. The three exit passes
 
 Run them in this order, one at a time. Each pass reads the whole draft.
@@ -87,10 +93,12 @@ Run them in this order, one at a time. Each pass reads the whole draft.
 
 **Accuracy.** Check every claim is supported. Check the register matches the audience from stage 1. Mark what you verified apart from what you inferred. Cut any number you cannot source.
 
+Done when each pass has read the whole draft and its fixes are in.
+
 ### 7. Hand it back
 
 Tell the user to read it aloud. That check is theirs, and nothing automates it. Once they approve, move the text to its surface: publish, create the doc, or copy it to its repo path.
 
 ## Corrections belong to the hooks
 
-capture logs every correction, and promote surfaces the patterns for the user to route. Leave the log and the rule files as they are while drafting.
+Leave the correction log and the rule files as they are while drafting. The user routes what promote surfaces.
