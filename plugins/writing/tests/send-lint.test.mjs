@@ -487,6 +487,26 @@ test("gh after other commands in the same Bash call", () => {
   assertDeny(out, /on gh pr comment #8/);
 });
 
+test("gh on its own line after another command", () => {
+  const out = lint(bash("cd /tmp\ngh pr comment 8 --body 'techword'"));
+  assertDeny(out, /on gh pr comment #8/);
+});
+
+test("gh after a tab, and after a comment that holds an apostrophe", () => {
+  assertDeny(
+    lint(bash("cd /tmp;\tgh pr comment 8 --body 'techword'")),
+    /on gh pr comment #8/,
+  );
+  assertDeny(
+    lint(bash("# it's the reply\ngh pr comment 9 --body 'techword'")),
+    /on gh pr comment #9/,
+  );
+});
+
+test("a quoted newline is not a command break", () => {
+  assert.equal(lint(bash("echo 'a\ngh pr comment 8 --body techword'")), null);
+});
+
 // --- clean, silent, and out of scope ------------------------------------
 
 test("clean text gives no output on every kind of surface", () => {
