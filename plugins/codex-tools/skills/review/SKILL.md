@@ -1,17 +1,15 @@
 ---
 name: "review"
-description: "Code review a pull request using parallel Codex adversarial reviews, writing findings for gh-tools:triage. Use when the user asks for a Codex code review or wants a GPT-based review."
+description: "Review a PR with three parallel Codex adversarial reviews and write findings for gh-tools:triage."
+disable-model-invocation: true
 compatibility: "Requires the Codex CLI and the codex plugin, whose companion script it runs with node, plus the gh CLI and uv."
+argument-hint: "<pr-number>"
 ---
 
 # Codex Code Review
 
-Review a pull request using 3 parallel Codex adversarial reviews, each with a
+Review PR #$ARGUMENTS using 3 parallel Codex adversarial reviews, each with a
 specialized focus area.
-
-## Arguments
-
-- **Required:** PR number (first positional argument)
 
 ## Model
 
@@ -19,13 +17,11 @@ Always use `gpt-5.6-terra`. Do not ask the user to pick a model, and ignore any 
 
 ## Process
 
-Follow these steps precisely:
-
 ### Step 1: Eligibility & Context Gathering
 
 Run these directly (no subagents):
 
-1. `gh pr view <number> --json state,additions,deletions,title,body,author,comments,labels,baseRefName,headRefOid,closingIssuesReferences` — check eligibility:
+1. `gh pr view $ARGUMENTS --json state,additions,deletions,title,body,author,comments,labels,baseRefName,headRefOid,closingIssuesReferences` — check eligibility:
    - If closed → stop
    - If < 5 lines changed → stop
    - Drafts ARE allowed
@@ -45,7 +41,7 @@ Run these directly (no subagents):
 
 <!-- prettier-ignore -->
 ```text
-PR #<number>: "<title>"
+PR #$ARGUMENTS: "<title>"
 Author: <author>
 Description: <body, truncated to ~500 chars if long>
 Labels: <labels>
@@ -61,7 +57,7 @@ With no references, the spec section reads `Spec (linked issues): none`.
 4. Check out the PR branch locally:
 
 ```bash
-gh pr checkout <number>
+gh pr checkout $ARGUMENTS
 ```
 
 5. Determine the base ref from the PR metadata (`baseRefName` from the `gh pr view` output).
@@ -100,14 +96,14 @@ Each agent:
 2. Invokes adversarial-review via Bash using the companion script path:
 
 ```bash
-node "<companion-path>" adversarial-review --base <base-ref> --wait --model gpt-5.6-terra -- "$(cat <temp-file>)"
+node "<companion-path>" adversarial-review --base <base-ref> --wait --json --model gpt-5.6-terra -- "$(cat <temp-file>)"
 ```
 
 - `--wait` ensures foreground execution (no interactive prompts)
+- `--json` prints the structured result instead of a rendered report, which drops `confidence` and `next_steps`
 - `--` separates flags from focus text to prevent misparse
-- Always add `--model gpt-5.6-terra` before `--`
 
-3. Captures the structured JSON output (verdict, findings, next_steps)
+3. Captures the JSON output (verdict, summary, findings, next_steps)
 4. Returns the parsed findings
 
 **The 3 agent roles and focus text:**
@@ -134,25 +130,12 @@ Prepend the PR context block, then:
 
 After all 3 agents return:
 
-1. **Collect** — each agent returns structured JSON with `verdict`, `summary`, `findings[]`, and `next_steps[]`. The findings schema:
+1. **Collect** — each agent returns structured JSON with `verdict`, `summary`, `findings[]`, and `next_steps[]`. The mapping table in step 5 names every finding field.
 
-```json
-{
-  "severity": "critical | high | medium | low",
-  "title": "finding title",
-  "body": "description of the issue",
-  "file": "path/to/file",
-  "line_start": 10,
-  "line_end": 20,
-  "confidence": 0,
-  "recommendation": "concrete fix suggestion"
-}
-```
-
-2. **Deduplicate** — if two agents flag the same file + overlapping line range, merge into one finding. Keep the higher severity. Combine descriptions, noting which agent perspectives caught it.
+2. **Deduplicate** — if two agents flag the same file + overlapping line range, merge into one finding. A merged finding keeps the higher-severity body and carries one `source_detail` entry per agent that flagged it.
 3. **Overall verdict** — `needs-attention` if any agent returns `needs-attention`; `approve` only if all three approve.
 4. **Sort** — by severity (critical → high → medium → low), then confidence descending.
-5. **Write structured findings JSON** — Write `ai-swap/pr-review-<number>/findings-codex.json`. Map fields from the Codex schema to the common findings schema:
+5. **Write structured findings JSON** — Write `ai-swap/pr-review-$ARGUMENTS/findings-codex.json`. Map fields from the Codex schema to the common findings schema:
 
    | Codex field      | Common schema field            | Notes                                                                                                                      |
    | ---------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
@@ -160,12 +143,12 @@ After all 3 agents return:
    | `line_start`     | `start_line`                   | Direct rename                                                                                                              |
    | `line_end`       | `line`                         | Direct rename. If `line_end` is absent, use `line_start` as `line`.                                                        |
    | `severity`       | `severity` + `source_severity` | Normalize: `critical`/`high` → `must-fix`, `medium` → `should-fix`, `low` → `nit`. Preserve original in `source_severity`. |
-   | `confidence`     | `confidence`                   | Pass through                                                                                                               |
+   | `confidence`     | `confidence`                   | Codex emits a number 0–1; write `round(confidence * 100)` as an integer.                                                   |
    | `title`          | `title`                        | Pass through                                                                                                               |
    | `body`           | `body`                         | Pass through                                                                                                               |
    | `recommendation` | `recommendation`               | Pass through (keep separate, do NOT append to body)                                                                        |
 
-   Each finding's `source_detail` is an array with one entry:
+   Each finding's `source_detail` is an array with one entry per agent that flagged it:
 
    ```json
    "source_detail": [
@@ -187,7 +170,7 @@ After all 3 agents return:
    ```json
    {
      "source": "codex",
-     "pr": <number>,
+     "pr": $ARGUMENTS,
      "repo": "<nameWithOwner from gh repo view in Step 1.1>",
      "head_sha": "<headRefOid from gh pr view in Step 1.1>",
      "findings": [...]
@@ -201,7 +184,7 @@ After all 3 agents return:
 6. **Validate the JSON** — Run the schema validator (resolved in Step 1.7):
 
    ```bash
-   uv run "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ai-swap/pr-review-<number>/findings-codex.json
+   uv run "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ai-swap/pr-review-$ARGUMENTS/findings-codex.json
    ```
 
    If validation fails, fix the errors and re-validate.
@@ -214,7 +197,7 @@ Display all findings grouped by severity:
 
 <!-- prettier-ignore -->
 ```text
-## Codex Code Review — PR #<number>
+## Codex Code Review — PR #$ARGUMENTS
 
 ### Summary
 <PR title + brief description>
@@ -239,7 +222,7 @@ If no issues found at all:
 
 <!-- prettier-ignore -->
 ```text
-## Codex Code Review — PR #<number>
+## Codex Code Review — PR #$ARGUMENTS
 
 No issues found. Checked correctness, integration safety, and test quality
 using 3 parallel Codex adversarial reviews.
@@ -247,9 +230,8 @@ using 3 parallel Codex adversarial reviews.
 
 ## Notes
 
-- Use `gh` to interact with GitHub, not web fetch
-- Do not check build signal or attempt to build/typecheck
-- **Do not auto-apply fixes.** Present findings and let the user decide what to fix.
-- **Do not pre-read source files to embed in prompts.** Codex reads files itself via the companion script's read-only sandbox. Only pass the PR context (which Codex can't access from GitHub) and the focus text.
-- All adversarial-review invocations use `--wait` for foreground execution
+- GitHub data comes from `gh`
+- The review reads code; builds and type checks are out of scope
+- **The skill ends at Step 4.** Fixing is gh-tools:triage's job.
+- **Each agent's prompt is the PR context block plus its focus text.** Codex reads the source itself via the companion script's read-only sandbox; only the PR context is out of its reach.
 - Make a todo list first to track progress through the steps

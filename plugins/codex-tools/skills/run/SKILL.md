@@ -1,6 +1,6 @@
 ---
 name: "run"
-description: "Assembles a self-contained prompt and delegates it to OpenAI's Codex agent via the codex:rescue runtime. Use when the user asks to run Codex, use Codex CLI, get a second opinion from Codex, or delegate a task to OpenAI's Codex agent."
+description: "Assembles a self-contained prompt and delegates it to OpenAI's Codex agent via the codex:rescue runtime. Use when the user asks to run Codex, delegate a task to it, or get its second opinion."
 compatibility: "Requires the Codex CLI, reached through the codex:rescue runtime."
 ---
 
@@ -8,27 +8,11 @@ compatibility: "Requires the Codex CLI, reached through the codex:rescue runtime
 
 Delegate tasks to OpenAI's Codex agent through the codex:rescue runtime.
 
-## Model
-
-Always use `gpt-5.6-terra`. Do not ask the user to pick a model.
-
 ## Process
 
 ### 1. Gather parameters
 
-If the user's request already specifies these, use them; only ask for what's missing, via `AskUserQuestion`:
-
-**Reasoning effort** — the level:
-
-- `low` — fast responses
-- `medium` — balanced (Recommended)
-- `high` — complex problem solving
-- `xhigh` — maximum depth
-
-**Sandbox mode** — access level for Codex:
-
-- `read-only` — Codex can only read files (Recommended for review/diagnosis/research)
-- `write` — Codex can modify files (for implementation/fix tasks)
+Collect reasoning effort and sandbox mode as `${CLAUDE_PLUGIN_ROOT}/references/codex-prompting.md` describes.
 
 ### 2. Get the prompt
 
@@ -36,29 +20,11 @@ If the user's request already contains the task, use it. If absent, use `AskUser
 
 ### 3. Build the full prompt with context
 
-**Codex can only access project files in the working directory.** It has no access to external tools, MCP servers, or APIs (Linear, Slack, GitHub issues, Jira, etc.). You MUST inline all relevant external context into the prompt itself.
-
-Before executing, gather and embed any context Codex will need:
-
-- **External issue/ticket content**: If the task references a Linear issue, GitHub issue, Jira ticket, etc., fetch the full description, comments, and acceptance criteria yourself, then include them verbatim (or a thorough summary) in the prompt.
-- **Conversation context**: If the user discussed requirements, constraints, or decisions earlier in the conversation, summarize the key points in the prompt.
-- **API responses / tool output**: If you retrieved data from MCP servers, web searches, or other tools that Codex needs to reason about, paste the relevant content into the prompt.
-
-The prompt Codex receives should be **self-contained** — it should make sense to someone who can only read the prompt text and the project source code, with no other context.
+Build the prompt per `${CLAUDE_PLUGIN_ROOT}/references/codex-prompting.md`; it must be self-contained.
 
 ### 4. Delegate to Codex
 
-Use the Agent tool to hand the task to Codex:
-
-- Set `subagent_type` to `"codex:codex-rescue"`
-- Pass the assembled self-contained prompt as the agent prompt
-- Append `--model gpt-5.6-terra` as a CLI flag (not in the prompt text — rescue passes it through to the companion script's argument parser)
-- If the user chose non-default effort, append `--effort <level>` as a CLI flag
-- If the user chose `write` sandbox mode, the rescue agent adds `--write` by default — no action needed
-- If the user chose `read-only`, clearly state the read-only intent in the prompt (e.g., "this is a read-only task, no edits") so rescue omits `--write`
-- For complex or long-running tasks, set `run_in_background: true`
-
-Do NOT shell out to `codex exec` directly.
+Dispatch through `Agent(subagent_type: "codex:codex-rescue")` as the reference describes, with `--model gpt-5.6-terra` as a CLI flag.
 
 ### 5. Present results
 

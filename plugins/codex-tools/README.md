@@ -4,11 +4,13 @@ OpenAI Codex CLI integration for Claude Code — parallel PR reviews, task deleg
 
 ## Skills
 
-| Skill                 | Trigger                                                                       | Description                                                                                              |
-| --------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `codex-tools:discuss` | "discuss with Codex", "reach consensus with Codex", `/codex-tools:discuss`    | Multi-round, two-model dialogue between Claude and Codex toward consensus on a topic                     |
-| `codex-tools:review`  | "Codex code review", "GPT-based review", `/codex-tools:review`                | Launch 3 parallel Codex adversarial reviews for a PR — correctness, integration safety, and test quality |
-| `codex-tools:run`     | "run Codex", "use Codex CLI", "second opinion from Codex", `/codex-tools:run` | Delegate tasks to Codex via codex:rescue runtime                                                         |
+| Skill                 | Invoked by                                                                        | Description                                                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `codex-tools:discuss` | "discuss with Codex", "reach consensus with Codex", `/codex-tools:discuss`        | Multi-round, two-model dialogue between Claude and Codex toward consensus on a topic; writes consensus.md                     |
+| `codex-tools:review`  | you, `/codex-tools:review <pr>`                                                   | Review a PR with 3 parallel Codex adversarial reviews (correctness, integration, tests); write findings for `gh-tools:triage` |
+| `codex-tools:run`     | "run Codex", "delegate to Codex", "second opinion from Codex", `/codex-tools:run` | Delegate a task to Codex with a self-contained prompt via the codex:rescue runtime                                            |
+
+`run` and `discuss` share `references/codex-prompting.md`: the model pin, the effort and sandbox menus, how to inline external context, and how to dispatch through `codex:codex-rescue`.
 
 ## Prerequisites
 
