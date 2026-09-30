@@ -1,6 +1,6 @@
 ---
 name: "review"
-description: "Analyze the project-level CLAUDE.md for effectiveness and token efficiency, with before/after edit suggestions. Use when the user wants to review, audit, or optimize their project-level CLAUDE.md file — e.g. \"trim CLAUDE.md\", \"is my CLAUDE.md too long\", \"reduce CLAUDE.md token usage\"."
+description: 'Audit the project CLAUDE.md for token cost against value and report keep/condense/remove edits with before/after text. Use when the user wants to trim CLAUDE.md, e.g. "is my CLAUDE.md too long".'
 ---
 
 # Review Project Memory
@@ -12,36 +12,13 @@ Analyze the project-level CLAUDE.md file for effectiveness and token efficiency.
 1. Locate the project-level file to analyze: check `./CLAUDE.md` first, then `.claude/CLAUDE.md`. If neither exists, tell the user and stop.
 2. Read `~/.claude/CLAUDE.md` (the global file) — this is needed to accurately assess what is "redundant with global instructions" vs. genuinely project-specific
 
-## Analysis Framework
+## What Earns Its Place
 
-Evaluate the project CLAUDE.md across these dimensions:
-
-1. **Clarity**: Are instructions unambiguous and actionable?
-2. **Conciseness**: Can anything be more concise without losing meaning?
-3. **Value Density**: Token cost vs. utility (high-impact vs. low-value instructions)
-4. **Redundancy**: Does it duplicate global instructions?
-5. **Specificity**: Is it truly project-specific or too general?
-6. **Organization**: Is it structured for quick scanning?
-7. **Examples**: Are code examples minimal and necessary, or could they be shorter?
-
-## Effectiveness Criteria
-
-**High-value instructions:**
-
-- Prevent repeated mistakes or questions
-- Context that's not discoverable from code
-- Project-specific workflows that differ from defaults
-- Critical warnings (with **CRITICAL** prefix — a convention this skill recommends for must-not-violate rules)
-- Common patterns with non-obvious gotchas
-
-**Low-value instructions:**
-
-- Generic best practices (already in global CLAUDE.md)
-- Obvious information discoverable from code
-- Outdated guidance no longer relevant
-- Overly verbose examples
+An instruction earns its tokens when it changes what the agent does: a convention the code does not show, a workflow that differs from defaults, a gotcha, or a must-not-violate rule (mark those **CRITICAL**, a convention this skill recommends). It does not when it is a cache of what the code or config already answers, a no-op the model does by default or the global CLAUDE.md already says, stale, or an example longer than its point. Keep each instruction unambiguous, actionable, and scannable: bullets, not paragraphs.
 
 ## Output Format
+
+Every instruction in the file appears in exactly one of Keep, Condense, or Remove. Add lists what is missing.
 
 Provide a structured analysis:
 
@@ -78,11 +55,3 @@ Identify gaps that cause repeated questions or mistakes
 ### Recommended Rewrite
 
 Offer to produce an optimized version of the entire CLAUDE.md file, and produce one when the user asks. Default to the targeted before/after edits above rather than emitting a full rewrite unprompted — for large files a wholesale rewrite risks changing more than the user wanted.
-
-## Principles
-
-- Optimize for token efficiency without sacrificing effectiveness
-- Prioritize project-specific context over general advice
-- Keep examples minimal but clear
-- Use bullet points over paragraphs
-- Remove redundancy with global instructions

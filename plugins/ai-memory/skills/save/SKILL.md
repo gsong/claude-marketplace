@@ -1,11 +1,11 @@
 ---
 name: "save"
-description: "Write a succinct handoff document capturing this session's work, decisions, and gotchas for future Claude Code sessions. Use when the user wants to save, capture, or record a summary of the current session's work — e.g. \"write handoff notes\", \"before we wrap up, save what we did\", \"remember this for next session\"."
+description: 'Write a handoff note so the next session can resume this one''s work, decisions, and gotchas. Use when the user wants to save or hand off the session''s work, e.g. "write handoff notes", "before we wrap up".'
 ---
 
-# Save Project Memory
+# Save Session Handoff
 
-Capture a succinct summary of the current session's work to enable future Claude Code sessions to understand what was done and continue debugging or enhancement.
+Write a succinct handoff note for the current session's work so the next Claude Code session can understand what was done and continue debugging or enhancement.
 
 ## Process
 
@@ -15,21 +15,13 @@ Capture a succinct summary of the current session's work to enable future Claude
    - Run `git status` and `git diff` to see unstaged changes
    - Run `git log --oneline -10` to see recent commits in this session
    - If changes are already committed, use `git diff HEAD~N` (where N covers the session's commits) to see the full scope. Determine N by counting the session's commits in the `git log` output from the previous step.
-   - Identify key files modified
-   - Understand the scope of changes
+   - Done when every file the session touched is either listed under Files Reference or knowingly left out as trivial.
 
-3. **Extract and document:**
-   - Core problem solved or feature added
-   - Key design decisions made (the "why")
-   - Non-obvious patterns or gotchas discovered
-   - What was tested/verified
-   - Important file locations and relationships
-
-4. **Create memory document:**
+3. **Create the handoff:**
    - Filename: `ai-swap/memories/{YYYY-MM-DD}-{topic-slug}.md`
-   - `ai-swap/memories/` is intended as a local, git-ignored scratch location for these notes. Before writing, verify it is ignored (`git check-ignore -q ai-swap` or equivalent); if it isn't, or the project has no such convention, warn the user and ask where memories should live before writing.
+   - `ai-swap/memories/` is intended as a local, git-ignored scratch location for handoffs. Before writing, verify it is ignored (`git check-ignore -q ai-swap` or equivalent); if it isn't, or the project has no such convention, warn the user and ask where handoffs should live before writing.
    - Use ISO date format (e.g., `2025-10-08-commodity-routing.md`). Use the `utilities:date` skill if available to get today's date; otherwise run `date +%F`. Don't guess the date.
-   - Follow structure below
+   - Write the document with the structure below; the braces say what each section holds.
 
 ## Document Structure
 
@@ -66,23 +58,6 @@ Capture a succinct summary of the current session's work to enable future Claude
 - `path/to/other.ts:123` - Specific line reference if critical
 ```
 
-## Optimization Principles
+## What to Record
 
-**DO:**
-
-- Focus on "why" over "what" (code already shows what)
-- Include design decisions and trade-offs
-- Document non-obvious patterns
-- Use concise bullet points
-- Reference file locations
-- Include enough context for debugging/enhancement
-
-**DON'T:**
-
-- Include code snippets unless absolutely critical for understanding
-- Explain obvious changes that are clear from the code
-- Duplicate information available elsewhere
-- Write paragraphs when bullets suffice
-- Include implementation details that are self-evident
-
-The goal is maximum effectiveness per token: future Claude should understand the session's context, key decisions, and be able to continue work without re-discovering everything.
+Record only what the next session cannot recover from the repo: the reason behind each choice, the gotcha no code confesses, and what was verified. Bullets and file paths, not prose or code.
