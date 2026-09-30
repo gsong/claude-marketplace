@@ -1,6 +1,6 @@
 ---
 name: "triage"
-description: "Merge, investigate and curate the findings of a PR review. Run after gh-tools:review or codex-tools:review."
+description: "Merge, investigate and curate the findings of a PR review, then post or fix them. Run after gh-tools:review or codex-tools:review."
 disable-model-invocation: true
 compatibility: "Requires the gh CLI (authenticated) and uv for the bundled Python validator."
 argument-hint: "<pr-number>"
@@ -8,28 +8,18 @@ argument-hint: "<pr-number>"
 
 # Triage Review
 
-Investigate and triage code review findings for PR #$ARGUMENTS.
+Investigate and triage code review findings for PR #$ARGUMENTS, then post them or fix them.
+
+Triage decides each finding itself from its investigation. It asks the user only about **flagged** findings, and then once about what to do next.
 
 ## Input Parsing
 
 `$ARGUMENTS` is a PR number. The review directory is `ai-swap/pr-review-$ARGUMENTS/`.
 
-1. Glob for `findings-*.json` in the directory (this matches `findings-gh-review.json`, `findings-codex.json`, etc. but NOT `findings.json` which is triage's own output).
-2. If no `findings-*.json` files are found:
-   - If `triage-state.json` exists in the directory, delete it silently (`rm -f`).
-   - Stop with: "No source findings found. Run `/gh-tools:review $ARGUMENTS` and/or `/codex-tools:review $ARGUMENTS` first."
-3. If `triage-state.json` exists in the directory:
-   - Attempt to parse it as JSON. If unparseable, delete it silently (`rm -f`) and continue to step 4 as if it didn't exist. If the parsed JSON is missing the `decisions` object or `finding_order` array, also treat it as corrupt: delete silently and continue to step 4.
-   - Read the `decisions` object and the `finding_order` array.
-   - **If `findings.json` also exists** (both checkpoint and prior output), ask the user (via AskUserQuestion): "Found partial triage progress ({count of decisions}/{count of finding_order} findings decided) and a previous triage output." Options:
-     - "Resume in-progress triage" — carry forward previous decisions, prior `findings.json` will be replaced on completion
-     - "Start fresh" — delete `triage-state.json` (`rm -f`) and proceed normally (prior `findings.json` will be replaced)
-     - "Abort" — stop triage, keep existing `findings.json`
-   - **If only `triage-state.json` exists** (no prior output), ask the user (via AskUserQuestion): "Found partial triage progress ({count of decisions}/{count of finding_order} findings decided in prior session). Resume where you left off, or start fresh?" Options: "Resume" (carry forward previous decisions), "Start fresh" (delete state file, triage from scratch).
-   - **Resume**: Set a resume flag and store the loaded `decisions` map for Phase 3. Proceed to Phase 1 and Phase 2 normally (they are automated and idempotent). Provenance validation happens after Phase 1 merge — see "Initialize Checkpoint" below.
-   - **Start fresh**: Delete `triage-state.json` (`rm -f`) and proceed normally.
-   - **Abort**: Stop.
-4. If a previous `findings.json` exists in the directory (no checkpoint), ask the user (via AskUserQuestion): "Previous triage output found. Start fresh from source findings, or abort so you can use the existing curated output?" Options: "Start fresh" (rebuild from source files), "Abort" (stop triage, keep existing findings.json). If abort, stop.
+1. Delete `ai-swap/pr-review-$ARGUMENTS/triage-state.json` if it exists (`rm -f`). Older versions of this skill left it as a checkpoint. This version does not use it.
+2. Glob for `findings-*.json` in the directory (this matches `findings-gh-review.json`, `findings-codex.json`, etc. but NOT `findings.json` which is triage's own output).
+3. If no `findings-*.json` files are found, stop with: "No source findings found. Run `/gh-tools:review $ARGUMENTS` and/or `/codex-tools:review $ARGUMENTS` first."
+4. If a previous `findings.json` exists in the directory, ask the user (via AskUserQuestion): "Previous triage output found. Start fresh from source findings, or abort so you can use the existing curated output?" Options: "Start fresh" (rebuild from source files), "Abort" (stop triage, keep existing findings.json). If abort, stop.
 
 ## Setup
 
@@ -135,7 +125,7 @@ You are an investigation agent. Deeply investigate this code review finding and 
 
 **Verdict-to-action defaults:**
 
-- `pre-existing` — default `recommended_action` to `remove`, and note in `evidence` that the issue predates this PR (the human can still choose to keep it)
+- `pre-existing` — default `recommended_action` to `remove`, and note in `evidence` that the issue predates this PR (the change list shows it to the user, who can still keep it)
 - `unclear` — default `recommended_action` to `keep`, and provide a `suggested_body` that states the uncertainty so the human decides with full context
 
 **Body length and clarity:**
@@ -161,109 +151,63 @@ After all agents complete, parse each result as JSON. If an agent fails or retur
 
 Report: "Investigation complete. {N} findings investigated, {F} investigation(s) failed."
 
-## Phase 3: Triage Findings
+## Phase 3: Decide
 
 ### Sort Findings
 
-Sort by severity (must-fix → should-fix → nit), then by investigation confidence (highest first). Findings with failed investigations sort last within their severity group.
+Sort by severity (must-fix → should-fix → nit), then by investigation confidence (highest first). Findings with failed investigations sort last within their severity group. The output and the questions follow this order.
 
-### Initialize Checkpoint
+### Apply Recommendations
 
-1. **Compute identity hashes.** For each finding in the sorted list, compute:
+Give each finding with a parsed investigation the decision its `recommended_action` names:
 
-   `sha256(path + ":" + line + ":" + (side || "RIGHT") + ":" + sorted_agent_labels + ":" + (title || body[:64]))`
+| `recommended_action` | Decision | Change to the finding           |
+| -------------------- | -------- | ------------------------------- |
+| `keep`               | Keep     | None                            |
+| `reword`             | Edit     | `body` becomes `suggested_body` |
+| `remove`             | Remove   | Left out of the output          |
 
-   Where `sorted_agent_labels` is a comma-joined string of all `agent_label` values from `source_detail`, sorted byte-wise and case-sensitive (LC_ALL=C order — uppercase sorts before lowercase, e.g. `"Correctness & Safety,architecture & design"`). This ensures the hash is stable regardless of `source_detail` merge order during deduplication.
+A `reword` with a null `suggested_body` is a Keep.
 
-   Truncate to the first 12 hex characters. This is the finding's stable identity hash used for checkpointing. Store it on the finding as `_identity_hash` for use in the triage loop.
+For each Keep or Edit finding whose `suggested_severity` is set and differs from `severity`, set `severity` to `suggested_severity`.
 
-   Note: the `side` field only appears in the schema when its value is `"LEFT"`; absence means RIGHT. The `title` (or body prefix) distinguishes different concerns flagged at the same file location. Hash collisions are statistically negligible for typical PR sizes.
+Record one line per changed finding for the change list in Phase 4: what changed, and why in a few words taken from `evidence`. For example: "Removed. Pre-existing: the retry loop predates this PR."
 
-2. **Write initial `triage-state.json`.** Construct the JSON object in memory first. If resuming (resume flag set in Input Parsing step 3), use the loaded `decisions` map; otherwise use `{}`. Always compute `finding_order` from the current sort order. Then write to `ai-swap/pr-review-$ARGUMENTS/triage-state.json`:
+### Cross-Check the Bodies
 
-   ```json
-   {
-     "head_sha": "<head_sha from source findings>",
-     "source_files": ["findings-codex.json", "findings-gh-review.json"],
-     "finding_order": ["<hash1>", "<hash2>", ...],
-     "decisions": {}
-   }
-   ```
+Each investigation agent saw only its own finding. Read all Keep and Edit bodies together and look for:
 
-   `source_files` is the sorted list of source filenames loaded in Phase 1.
+- **Repeat:** a body makes a point that a finding earlier in the sort order already makes. Cut the point from the later body. If no point is left, Remove it.
+- **Vocabulary:** a body uses a term that another finding flags as wrong, or a term listed under `_Avoid_` in the repo's `CONTEXT.md`. Use the term that finding or `CONTEXT.md` names instead.
+- **Conflict:** two findings ask for fixes that pull in opposite directions, so applying one undoes or blocks the other.
 
-   If the write fails, warn the user but continue — triage will still work, just without checkpoint protection.
+A body rewritten here makes its finding an Edit, and follows **Body length and clarity** in Phase 2. Record each rewrite in the change list.
 
-3. **Validate checkpoint provenance (resume only).** If the resume flag is set, compare the checkpoint's `head_sha` and `source_files` against the current values from Phase 1. If either mismatches:
-   - Warn the user: "Checkpoint was created against different source findings (SHA or source files changed). Previous decisions cannot be safely replayed."
-   - Ask the user (via AskUserQuestion): "Start fresh" (clear the resume flag, delete `triage-state.json`, rewrite a fresh checkpoint) or "Abort".
-   - Do not offer resume — stale decisions are not safe to replay.
+### Flag
 
-### Triage Loop
+A flag holds a finding's decision for the user. Flag a finding when:
 
-For each finding in sorted order:
+- its investigation failed or returned unparseable JSON
+- its verdict is `unclear`
+- its confidence is below 60
+- the cross-check found a Conflict with another finding
 
-0. **Check for prior decision (resume only).** If a resume flag is set and this finding's `_identity_hash` exists in the loaded `decisions` map:
-   - Apply the recorded decision silently: if `"keep"`, include the finding in the output list and increment kept counter; if `"remove"`, exclude and increment removed counter; if `"edit"`, update the finding's `body` with the recorded `edited_body`, include in output list, and increment edited counter.
-   - Skip to the next finding (do not present or ask).
+### Ask
 
-1. **Present the finding.** `{n}` is the finding's position in the sorted list (1-indexed), counting all findings including those replayed from checkpoint. Output to the user:
+Skip this step when no finding is flagged.
 
-   ```
-   ## Finding {n}/{total}: {title or first 80 chars of body}
-   {if unmappable: [outside diff]}
+Ask about every flagged finding with AskUserQuestion, up to four questions per call. A Conflict pair shares one question. Each question names the finding (title or the first 60 characters of `body`, `path:line`, severity) and says in one sentence why it is flagged.
 
-   **File:** {path}:{start_line}-{line} (or {path}:{line})
-   **Severity:** {severity}
-   **Flagged by:** {comma-separated agent_labels from source_detail}
-   {if unmappable: **Note:** This finding is outside the PR diff and will be saved to `general-comments.md` instead of posted inline.}
+- **Single finding:** offer Keep, Edit and Remove. Show `suggested_body` as the Edit option's `preview`, and drop Edit when there is no `suggested_body`. Put the investigation's recommendation first and append " (Recommended)". For a failed investigation, mark nothing as recommended.
+- **Conflict pair:** offer "Keep {A}", "Keep {B}" and "Keep both". Put the one the evidence supports first and append " (Recommended)".
 
-   **Body:** {body}
-   **Recommendation:** {recommendation, or omit if null}
+Apply each answer. An "Other" answer is the user's instruction for that finding, such as new body text.
 
-   ### Investigation
-   **Verdict:** {verdict} (confidence: {confidence}/100)
-   **Evidence:** {evidence}
-   **Recommendation:** {recommended_action}
-   ```
-
-   If investigation failed, show: "Investigation failed — showing raw finding only."
-
-2. **Ask the user** (via AskUserQuestion). The three options are:
-   - "Keep" — include in output as-is (description: "Include this finding in the curated output")
-   - "Remove" — exclude from output (description: "Exclude this finding — won't be posted")
-   - "Edit body" — rewrite the comment (description: "Revise the comment text before including. {if suggested_body: 'Agent suggests: ' + first 80 chars of suggested_body + '...'}")
-
-   Rank them by the investigation's `recommended_action`, and append " (Recommended)" to the first label:
-
-   | `recommended_action` | Option order            |
-   | -------------------- | ----------------------- |
-   | `keep`               | Keep, Edit body, Remove |
-   | `reword`             | Edit body, Keep, Remove |
-   | `remove`             | Remove, Keep, Edit body |
-
-   If the investigation failed, list Keep, Remove, Edit body, with no label marked as recommended.
-
-3. **Execute the user's choice:**
-
-   **Keep:** No changes. Increment kept counter.
-
-   **Remove:** Exclude from output list. Increment removed counter.
-
-   **Edit body:** Use AskUserQuestion to present body editing options:
-   - If `suggested_body` is non-null: first option is "Use suggested body" with a preview of the full suggested text
-   - Always allow "Other" for custom text
-     Update the finding's `body` with the chosen text. Increment edited counter.
-
-4. **Checkpoint.** After executing the user's choice, immediately update `triage-state.json`:
-   - Update the in-memory `triage-state.json` object (the same object written in Initialize Checkpoint) by adding this finding's `_identity_hash` to the `decisions` map. Use the canonical action value: `"keep"` for Keep, `"remove"` for Remove, `"edit"` for Edit body. If `"edit"`, also include `"edited_body"` with the final body text.
-   - Write the updated object to disk. If the write fails, warn the user but continue.
+Done when every finding has exactly one decision: Keep, Edit or Remove.
 
 ## Phase 4: Output
 
-1. **Strip internal fields.** Remove `_identity_hash` from each finding in the output list. This field is used internally for checkpointing and must not appear in the output.
-
-2. **Write `ai-swap/pr-review-$ARGUMENTS/findings.json`** with the triage output schema:
+1. **Write `ai-swap/pr-review-$ARGUMENTS/findings.json`** with the triage output schema:
 
    ```json
    {
@@ -272,13 +216,13 @@ For each finding in sorted order:
      "repo": "<repo from source files>",
      "head_sha": "<head_sha from source files (guaranteed consistent)>",
      "input_sources": ["<source IDs from each loaded file>"],
-     "findings": [<kept and edited findings>]
+     "findings": [<Keep and Edit findings, in sort order>]
    }
    ```
 
-   Use 2-space indentation. Only include findings the user kept or edited (not removed).
+   Use 2-space indentation.
 
-3. **Validate the output:**
+2. **Validate the output:**
 
    ```bash
    uv run "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ai-swap/pr-review-$ARGUMENTS/findings.json
@@ -286,26 +230,67 @@ For each finding in sorted order:
 
    If validation fails, fix the errors and re-validate.
 
-4. **Clean up checkpoint state:**
-
-   ```bash
-   rm -f ai-swap/pr-review-$ARGUMENTS/triage-state.json
-   ```
-
-5. **Report summary:**
+3. **Report the summary and the change list:**
 
    ```
    ## Triage Complete
 
-   | Action  | Count     |
-   | ------- | --------- |
-   | Kept    | {kept}    |
-   | Removed | {removed} |
-   | Edited  | {edited}  |
+   | Decision | Count     |
+   | -------- | --------- |
+   | Kept     | {kept}    |
+   | Edited   | {edited}  |
+   | Removed  | {removed} |
 
    **Final findings:** {count of findings in output}
    **Output:** ai-swap/pr-review-$ARGUMENTS/findings.json
    **Sources merged:** {comma-separated input_sources}
 
-   Run `/gh-tools:post-comments $ARGUMENTS` to review and post these as GitHub PR comments.
+   ### Removed
+   - `{path}:{line}` [{severity}] {title}: {verdict}. {reason}
+
+   ### Severity changed
+   - `{path}:{line}` {title}: {old} → {new}. {reason}
+
+   ### Edited
+   - `{path}:{line}` [{severity}] {title}: {reason}
    ```
+
+   Omit an empty section. Mark each decision the user made in Phase 3 with "(you chose)".
+
+## Phase 5: Next Step
+
+If `findings.json` has no findings, report "Nothing to post or fix." and stop.
+
+1. **Guess the goal from PR authorship:**
+
+   ```bash
+   gh pr view $ARGUMENTS --json author --jq .author.login
+   gh api user --jq .login
+   ```
+
+   The same login means the user wrote the PR, so Fix is the likely goal. A different login makes Post the likely goal.
+
+2. **Ask once** with AskUserQuestion: "What next for the {N} curated findings? Pick Other to change a decision first." Put the guessed goal first and append " (Recommended)" to its label:
+   - "Post": "Post them as a pending review on PR #{pr}. post-comments shows each comment before it posts."
+   - "Fix": "Fix them in the working tree, run the repo's checks, and commit locally without pushing."
+   - "Stop": "Keep findings.json and stop."
+
+   On "Other", apply the changes the user names to `findings.json`, validate it again, report the updated change list and ask again.
+
+### Post
+
+Read `${CLAUDE_PLUGIN_ROOT}/skills/post-comments/SKILL.md` and follow it, with `$ARGUMENTS` as this PR number. The Skill tool cannot invoke post-comments, because that skill allows only user invocation.
+
+### Fix
+
+1. **Check the checkout.** Get the head branch with `gh pr view $ARGUMENTS --json headRefName --jq .headRefName`. If a different branch is checked out, or tracked files have uncommitted changes, stop and tell the user. If `HEAD` is not `head_sha`, list `git log --oneline {head_sha}..HEAD` and ask the user whether to proceed.
+
+2. **Fix each finding** in sort order, including findings marked `unmappable`. Read the code at `path:line` and make the change that the `body` and `recommendation` describe. Follow the repo's instructions (`CLAUDE.md`, `AGENTS.md`) for each file you touch. Make the smallest change that settles the finding. When the code shows a fix is wrong, or much larger than the finding says, skip that finding and record why.
+
+3. **Run the repo's checks:** tests, lint and type checks. Find the commands in `package.json` scripts, `mise.toml` tasks, a `Makefile` or the CI config. Fix any failure your changes caused. A failure that also occurs at `head_sha` is pre-existing: report it and leave it.
+
+4. **Commit** in logical groups, in the repo's commit convention. Stage only the files your fixes changed. Leave the commits unpushed; pushing is the user's call.
+
+5. **Report** each finding as `path:line` with its commit SHA, or as skipped with the reason. Then report the check results and any pre-existing failures.
+
+Done when every finding in `findings.json` is in a commit or listed as skipped with its reason, and every check passes or fails only as pre-existing.
