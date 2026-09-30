@@ -40,8 +40,8 @@ lookup ◀──reads────────┘  (convention queries)
 
 Every generated doc starts with `<!-- verified-against: [full-commit-sha] -->`. The stamp
 records the commit the doc was last generated or verified against. `init`, `update`, and
-`audit` write it; `check` and `lookup` use it as the staleness baseline, with the doc's git
-timestamp as fallback for unstamped docs.
+`audit` write it; `check` and `lookup` use it as the staleness baseline, with the doc's
+last-modified commit as fallback for unstamped docs.
 
 ## Path Resolution
 

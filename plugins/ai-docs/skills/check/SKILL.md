@@ -51,7 +51,7 @@ Each checker agent's prompt must include:
 
 Each checker performs:
 
-1. Resolve each Key Path as `[path-root]/[key-path]` and Glob it. Count commits only for paths that resolve; if none resolve, rate `unresolved` and stop.
+1. Resolve each Key Path as `[path-root]/[key-path]` and Glob it. If none resolve, rate `unresolved` and stop.
 
 2. **If git is available**, establish the baseline and count changes:
 
@@ -59,9 +59,7 @@ Each checker performs:
 
    > **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/staleness-baseline.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
-3. If any Key Path count is greater than zero, flag as potentially stale.
-
-4. Spot-check 3-5 `file::Symbol` references from the doc (git or not):
+3. Spot-check 3-5 `file::Symbol` references from the doc (git or not):
 
    - Does the referenced file exist? (use Glob)
    - Does the referenced symbol exist in that file? (use Grep)
