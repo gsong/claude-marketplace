@@ -39,7 +39,7 @@ The output path will be `<resolved-dir>/consensus.md`.
 
 Internally form your initial position on the topic from the user's framing plus project context. Be concrete — pick a side, name tradeoffs.
 
-Dispatch a fresh task through `Agent(subagent_type: "codex:codex-rescue")` as the reference describes, with `--model gpt-5.6-terra` as a CLI flag and `run_in_background: false` (need synchronous response).
+Dispatch a fresh task through `Agent(subagent_type: "codex:codex-rescue")` as the reference describes, with `run_in_background: false` (need synchronous response).
 
 Prompt template (round 1):
 

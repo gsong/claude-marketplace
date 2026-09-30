@@ -13,7 +13,7 @@ specialized focus area.
 
 ## Model
 
-Always use `gpt-5.6-terra`. Do not ask the user to pick a model, and ignore any `--model` flag passed to the skill — there is no model override.
+Codex picks the model from the user's Codex config. Send no `--model` flag.
 
 ## Process
 
@@ -96,7 +96,7 @@ Each agent:
 2. Invokes adversarial-review via Bash using the companion script path:
 
 ```bash
-node "<companion-path>" adversarial-review --base <base-ref> --wait --json --model gpt-5.6-terra -- "$(cat <temp-file>)"
+node "<companion-path>" adversarial-review --base <base-ref> --wait --json -- "$(cat <temp-file>)"
 ```
 
 - `--wait` ensures foreground execution (no interactive prompts)
