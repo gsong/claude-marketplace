@@ -1,6 +1,6 @@
 ---
 name: "discuss"
-description: "Runs a multi-round dialogue between Claude and Codex and writes the outcome as a consensus document (consensus.md). Use when the user wants Claude and Codex to discuss a topic together and reach consensus through multi-round dialogue."
+description: "Runs a multi-round dialogue between Claude and Codex and writes the outcome as a consensus document (consensus.md). Use when the user wants Claude and Codex to discuss a topic or reach consensus."
 compatibility: "Requires the Codex CLI, reached through the codex:rescue runtime."
 ---
 
@@ -8,16 +8,12 @@ compatibility: "Requires the Codex CLI, reached through the codex:rescue runtime
 
 Run a multi-round, two-model dialogue between Claude (you) and Codex toward consensus on a topic the user provides.
 
-You are an active participant, not a relay. You form your own position from the topic and project context, exchange views with Codex, update your stance based on its arguments, and aim to converge. Both sides must explicitly declare agreement for the discussion to conclude.
+You are an active participant, not a relay. You form your own position from the topic and project context, exchange views with Codex, update your stance based on its arguments, and aim to converge. Concede only when persuaded; a standing disagreement goes to the checkpoint as it is. Both sides must explicitly declare agreement for the discussion to conclude.
 
 ## Arguments
 
 - **Topic** (optional positional): the discussion topic. If absent, ask via `AskUserQuestion`.
 - `--rounds N` (optional flag): rounds per checkpoint. Default `3`. Min `1`, max `10`.
-
-## Model
-
-Always use `gpt-5.6-terra`. Do not ask the user to pick a model.
 
 ## Process
 
@@ -27,29 +23,11 @@ Parse `--rounds` from the invocation if present. Otherwise default to `3`.
 
 If no topic was provided, use `AskUserQuestion` with a free-form text field to ask for it. The question should mention the current working directory.
 
-Then use `AskUserQuestion` to collect:
-
-**Reasoning effort** — the level:
-
-- `low` — fast responses
-- `medium` — balanced (Recommended)
-- `high` — complex problem solving
-- `xhigh` — maximum depth
-
-**Sandbox mode** — access level for Codex:
-
-- `read-only` — Codex can only read files (Recommended for deliberation)
-- `write` — Codex can modify files (rarely needed for discussion)
+Then collect reasoning effort and sandbox mode as `${CLAUDE_PLUGIN_ROOT}/references/codex-prompting.md` describes. Default to `read-only`.
 
 ### Step 2: Build context and derive slug
 
-**Codex can only access project files in the working directory.** It has no access to external tools, MCP servers, or APIs (Linear, Slack, GitHub issues, Jira, etc.). You MUST inline all relevant external context into the first prompt — same principle as `codex-tools:run`.
-
-Before dispatching, gather and embed any context Codex will need:
-
-- **External issue/ticket content**: If the topic references a Linear issue, GitHub issue, Jira ticket, etc., fetch the full description, comments, and acceptance criteria yourself, then include them verbatim (or a thorough summary) in the prompt.
-- **Conversation context**: If the user discussed requirements, constraints, or decisions earlier in the conversation, summarize the key points in the prompt.
-- **API responses / tool output**: If you retrieved data from MCP servers, web searches, or other tools that Codex needs to reason about, paste the relevant content into the prompt.
+Build the round 1 context block per `${CLAUDE_PLUGIN_ROOT}/references/codex-prompting.md`; the first prompt must be self-contained.
 
 Derive `<slug>` from the topic: lowercase, kebab-case, alphanumerics and hyphens only, truncated to ≤40 chars. Example: topic `"Postgres vs DynamoDB for the events table"` → `postgres-vs-dynamodb-for-the-events-tab`.
 
@@ -61,11 +39,7 @@ The output path will be `<resolved-dir>/consensus.md`.
 
 Internally form your initial position on the topic from the user's framing plus project context. Be concrete — pick a side, name tradeoffs.
 
-Dispatch the codex-rescue agent with a fresh task. Use the `Agent` tool:
-
-- `subagent_type`: `"codex:codex-rescue"`
-- `run_in_background`: `false` (need synchronous response)
-- Append `--model gpt-5.6-terra` as a CLI flag. If the user chose non-default effort, append `--effort <level>`. Do not pass `--write` yourself — if the user picked `write` sandbox, the rescue agent adds it by default; if they picked `read-only`, clearly state the read-only intent in the prompt so rescue omits it.
+Dispatch a fresh task through `Agent(subagent_type: "codex:codex-rescue")` as the reference describes, with `--model gpt-5.6-terra` as a CLI flag and `run_in_background: false` (need synchronous response).
 
 Prompt template (round 1):
 
@@ -110,9 +84,9 @@ End with `AGREED:` or `DISAGREE:` as before.
 
 5. Parse the response, update `codex_agrees`. Repeat.
 
-**Round counting:** track total rounds across checkpoints. Hard cap at 15.
-
 ### Step 5: Checkpoint (after every N rounds without consensus)
+
+**Round counting:** track total rounds across checkpoints. Hard cap at 15.
 
 Use `AskUserQuestion` to present:
 
@@ -174,8 +148,4 @@ If the user aborts at a checkpoint, do not write `consensus.md`. Print: `Discuss
 
 ## Notes
 
-- This skill is for deliberation, not implementation. Default to `read-only` sandbox.
-- You are a genuine participant — do not always agree with Codex on round 1 just to terminate fast. Hold positions you actually believe; concede only when persuaded.
-- Do not mock agreement to please the user. If you genuinely disagree with Codex after N rounds, say so at the checkpoint.
-- Do not shell out to `codex exec` directly. All Codex calls go through `Agent(subagent_type: "codex:codex-rescue")`.
 - Make a todo list at the start of a long discussion to track rounds and checkpoint cadence.
