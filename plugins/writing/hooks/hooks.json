@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/smart-quotes.py"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/smart-quotes.sh"
           }
         ]
       }
