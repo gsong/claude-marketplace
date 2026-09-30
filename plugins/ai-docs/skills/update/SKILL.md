@@ -1,6 +1,6 @@
 ---
 name: "update"
-description: "Update the docs-ai/ docs that a code change touched. Use when the user has changed code and wants related documentation updated."
+description: "Update the docs-ai/ docs that a code change touched, create docs for new feature areas, and remove docs for deleted ones. Use when the user has changed code and wants related documentation updated, or wants docs for a topic that has none."
 argument-hint: "[what changed]"
 ---
 
