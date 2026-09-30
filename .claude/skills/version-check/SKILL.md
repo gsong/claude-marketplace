@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Plugin Version Check
 
-Analyze all plugins in this marketplace to determine if their version numbers need bumping based on changes since the last version update. Use parallel agents for thorough semantic analysis of diffs.
+Decide which plugins in this marketplace need a version bump, based on their changes since the last one. Parallel agents analyze the diffs; you collect their reports and apply the bumps the user picks.
 
 ## Phase 1 — Discovery
 
@@ -19,53 +19,19 @@ Analyze all plugins in this marketplace to determine if their version numbers ne
    ...
    ```
 
+Done when the working list has a version for every plugin directory.
+
 ## Phase 2 — Parallel Analysis
 
-Spawn **one Agent per plugin** using the Agent tool. Run all agents in parallel (send all Agent tool calls in a single message). Use `subagent_type: "general-purpose"` for each agent. Give each agent a descriptive name like `version-check-{PLUGIN_NAME}`.
+Spawn **one Agent per plugin** in a single message, so they run in parallel. Use `subagent_type: "general-purpose"` and name each agent `version-check-{PLUGIN_NAME}`. Each agent receives this prompt (fill in `{PLUGIN_NAME}`, `{PLUGIN_DIR}`, and `{CURRENT_VERSION}`):
 
-Each agent receives the following prompt (fill in `{PLUGIN_NAME}`, `{PLUGIN_DIR}`, and `{CURRENT_VERSION}`):
+> Analyze the plugin `{PLUGIN_NAME}` at `{PLUGIN_DIR}` (current version: `{CURRENT_VERSION}`). Read `.claude/skills/version-check/version-analysis.md` and follow every step in it. Respond in exactly the report format it gives.
 
-> Analyze the plugin `{PLUGIN_NAME}` at `{PLUGIN_DIR}` (current version: `{CURRENT_VERSION}`) to determine if a version bump is needed.
->
-> **Step 1 — Find the version anchor commit:**
-> Run: `git log -L '/"version"/,+1:{PLUGIN_DIR}/.claude-plugin/plugin.json' --format="%H" -s`
-> Take the first SHA from the output. This finds the most recent commit that changed the `version` line itself. Do not anchor on just any commit that touched plugin.json — a description or keyword edit would reset the anchor and hide real changes since the last bump.
-> If the command errors or returns empty output, report: bump = "none", reasoning = "Plugin has no version history yet."
->
-> **Step 2 — Get changes since the anchor:**
-> Run: `git diff {SHA} -- {PLUGIN_DIR}/` — diff against the working tree, so uncommitted edits count.
-> Also run: `git status --porcelain -- {PLUGIN_DIR}/` — untracked files are changes too (a new skill that isn't committed yet still warrants a bump).
-> If both are empty, report: bump = "none", reasoning = "No changes since last version bump."
->
-> **Step 3 — Semantic analysis:**
-> If changes exist, read the full diff output carefully. Also run `git log --format="%s" {SHA}..HEAD -- {PLUGIN_DIR}/` — this repo uses conventional commits, so the subjects signal intent (`feat:` → minor, `fix:`/`docs:`/`chore:` → patch, `!` or BREAKING CHANGE → major). The diff content is the ground truth; use commit subjects to confirm or question your classification, not to replace it.
->
-> Classify the changes using this guide:
->
-> | Bump              | Criteria                                                                                                                                                        |
-> | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-> | **Patch** (x.y.Z) | Bug fixes, typo corrections, wording/formatting improvements, documentation updates within existing skills, minor clarifications, updated dependency references |
-> | **Minor** (x.Y.0) | New skills added, new capabilities or features in existing skills, non-breaking behavioral changes, significant documentation restructuring                     |
-> | **Major** (X.0.0) | Renamed or removed skills, changed skill invocation patterns, removed functionality, fundamental behavior changes that would surprise existing users            |
->
-> When in doubt between two levels, prefer the lower one.
->
-> **Step 4 — Report:**
-> Respond with EXACTLY this format (no other text):
->
-> ```
-> PLUGIN: {PLUGIN_NAME}
-> CURRENT_VERSION: {CURRENT_VERSION}
-> BUMP: none|patch|minor|major
-> NEW_VERSION: {calculated new version, or same as current if none}
-> CHANGED_FILES: {comma-separated list of changed files relative to repo root, or "none"}
-> REASONING: {1-2 sentence explanation of why this bump level was chosen}
-> CHANGES_SUMMARY: {1-2 sentence human-readable summary of what changed}
-> ```
+Done when every plugin in the working list has returned a report.
 
 ## Phase 3 — Report
 
-After all agents complete, collect their reports and present a formatted summary:
+Present the collected reports as a summary table:
 
 ```
 Plugin          Current  Bump     New      Reason
@@ -82,18 +48,18 @@ Below the table, for each plugin with a recommended bump (not "none"), show:
 - **Changes summary:** what changed
 - **Reasoning:** why this bump level
 
-If NO plugins need a bump, report "All plugins are up to date — no version bumps needed." and stop.
+If no plugin needs a bump, report "All plugins are up to date — no version bumps needed." and stop.
 
 ## Phase 4 — Apply (User-Confirmed)
 
-If any plugins need bumps, use AskUserQuestion with `multiSelect: true` to ask which bumps to apply. List each plugin needing a bump as an option with its recommendation as the description.
+Ask which bumps to apply with one `AskUserQuestion` call using `multiSelect: true`. List each plugin that needs a bump as an option, with its recommendation as the description.
 
-For each approved bump, use the Edit tool to update the `"version"` field in `plugins/{name}/.claude-plugin/plugin.json`. Change only the version value.
-
-After applying, show the final state:
+For each approved bump, edit only the `"version"` value in `plugins/{name}/.claude-plugin/plugin.json`. Then show the final state:
 
 ```
 Applied version bumps:
   git-tools:    1.1.0 → 1.2.0
   codex-tools:  1.0.0 → 1.0.1
 ```
+
+Done when every approved bump is in its plugin.json and the final state is shown.
