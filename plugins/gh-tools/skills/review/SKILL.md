@@ -65,14 +65,27 @@ Every review sub-agent prompt (both reviews, including the sub-agents the mattpo
 
 > **CRITICAL: Do NOT post comments, reviews, or any content to the GitHub PR. Do NOT use `gh pr comment`, `gh api` to create reviews, or any other mechanism to write to the PR. Do NOT write to any files. Your ONLY job is to analyze the code and return your findings as text output.**
 
+### Review focus areas
+
+Every reviewer prompt (both reviews, including the sub-agents the mattpocock skill spawns) also receives this focus paragraph:
+
+- User-facing behavior correctness
+- Maintainability
+- Testing philosophy (minimize mocks, test real implementations)
+- Test quality and value:
+  - Flag tests that don't assert meaningful behavior (e.g., testing trivial getters/setters, re-testing framework behavior)
+  - Flag tests that duplicate coverage already provided by other tests in the codebase — check for existing integration tests that already cover the path
+  - Prefer integration tests that verify overall behavior over unit tests, unless the unit has complex standalone logic worth isolating
+  - Tests that only exist to bump coverage without catching real bugs should be flagged for removal
+
 ### Review A: feature-dev:code-reviewer (Agent tool)
 
 - `subagent_type`: `feature-dev:code-reviewer`
-- Note: this agent type lacks Bash access — it physically cannot run `gh` commands or post to GitHub.
 - Prompt must include:
   - The no-posting preamble above
   - PR metadata (title, body, file list with additions/deletions)
   - The spec block from Phase 1
+  - The review focus areas above
   - "Review PR #$ARGUMENTS. The PR branch is already checked out — read the local files directly. Focus on: bugs, logic errors, security vulnerabilities, code quality, and adherence to project conventions. Return your findings as structured text. For each finding include: file path, line number(s), severity (must-fix / should-fix / nit), confidence score (0-100), and description."
 
 ### Review B (preferred): mattpocock-skills:code-review (Skill tool)
@@ -81,7 +94,7 @@ Invoke the `mattpocock-skills:code-review` skill and follow its process with the
 
 - **Fixed point:** the PR base branch (`baseRefName` from Phase 1). Diff with `git diff origin/<baseRefName>...HEAD`. Do not ask the user for a fixed point.
 - **Spec source:** the PR body plus the spec block from Phase 1. Pass both to the Spec sub-agent as the fetched spec, in place of the skill's own spec lookup (its step 2). If the spec block lists `none` and the PR body states no requirements, the Spec sub-agent skips and reports "no spec available".
-- **Sub-agent prompts:** prepend the no-posting preamble above, and append to each brief: "For each finding include: file path, line number(s), and severity (must-fix / should-fix / nit)."
+- **Sub-agent prompts:** prepend the no-posting preamble above, and append to each brief the review focus areas above plus: "For each finding include: file path, line number(s), and severity (must-fix / should-fix / nit)."
 
 The skill's aggregated Standards/Spec report is Review B's output for Phase 3.
 
@@ -94,6 +107,7 @@ Use only when the mattpocock skill is unavailable.
   - The no-posting preamble above
   - PR metadata (title, body, file list with additions/deletions)
   - The spec block from Phase 1
+  - The review focus areas above
   - "Review PR #$ARGUMENTS. Focus on: architecture, design patterns, maintainability, and testing philosophy. You are also the only reviewer checking the change against the spec: flag requirements that are missing or implemented wrong, and scope creep. Return your findings as structured text. For each finding include: file path, line number(s), severity (must-fix / should-fix / nit), and description."
 
 Wait for both reviews to complete before proceeding.
@@ -113,24 +127,10 @@ Include ALL of the following in the agent's prompt:
 3. Head SHA, repo name, and full PR diff (from Phase 1)
 4. Full text output from Review A (feature-dev:code-reviewer findings)
 5. Full text output from Review B (the mattpocock Standards/Spec report, or the superpowers:code-reviewer findings if the fallback ran), with a note saying which reviewer produced it
-6. The review focus areas (below)
-7. The output format specs (below)
-8. The validator step (below), copied as written — its command already carries the absolute validator path
-9. The hard gate (below)
-10. The voice rules (below)
-
-#### Review focus areas
-
-- User-facing behavior correctness
-- Maintainability
-- Testing philosophy (minimize mocks, test real implementations)
-- Test quality and value:
-  - Flag tests that don't assert meaningful behavior (e.g., testing trivial getters/setters, re-testing framework behavior)
-  - Flag tests that duplicate coverage already provided by other tests in the codebase — check for existing integration tests that already cover the path
-  - Prefer integration tests that verify overall behavior over unit tests, unless the unit has complex standalone logic worth isolating
-  - Tests that only exist to bump coverage without catching real bugs should be flagged for removal
-
-Skip praise and lengthy analysis — actionable items only.
+6. The output format specs (below)
+7. The validator step (below), copied as written — its command already carries the absolute validator path
+8. The hard gate (below)
+9. The voice rules (below)
 
 #### Voice
 
@@ -142,17 +142,16 @@ When it does exist, read the Judgment section of `rules/technical.md` under that
 
 #### Instructions for the synthesis agent
 
-1. **Filter and organize only.** Do not introduce new findings — your job is to deduplicate, categorize, and map the reviews' findings. Use the review focus areas above as a lens for prioritization, not as a prompt for new analysis.
+1. **Filter and organize only.** Do not introduce new findings — your job is to deduplicate, categorize, and map the reviews' findings. Skip praise and lengthy analysis — actionable items only.
 2. **Deduplicate:** Merge findings that describe the same issue from both reviews into one item. Keep the higher severity.
 3. **Categorize** by severity and actionability.
-4. **Use the PR metadata provided in the prompt** (head SHA, repo name, and diff — all fetched by the orchestrator in Phase 1). Do NOT run any `gh` commands.
-5. **Map findings to diff positions.** For each finding from the reviews — include anything that has not been actively disproven. Only exclude findings that are confirmed false positives or duplicates of another included finding. Do not exclude findings just because they scored below a threshold or were categorized as low-severity — if the issue is real, include it:
+4. **Use the PR metadata provided in the prompt** (head SHA, repo name, and diff — all fetched by the orchestrator in Phase 1).
+5. **Map findings to diff positions.** Done when every finding from both reviews is in the JSON. The only findings left out are confirmed false positives and duplicates merged into another entry. A finding outside a diff hunk stays in, with `"unmappable": true`. For each finding:
    - Identify the `path` (file path relative to repo root)
    - Identify the `line` (end line in the new version of the file) and optional `start_line` (for multi-line ranges)
-   - Verify both `line` and `start_line` fall within a diff hunk for that file — if not, include the finding in `findings-gh-review.json` with `"unmappable": true` set on it. Do not exclude any findings from the JSON based on diff position.
+   - Verify both `line` and `start_line` fall within a diff hunk for that file — if not, set `"unmappable": true` on the finding
    - Set `severity` to `must-fix`, `should-fix`, or `nit` based on the finding's categorization
    - Set `side` to `LEFT` only if the comment targets a deleted line; otherwise omit (defaults to `RIGHT`)
-   - Validate `body` is under 65536 characters
 
 6. **Write `ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json`:** The file MUST be named exactly `findings-gh-review.json`, NOT `findings.json`. The downstream triage skill globs for `findings-*.json` to discover source files — `findings.json` is reserved for triage's own output and will be ignored.
 
@@ -207,8 +206,6 @@ Set `agent` and `agent_label` to whichever reviewer produced the finding:
 ]
 ```
 
-The body should note when both reviews flagged the same issue.
-
 `title` and `recommendation` are optional — include when the reviewer provided them.
 
 `unmappable` is only set when `true` — omit it for findings that map to valid diff positions.
@@ -243,6 +240,6 @@ After the synthesis agent completes, the orchestrator (you) verifies the output:
      ```bash
      uv run "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
      ```
-     If validation fails, fix the JSON yourself (common issues: missing top-level `"source": "gh-review"`, missing `"source_detail"` on findings) and re-validate until it passes.
+     If validation fails, fix the JSON yourself and re-validate until it passes.
    - Show the synthesis agent's summary (finding counts, mapped vs unmappable)
    - Remind the user: "Run `/gh-tools:triage $ARGUMENTS` to investigate and curate findings before posting."

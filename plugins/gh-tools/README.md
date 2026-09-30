@@ -4,13 +4,13 @@ GitHub CLI workflow skills for Claude Code.
 
 ## Skills
 
-| Skill                      | Invoked by                           | Description                                                           |
-| -------------------------- | ------------------------------------ | --------------------------------------------------------------------- |
-| `gh-tools:review`          | you, `/gh-tools:review <pr>`         | Review a PR with parallel reviewers; write findings for triage        |
-| `gh-tools:triage`          | you, `/gh-tools:triage <pr>`         | Merge, investigate, and curate review findings; then post or fix them |
-| `gh-tools:post-comments`   | you, `/gh-tools:post-comments <pr>`  | Post curated findings as GitHub PR comments                           |
-| `gh-tools:address-review`  | you, `/gh-tools:address-review <pr>` | Validate, fix or decline, and reply to each comment on your PR        |
-| `gh-tools:project-manager` | "project board", "GitHub project"    | Create agents for GitHub project board management                     |
+| Skill                      | Invoked by                                     | Description                                                                                         |
+| -------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `gh-tools:review`          | you, `/gh-tools:review <pr>`                   | Review a PR with parallel reviewers; write findings for triage                                      |
+| `gh-tools:triage`          | you, `/gh-tools:triage <pr>`                   | Merge, investigate, and curate review findings; then post or fix them                               |
+| `gh-tools:post-comments`   | you, `/gh-tools:post-comments <pr>`            | Post curated findings as GitHub PR comments                                                         |
+| `gh-tools:address-review`  | you, `/gh-tools:address-review <pr>`           | Validate, fix or decline, and reply to each comment on your PR                                      |
+| `gh-tools:project-manager` | you, `/gh-tools:project-manager <project-url>` | Generate a `.claude/agents/` agent that moves items on a GitHub project board, from the board's URL |
 
 ## Prerequisites
 
