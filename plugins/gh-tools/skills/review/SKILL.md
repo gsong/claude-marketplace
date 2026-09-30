@@ -138,7 +138,7 @@ Keep every finding `body` under about 80 words: what is wrong, why it matters, a
 
 Skip the rest of this section if the `writing:draft` skill is not available. Nothing else changes when it is absent.
 
-When it is available, read the Judgment section of `technical.md` in the rules directory, plus every file in `~/.claude/writing-line/references/`. The rules directory is `~/.claude/writing-line/rules/` if it exists, else the writing plugin's defaults: the highest version of `~/.claude/plugins/cache/*/writing/*/defaults/rules/`. Write every finding `body` to those rules. Ignore the Greppable blocks — they are the gate's business, not yours. Skip `common.md`. It carries no Judgment section, by design.
+When it is available, follow "Loading the rules" in `${CLAUDE_PLUGIN_ROOT}/references/voice-gate.md`. Write every finding `body` to those rules.
 
 #### Instructions for the synthesis agent
 
