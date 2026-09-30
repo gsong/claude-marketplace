@@ -73,7 +73,7 @@ Done when each fix and each chosen option is committed, pushed and verified, and
 
 ## Step 5: Reply
 
-If `~/.claude/skills/writing-line/` exists, gate the replies first. Follow Step 4 of `${CLAUDE_PLUGIN_ROOT}/skills/post-comments/SKILL.md`, and write the bodies to `ai-swap/drafts/technical/pr-$ARGUMENTS-replies.md`.
+If `~/.claude/skills/writing-line/` exists, gate the replies first. Read `${CLAUDE_PLUGIN_ROOT}/references/voice-gate.md` and follow it, writing the bodies to `ai-swap/drafts/technical/pr-$ARGUMENTS-replies.md`.
 
 Reply once to each work-list comment, in its thread:
 
@@ -83,7 +83,7 @@ gh api -X POST repos/{owner}/{repo}/pulls/$ARGUMENTS/comments/{id}/replies -f bo
 
 Answer a work-list issue comment or review body with one `gh pr comment $ARGUMENTS`, and quote the line you answer.
 
-Each reply is **terse**: the outcome first, then at most two short sentences of reason. Keep it under 50 words. Write the way a colleague answers in a hallway: plain words, active voice, the point and nothing else. The commit and the diff carry the detail, so the reply names what changed and stops.
+Each reply is **terse**: the outcome first, then at most two short sentences of reason. Keep it under 50 words. The commit and the diff carry the detail, so the reply names what changed and stops.
 
 - `Fixed in {sha}. {what changed}.`
 - `Kept. Recorded on #{issue}: {link}.`

@@ -1,6 +1,7 @@
 ---
 name: "project-manager"
-description: "Generates a specialized agent for managing a GitHub project board from its project URL. Use when the user wants an agent for managing a GitHub project board — e.g. \"set up an agent for my project board\", \"make an agent that moves issues between columns\", \"manage my GitHub project\"."
+description: "Generate a .claude/agents/ agent that moves items on a GitHub project board, from the board's URL."
+disable-model-invocation: true
 compatibility: "Requires the gh CLI (authenticated) with the project scope."
 argument-hint: "<project-url>"
 ---
@@ -9,29 +10,17 @@ argument-hint: "<project-url>"
 
 Create a specialized agent for managing GitHub project board operations using a GitHub project URL.
 
-**Usage:** `/gh-tools:project-manager <project-url>`
-
-**Example:** `/gh-tools:project-manager https://github.com/orgs/sahajsoft/projects/112`
-
-## Core Requirements
-
-- Extract project information from the provided GitHub project URL
-- Use GitHub CLI to fetch project details automatically
-- Generate a project-specific agent for GitHub project board management
-- Create the agent in the project's .claude/agents/ directory
-- Ensure the agent has all required GitHub CLI commands pre-configured
-
 ## Process
 
 ### 1. Validate Environment
 
 - If current directory is not a git repository: show "This command must be run in a git repository" and stop
-- If GitHub CLI (`gh`) is not available or not authenticated: show "GitHub CLI must be installed and authenticated" and stop
+- If GitHub CLI (`gh`) is not available or not authenticated: show "GitHub CLI must be installed and authenticated" and stop. Every generated command depends on it; a half-authenticated run writes an agent with empty IDs.
 - If no URL in `$ARGUMENTS`: show "Usage: /gh-tools:project-manager <project-url>" and stop
 
-### 2. Parse URL and Extract Project Info
+### 2. Parse URL and Fetch Project Details
 
-From `$ARGUMENTS`, extract owner and project number.
+From `$ARGUMENTS`, extract owner and project number, then fetch the project and its Status field. Run the block below as one Bash call: each Bash call is a fresh shell, so the parse and the fetch must run together for the variables to reach the fetch.
 
 Supported URL formats:
 
@@ -44,13 +33,8 @@ Supported URL formats:
 PROJECT_URL="$ARGUMENTS"
 read -r OWNER PROJECT_NUMBER <<< "$(echo "$PROJECT_URL" |
   sed -E -n 's#^https://github\.com/(orgs|users)/([^/]+)/projects/([0-9]+).*#\2 \3#p')"
-```
+if [ -z "$OWNER" ] || [ -z "$PROJECT_NUMBER" ]; then echo "Invalid GitHub project URL format" >&2; exit 1; fi
 
-If either value is empty, show "Invalid GitHub project URL format" and stop.
-
-### 3. Fetch Project Details via GitHub CLI
-
-```bash
 # Get project details
 PROJECT_DATA=$(gh project view "$PROJECT_NUMBER" --owner "$OWNER" --format json)
 PROJECT_ID=$(echo "$PROJECT_DATA" | jq -r '.id')
@@ -64,28 +48,22 @@ STATUS_OPTIONS=$(echo "$STATUS_FIELD" | jq -r '.options[] | "- **\(.name):** `\(
 STATUS_MAPPINGS=$(echo "$STATUS_FIELD" | jq -r '.options[] | "- \"\(.name | ascii_downcase)\" → `\(.id)`"')
 ```
 
-### 4. Generate Agent
+If the URL does not parse, the block stops with "Invalid GitHub project URL format". If the project is not accessible, show "Cannot access project - check permissions and URL" and stop.
+
+Every ID and status option in the generated agent comes from this output; a guessed mapping silently moves issues to the wrong column.
+
+### 3. Generate Agent
 
 1. Create `.claude/agents/` directory if it doesn't exist
 2. If `github-project-manager.md` already exists, ask for confirmation before overwriting — the user may have hand-edited it, and the write is destructive
-3. Generate the agent file from the template below, substituting the `{placeholder}` values with the data extracted in steps 2-3
+3. Generate the agent file from the template below, substituting the `{placeholder}` values with the data extracted in step 2
 4. Write to `.claude/agents/github-project-manager.md`
-5. Confirm creation and provide usage instructions
 
-## Important Guidelines
-
-Beyond the numbered Process steps, hold to these non-obvious constraints:
-
-- **Stop if `gh` auth fails** — every generated command depends on it; a half-authenticated run produces an agent with empty IDs.
-- **Never guess project structure or status names** — derive every ID and status option from the GitHub API data, since a wrong mapping silently moves issues to the wrong column.
-
-## Error Handling
-
-- If project not accessible: "Cannot access project - check permissions and URL"
+Done when `.claude/agents/github-project-manager.md` exists, contains no `{placeholder}`, and lists every option of the Status field. Then tell the user how to invoke it.
 
 ## Generated Agent Template
 
-`{placeholder}` values come from the variables computed in steps 2-3:
+`{placeholder}` values come from the variables computed in step 2:
 
 ````markdown
 ---

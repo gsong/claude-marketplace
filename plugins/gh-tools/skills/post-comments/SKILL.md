@@ -10,22 +10,16 @@ argument-hint: "<pr-number>"
 
 Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 
-**Prerequisite:** Run `/gh-tools:triage $ARGUMENTS` first to curate findings.
-
-## Setup
-
-Locate the schema validator (used throughout this skill):
-
-```bash
-if [ ! -f "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ]; then echo "ERROR: validate-findings.py not found at ${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" >&2; exit 1; fi
-```
-
-Every validation command below spells out the validator path. Claude Code replaces `${CLAUDE_PLUGIN_ROOT}` with the absolute plugin path when it loads this skill. Do not store it in a shell variable: each Bash call starts a new shell, so the variable would be gone by the next command.
-
 ## Step 1: Load Findings
 
 1. Check for `ai-swap/pr-review-$ARGUMENTS/findings.json`
-   - If it exists: validate it first with `uv run "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ai-swap/pr-review-$ARGUMENTS/findings.json`. If validation fails, report the errors and stop.
+   - If it exists: locate the schema validator, then validate the file with it. If validation fails, report the errors and stop.
+
+     ```bash
+     if [ ! -f "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ]; then echo "ERROR: validate-findings.py not found at ${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" >&2; exit 1; fi
+     uv run "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ai-swap/pr-review-$ARGUMENTS/findings.json
+     ```
+
    - If valid: read and parse it. Report: "{N} findings loaded for PR #{pr} in {repo}"
    - If it does NOT exist:
      - Check for `findings-*.json` files in the directory
@@ -115,41 +109,7 @@ Every validation command below spells out the validator path. Claude Code replac
 
 Skip this step if `~/.claude/skills/writing-line/` does not exist. Say nothing about it and go to Step 5.
 
-This is the last point before the text reaches GitHub, and it is the only one that sees every source: findings from `gh-tools:review` and from `codex-tools:review` both arrive here. Gating here also gates exactly what ships, since triage has already dropped everything the user rejected.
-
-The gate is a PostToolUse hook. It fires on any write under `ai-swap/drafts/<profile>/`, so writing the bodies there is what runs it.
-
-1. **Write every postable body** to `ai-swap/drafts/technical/pr-{PR}-bodies.md` under the repo root. It is a sibling of `ai-swap/pr-review-{PR}/`, not a child. Pass the Write tool the absolute path. One section per finding:
-
-   ```markdown
-   ## {index} / `{path}:{line}`
-
-   {body text}
-   ```
-
-   Use the **Write tool**, not a shell heredoc. The gate matches `Write`, `Edit`, and `MultiEdit` by tool name, so a `cat >` in Bash writes the file and fires nothing.
-
-   Backtick the path in the heading, exactly as shown. The gate blanks inline code before it runs its rules. A range like `foo.py:12-34` then cannot report as a hyphenated number range. Leave the path bare and your own heading trips that rule.
-
-   Keep the rest of the heading punctuation plain. An em dash in your own section headings counts toward the em dash density the gate reports on the draft as a whole.
-
-   Backtick or fence every code fragment a body quotes, for the same reason. The gate scans neither, which is what keeps a `--` inside quoted code from reporting as a double hyphen.
-
-2. **Read the gate's report and fix what is a real violation.** One misread is expected in this material:
-
-   - A sentence ending inside a closing quotation mark is not seen as a sentence end. Two sentences then merge and report as one long run. Rephrase to move the quote off the boundary, or drop the quotation marks.
-
-   A number-range report is not a misread. It means a `path:line` reference went in unbackticked. Backtick it.
-
-   Say so if a rule misreads the same passage twice. That is a signal the rule is wrong, and the user can retire it.
-
-3. **Fold the corrected text back** onto the findings, then delete the draft file.
-
-   Deleting it is safe. A second hook keeps a snapshot of each draft so it can tell a
-   later edit from the original, and a third sweeps that snapshot at the end of the turn
-   once the draft is gone. Leave the file behind instead and the next run on this PR
-   diffs its fresh bodies against this run's, which records the whole file as if you had
-   corrected it.
+Otherwise read `${CLAUDE_PLUGIN_ROOT}/references/voice-gate.md` and run the gate on every postable body, writing them to `ai-swap/drafts/technical/pr-$ARGUMENTS-bodies.md`.
 
 Step 5 then presents gated text, and the user can still drop or edit any of it before posting.
 
