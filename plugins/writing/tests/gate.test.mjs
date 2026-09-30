@@ -9,7 +9,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
-  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -20,6 +19,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+
+import { hookEnv } from "./helpers.mjs";
 
 const PLUGIN = join(dirname(fileURLToPath(import.meta.url)), "..");
 const GATE = join(PLUGIN, "hooks", "gate.sh");
@@ -57,38 +58,6 @@ function draft(profile, body) {
   const path = join(dir, "draft.md");
   writeFileSync(path, body);
   return path;
-}
-
-// A jq reached through a mise shim reads its trust list from HOME, so it
-// fails under the stand-in HOME some tests use. Those runs get a directory
-// first on PATH that holds only the first jq on PATH that is not a shim.
-const JQ_DIR = (() => {
-  for (const dir of (process.env.PATH ?? "").split(":")) {
-    if (!dir || dir.includes("/mise/shims")) continue;
-    const jq = join(dir, "jq");
-    if (!existsSync(jq)) continue;
-    const bin = mkdtempSync(join(tmpdir(), "wl-bin-"));
-    symlinkSync(jq, join(bin, "jq"));
-    return bin;
-  }
-  return null;
-})();
-
-// The environment the hook sees. Any WRITING_LINE_* the caller has set is
-// dropped, so only the test decides where rules come from. Passing rules as
-// null leaves WRITING_LINE_RULES unset, and the rules then resolve through
-// HOME, which such a test points at a directory it controls.
-function hookEnv({ rules = FIXTURE_RULES, home } = {}) {
-  const env = { ...process.env, CLAUDE_PLUGIN_ROOT: PLUGIN };
-  for (const key of Object.keys(env)) {
-    if (key.startsWith("WRITING_LINE_")) delete env[key];
-  }
-  if (rules !== null) env.WRITING_LINE_RULES = rules;
-  if (home !== undefined) {
-    env.HOME = home;
-    if (JQ_DIR) env.PATH = `${JQ_DIR}:${env.PATH}`;
-  }
-  return env;
 }
 
 // The gate reports only when it has something to say. Silence is the pass case,

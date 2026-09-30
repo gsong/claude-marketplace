@@ -20,19 +20,10 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { hookEnv } from "./helpers.mjs";
+
 const PLUGIN = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CAPTURE = join(PLUGIN, "hooks", "capture.sh");
-
-// Any WRITING_LINE_* the caller has set is dropped, so the state directory is
-// always the one the test made.
-function hookEnv(state) {
-  const env = { ...process.env, CLAUDE_PLUGIN_ROOT: PLUGIN };
-  for (const key of Object.keys(env)) {
-    if (key.startsWith("WRITING_LINE_")) delete env[key];
-  }
-  env.WRITING_LINE_STATE = state;
-  return env;
-}
 
 // A workspace holds one state directory, one draft and one transcript.
 function workspace(profile = "technical") {
@@ -103,7 +94,7 @@ function capture(
       session_id: "session-abc",
     }),
     encoding: "utf-8",
-    env: hookEnv(ws.state),
+    env: hookEnv({ state: ws.state }),
   });
   assert.equal(result.error, undefined, `could not run ${CAPTURE}`);
   assert.equal(
@@ -291,7 +282,7 @@ test("a file outside the draft glob is ignored", () => {
       prompt_id: "t",
     }),
     encoding: "utf-8",
-    env: hookEnv(ws.state),
+    env: hookEnv({ state: ws.state }),
   });
   assert.equal(result.status, 0);
   assert.deepEqual(log(ws), []);
@@ -322,7 +313,7 @@ test("two drafts keep separate snapshots", () => {
       prompt_id: "turn-1",
     }),
     encoding: "utf-8",
-    env: hookEnv(ws.state),
+    env: hookEnv({ state: ws.state }),
   });
 
   assert.deepEqual(
