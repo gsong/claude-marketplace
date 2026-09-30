@@ -23,7 +23,7 @@ Distribute uncommitted changes across the current branch's commits via fixup, cr
    - **Always confirm**: Show the inferred base branch to the user and ask for confirmation before proceeding — getting this wrong means fixup commits target the wrong history
 2. **Fork point**: `git merge-base HEAD <base-branch>` — if this fails or returns no result (e.g., on the base branch itself), skip to step 5 and treat all changes as new commits
 3. **Branch commits**: `git log --oneline <fork-point>..HEAD` — if empty (HEAD equals fork point), skip to step 5 and treat all changes as new commits
-4. **Uncommitted changes**: the status list from step 1 (modified, untracked, and deleted files)
+4. **Uncommitted changes**: the `git status --porcelain` list from the pre-flight checks (modified, untracked, and deleted files)
 
 ## 3. Classify changes and map to commits
 
@@ -48,7 +48,7 @@ Before the loop, capture the starting HEAD sha: `start_sha=$(git rev-parse HEAD)
 For each target commit group:
 
 1. Stage the relevant files with `git add <files>` (this also stages deletions when the file is absent from the working tree)
-2. If the changes meaningfully alter the commit's purpose or scope, create an `amend!` commit in two steps: `GIT_EDITOR=true git commit --fixup=amend:<SHA>`, then `git commit --amend` with a new message reflecting the combined change. On rebase this squashes the staged content **and** replaces the target's message. Git rejects `-m` and `-F` alongside `--fixup=amend:`, so the second step is the only way to set the message.
+2. If the changes meaningfully alter the commit's purpose or scope, create an `amend!` commit in two steps: `GIT_EDITOR=true git commit --fixup=amend:<SHA>`, then `git commit --amend -F <file>` with a new message reflecting the combined change (or one `-m` per paragraph; a bare `--amend` opens an editor). On rebase this squashes the staged content **and** replaces the target's message. Git rejects `-m` and `-F` alongside `--fixup=amend:`, so the second step is the only way to set the message.
    - Do **not** use `--fixup=reword:<SHA>` here — `reword:` is shorthand for `--fixup=amend:<SHA> --only` and silently ignores staged content, leaving it to leak into a subsequent commit.
    - **The amended message must keep the `amend!` header line the first step generated** — that line is what autosquash matches on. Write the whole message in this shape:
 
@@ -62,7 +62,7 @@ For each target commit group:
 
      Everything after the first blank line replaces the target's message; the `amend!` line itself is consumed by the rebase.
 3. Otherwise, use `git commit --fixup <SHA>`
-4. **Verify the `amend!` header survived.** Only when you used `--fixup=amend:` — run `git log -1 --format=%s` and confirm the subject starts with `amend! `. If it does not, the message got clobbered: autosquash no longer recognizes the commit and leaves it sitting as an ordinary commit on top, with the target unchanged. Rewrite it with `git commit --amend` in the shape above before going on. This is a message defect, not a content defect — do not unwind for it.
+4. **Verify the `amend!` header survived.** Only when you used `--fixup=amend:` — run `git log -1 --format=%s` and confirm the subject starts with `amend! `. If it does not, the message got clobbered: autosquash no longer recognizes the commit and leaves it sitting as an ordinary commit on top, with the target unchanged. Rewrite it with `git commit --amend -F <file>` in the shape above before going on. This is a message defect, not a content defect — do not unwind for it.
 5. **Verify the fixup captured the expected files.** Run `git show --name-only --format= HEAD` and compare against the files you just staged for this group. If the lists differ (missing or extra paths):
    - Run `git reset --mixed <start_sha>` to unwind every fixup commit created during this run (including earlier groups that already succeeded). This restores HEAD to its pre-skill state and leaves all changes unstaged in the working tree — nothing is lost.
    - Tell the user: `Fixup for <SHA> captured <actual> but expected <staged>. I've unwound all fixups from this run; your changes are back in the working tree. Run /git-tools:commit to commit them manually.`
