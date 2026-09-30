@@ -38,12 +38,7 @@ transcript=${fields[4]}
 
 case $tool in Write | Edit | MultiEdit) ;; *) exit 0 ;; esac
 
-[[ $file == */ai-swap/drafts/* ]] || exit 0
-[[ -f $file ]] || exit 0
-
-rest=${file#*/ai-swap/drafts/}
-profile=${rest%%/*}
-[[ $profile != "$rest" ]] || exit 0
+profile=$(draft_profile "$file") || exit 0
 
 state=$(writing_state_dir)
 snapshots=$state/snapshots

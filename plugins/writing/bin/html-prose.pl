@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 # Flatten an HTML draft to the prose a reader actually sees, for the writing
 # gate to scan.
 #
