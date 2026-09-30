@@ -1,12 +1,12 @@
 ---
 name: marketplace-validate
-description: "Validate every plugin and the marketplace registry for internal consistency, and fix what can be fixed."
+description: "Validate every plugin, the marketplace registry, and the root README for internal consistency, and fix what can be fixed."
 disable-model-invocation: true
 ---
 
 # Marketplace Consistency Validation
 
-Validate that every plugin and the marketplace registry are internally consistent. Runs bottom-up: validate each plugin in parallel, then cross-validate against the marketplace registry. Fixes issues directly when possible.
+Validate that every plugin, the marketplace registry, and the root `README.md` are internally consistent, then fix the issues. Runs bottom-up: validate each plugin in parallel, then cross-validate the registry and the root README against the plugins.
 
 ## Phase 1 — Discovery
 
@@ -14,27 +14,41 @@ Validate that every plugin and the marketplace registry are internally consisten
 2. Run `/bin/ls plugins/` to enumerate actual plugin directories on disk.
 3. Build a working list of all plugins (union of marketplace entries and disk directories).
 
+Done when the working list names every plugin from both sources.
+
 ## Phase 2 — Per-Plugin Validation (Parallel Agents)
 
-Spawn **one Agent per plugin** using the Agent tool. Run all agents in parallel (send all Agent tool calls in a single message).
-
-Use `subagent_type: "general-purpose"` for each agent. Give each agent a descriptive name like `validate-{PLUGIN_NAME}`. Each agent receives this prompt (fill in `{PLUGIN_NAME}` and `{PLUGIN_DIR}`):
+Spawn **one Agent per plugin** in a single message, so they run in parallel. Use `subagent_type: "general-purpose"` and name each agent `validate-{PLUGIN_NAME}`. Each agent receives this prompt (fill in `{PLUGIN_NAME}` and `{PLUGIN_DIR}`):
 
 > Validate the plugin `{PLUGIN_NAME}` at `{PLUGIN_DIR}`. Read `.claude/skills/marketplace-validate/plugin-checks.md` and perform every check in it. Respond in exactly the report format it gives.
 
-## Phase 3 — Marketplace Registry Validation
+Done when every plugin in the working list has returned a report.
 
-After all plugin agents complete, validate the marketplace registry yourself:
+## Phase 3 — Registry and Root README Validation
 
-### marketplace.json cross-checks
+Run these checks yourself. Each ends with its **Fix**, as in `plugin-checks.md`.
 
-1. **Orphan directories**: Every directory under `plugins/` has a corresponding entry in `marketplace.json`
-2. **Phantom entries**: Every entry in `marketplace.json` has a corresponding directory under `plugins/` (resolving `source` relative to the repo root)
-3. **Name consistency**: Each marketplace entry's `name` matches the corresponding `plugin.json` `name`
-4. **Description consistency**: Each marketplace entry's `description` matches the corresponding `plugin.json` `description` (exact match)
-5. **Keyword consistency**: Each marketplace entry's `keywords` match the corresponding `plugin.json` `keywords` (same items, order-independent)
-6. **Author consistency**: Each marketplace entry's `author` matches the corresponding `plugin.json` `author`
-7. **Marketplace metadata**: `metadata.description` names every plugin's domain: for each marketplace entry, one word or phrase in the description covers it. Flag each plugin it leaves out.
+### marketplace.json
+
+1. **Orphan directories**: every directory under `plugins/` has an entry in `marketplace.json`. **Fix:** add the entry, copying `name`, `description`, `author`, and `keywords` from its `plugin.json`; ask for `category`.
+2. **Phantom entries**: every entry has a directory under `plugins/` (resolve `source` relative to the repo root). **Fix: ask.**
+3. **Name consistency**: each entry's `name` matches its `plugin.json` `name`. **Fix: ask.**
+4. **Description consistency**: each entry's `description` matches its `plugin.json` `description` exactly. **Fix:** copy the `plugin.json` value.
+5. **Keyword consistency**: each entry's `keywords` match its `plugin.json` `keywords` (same items, any order). **Fix:** copy the `plugin.json` value.
+6. **Author consistency**: each entry's `author` matches its `plugin.json` `author`. **Fix:** copy the `plugin.json` value.
+7. **Marketplace metadata**: `metadata.description` names every plugin's domain, with one word or phrase per entry. Flag each plugin it leaves out. **Fix:** add the missing domain to the list.
+
+### Root README.md
+
+Each plugin has a `### {PLUGIN_NAME}` section with a blurb, an install block, and a **Skills:** line. It also has a **Hooks:** line when it ships hooks, and a **Requires:** line when it has requirements.
+
+8. **Section coverage**: every marketplace entry has a section, and every section has an entry. **Fix:** add a missing section in the existing format, in alphabetical order; remove a section with no entry.
+9. **Blurb**: the blurb matches the `plugin.json` `description`, with a trailing period. **Fix:** copy the `plugin.json` value.
+10. **Skills line**: it lists `/{PLUGIN_NAME}:{skill}` for exactly the directories under `plugins/{PLUGIN_NAME}/skills/`. **Fix:** add or remove entries to match the directories.
+11. **Hooks line**: present exactly when `plugins/{PLUGIN_NAME}/hooks/hooks.json` exists, and it names every event in that file. **Fix:** rewrite the line from `hooks.json` and the hooks section of the plugin README.
+12. **Requires line**: it names the same tools and plugins as the requirements section of the plugin README (`Prerequisites` or `Requirements`). When the plugin README has no such section, use the skills' `compatibility` fields. A plugin with neither has no Requires line. The line lists names only and links to the plugin README section for details. **Fix:** rewrite the line from the plugin README.
+
+Done when every check above has a verdict for every plugin.
 
 ## Phase 4 — Report
 
@@ -58,22 +72,19 @@ Marketplace Registry
 [✓] All plugin directories have marketplace entries
 ...
 
+Root README
+───────────
+[ ] Skills line: writing — lists /writing:foo, which has no skill directory
+[✓] Every plugin has a section
+...
+
 Summary: X issues found across Y plugins
 ```
 
 ## Phase 5 — Fix
 
-If any issues were found:
+Apply the **Fix** that each issue carries, using the Edit tool. Collect every issue marked **Fix: ask** and put them to the user in one `AskUserQuestion` call, then apply their answers.
 
-1. Group issues by type (description mismatches, missing README entries, frontmatter problems, etc.)
-2. Fix each issue directly using the Edit tool:
-   - **Description mismatches**: Use the plugin.json value as the source of truth for marketplace.json; use the SKILL.md body as the source of truth for skill descriptions
-   - **Missing README entries**: Add them following the existing README format for that plugin
-   - **Orphan README entries**: Remove them
-   - **Keyword mismatches**: Use plugin.json as the source of truth
-   - **Missing frontmatter fields**: Add them based on the skill content
-   - **Preamble inaccuracies**: Rewrite the description to accurately reflect the skill body
-3. After all fixes, present a summary of changes made
-4. For issues that can't be auto-fixed (e.g., ambiguous intent), report them and ask the user
+Leave the fixes uncommitted in the working tree for the user to review, and finish with a summary of the edits made.
 
-Leave the fixes uncommitted in the working tree for the user to review.
+Done when every issue in the Phase 4 report is fixed, answered by the user, or listed as open in the summary.
