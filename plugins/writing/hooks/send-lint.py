@@ -205,9 +205,6 @@ def _is_finding(line: str) -> bool:
 
 
 def _format(reports: list[tuple[str, list[str]]]) -> str:
-    if len(reports) == 1:
-        label, lines = reports[0]
-        return f"[{label}]\n" + "\n".join(lines)
     return "\n\n".join(f"[{label}]\n" + "\n".join(lines) for label, lines in reports)
 
 
