@@ -1,6 +1,7 @@
 ---
 name: "init"
-description: "Bootstraps a docs-ai/ directory — analyzes the project, generates docs with auto-populated content, builds the README topic index, and stamps everything. Proposes one docs-ai/ per workspace in a monorepo. When docs already exist, offers a fresh start or a refresh that adds missing docs, flags extraneous ones, and keeps relevant content. Use when the user wants to bootstrap, initialize, or re-scaffold AI-optimized documentation for a project, or set up a docs-ai directory."
+description: "Bootstrap or refresh a docs-ai/ directory, one per workspace in a monorepo, with content generated from code analysis."
+disable-model-invocation: true
 ---
 
 # Initialize Docs AI
@@ -50,6 +51,8 @@ The analyst produces:
 
 Show analysis to user with recommendations. Ask for approval/modifications before creating files.
 
+In refresh mode, present the recommendations as three lists against the existing docs: add, keep, extraneous (with rationale).
+
 User can:
 
 - Accept all recommendations
@@ -71,23 +74,13 @@ Create the directory at the location confirmed in step 1. The directory it sits 
 
 ### 5. Auto-Populate Content
 
-Spawn content-writer agents (general-purpose type — writers need Write, which Explore lacks; parallelized, ~3-4 docs per agent). Each writer:
+Spawn content-writer agents, parallelized, ~3-4 docs per agent, each given the source files the analyzer identified for its docs and this brief:
 
-- Reads the relevant source files identified by the analyzer
-- Writes real content using `file::Symbol` references (not code blocks), with paths relative to `[path-root]` — for `apps/woody/docs-ai/`, write `app/routes.ts::routes`, not `apps/woody/app/routes.ts::routes`
-- Keeps it concise — lookup reference, not tutorial
-- Marks unpopulatable sections with rich stubs:
+!`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/doc-writer-brief.md"`
 
-  ```markdown
-  ## [Section Name]
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/doc-writer-brief.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
-  <!-- NEEDS CONTENT: Describe [specific thing].
-       Start by reading: src/auth/middleware.ts::authMiddleware
-       Key questions to answer:
-       - How are tokens validated?
-       - What's the refresh flow?
-       Example format: "Tokens are validated via file::Symbol. Refresh uses..." -->
-  ```
+In refresh mode a writer reads the existing doc first; every section whose `file::Symbol` references still resolve stays, sections describing removed code go, new sections are added.
 
 ### 6. Generate README.md
 
@@ -107,9 +100,7 @@ Populate `[docs-dir]/README.md` following this format exactly.
 
 > **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/verification-stamp.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
-Stamp every file in the docs directory (including README.md and quick-reference.md). The stamp records which commit the docs were generated against. ai-docs:check and ai-docs:lookup use it as the staleness baseline.
-
-If the working tree has uncommitted changes, note in the summary that docs were generated against HEAD plus uncommitted changes.
+Stamp every file in the docs directory (including README.md and quick-reference.md).
 
 ### 8. Summary
 
@@ -121,6 +112,4 @@ Show:
 
 ## Execution Notes
 
-- Create all files using Write tool
-- Do not create `.claude/agents/` or modify `.claude/CLAUDE.md` — the plugin handles ai-docs:lookup and reminders via its built-in skill and hook
-- Use `file::Symbol` references throughout (e.g., `src/store/useAppStore.ts::useAppStore`), not code blocks
+- The docs directory is the whole deliverable; the plugin's hook and lookup skill are the only wiring, so leave `.claude/` untouched
