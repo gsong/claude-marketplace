@@ -51,6 +51,6 @@ Show the user the `package.json` and lockfile (`pnpm-lock.yaml`) diff so they ca
 
 ## Important Notes
 
-- This skill updates dependencies and runs tests only. Stop after editing; the user commits.
+- This skill edits dependency files, plus `pnpm-workspace.yaml` if the user accepts step 1, and runs tests. Stop after editing; the user commits.
 - Works for both single-project repos and pnpm workspaces/monorepos (`-r` is safe in both contexts)
 - **Release-age cool-down**: pnpm natively honors the `minimumReleaseAge` setting in `pnpm-workspace.yaml`. It applies to all dependencies including transitive ones during resolution, so `pnpm up` will skip any release still inside the cool-down window automatically — no extra flag needed. This is the primary supply-chain guard for third-party packages.
