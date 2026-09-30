@@ -143,7 +143,7 @@ A body over about 80 words, or one that breaks these rules, is a `reword` even w
 
 Skip this if the `writing:draft` skill is not available. Nothing else changes when it is absent.
 
-When it is available, read the Judgment section of `technical.md` in the rules directory, plus every file in `~/.claude/writing-line/references/`. The rules directory is `~/.claude/writing-line/rules/` if it exists, else the writing plugin's defaults: the highest version of `~/.claude/plugins/cache/*/writing/*/defaults/rules/`. Write `suggested_body` to those rules. Ignore the Greppable blocks — they are the gate's business, not yours.
+When it is available, follow "Loading the rules" in `${CLAUDE_PLUGIN_ROOT}/references/voice-gate.md`. Write `suggested_body` to those rules.
 
 ---
 

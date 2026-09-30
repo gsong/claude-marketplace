@@ -35,3 +35,14 @@ The gate is a PostToolUse hook. It fires on any write under `ai-swap/drafts/<pro
    once the draft is gone. Leave the file behind instead and the next run on this PR
    diffs its fresh bodies against this run's, which records the whole file as if you had
    corrected it.
+
+## Loading the rules
+
+A skill that writes bodies without running the gate reads the `technical` rules itself.
+
+1. **Find the rules directory.** It is the first of these that exists, and it replaces the others whole:
+   1. `$WRITING_LINE_RULES`
+   2. `~/.claude/writing-line/rules/`
+   3. The writing plugin's `defaults/rules/`. `${CLAUDE_PLUGIN_ROOT}` names gh-tools here, not writing. Take the highest version of `~/.claude/plugins/cache/*/writing/*/defaults/rules/`. If none exists, the plugin was loaded from a local directory: invoke `writing:draft`, and use `defaults/rules/` two levels above the base directory it reports.
+2. **Read the Judgment section of `technical.md`** in that directory. Ignore the Greppable block. It is the gate's business, not yours. Skip `common.md`. It carries no Judgment section, by design.
+3. **Read every reference file**: first `~/.claude/writing-line/references/`, then `<repo>/.claude/writing-line/references/` if the repo has one. A project term overrides a global term of the same name.
