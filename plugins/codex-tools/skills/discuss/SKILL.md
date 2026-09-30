@@ -1,7 +1,7 @@
 ---
 name: "discuss"
 description: "Runs a multi-round dialogue between Claude and Codex and writes the outcome as a consensus document (consensus.md). Use when the user wants Claude and Codex to discuss a topic or reach consensus."
-compatibility: "Requires the Codex CLI, reached through the codex:rescue runtime."
+compatibility: "Requires the Codex CLI, reached through the codex:codex-rescue agent."
 ---
 
 # Discuss with Codex

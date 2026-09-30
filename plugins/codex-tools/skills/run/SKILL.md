@@ -1,12 +1,12 @@
 ---
 name: "run"
-description: "Assembles a self-contained prompt and delegates it to OpenAI's Codex agent via the codex:rescue runtime. Use when the user asks to run Codex, delegate a task to it, or get its second opinion."
-compatibility: "Requires the Codex CLI, reached through the codex:rescue runtime."
+description: "Assembles a self-contained prompt and delegates it to OpenAI's Codex through the codex:codex-rescue agent. Use when the user asks to run Codex, delegate a task to it, or get its second opinion."
+compatibility: "Requires the Codex CLI, reached through the codex:codex-rescue agent."
 ---
 
 # Run Codex
 
-Delegate tasks to OpenAI's Codex agent through the codex:rescue runtime.
+Delegate tasks to OpenAI's Codex through the codex:codex-rescue agent.
 
 ## Process
 
