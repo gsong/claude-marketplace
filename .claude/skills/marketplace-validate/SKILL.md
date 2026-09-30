@@ -83,7 +83,7 @@ Summary: X issues found across Y plugins
 
 ## Phase 5 — Fix
 
-Apply the **Fix** that each issue carries, using the Edit tool. Collect every issue marked **Fix: ask** and put them to the user in one `AskUserQuestion` call, then apply their answers.
+Apply the **Fix** that each issue carries, using the Edit tool. Collect every issue marked **Fix: ask** and put them to the user in one `AskUserQuestion` call, then apply their answers. Hold any fix that builds on an ask issue — such as documenting a hook event whose name is in question — until that answer is in, and apply it from the answer.
 
 Leave the fixes uncommitted in the working tree for the user to review, and finish with a summary of the edits made.
 
