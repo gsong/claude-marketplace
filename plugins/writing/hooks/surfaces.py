@@ -52,6 +52,40 @@ def surface_for(tool_name: str) -> Surface | None:
     return None
 
 
+def published_paths(tool_input: dict, cwd: Path) -> list[Path]:
+    """The local files an Artifact publish sends: `file_path` plus every source
+    in `files`, resolved against `root` (else cwd). Missing files are dropped."""
+    root = Path(tool_input["root"]) if tool_input.get("root") else cwd
+    if not root.is_absolute():
+        root = cwd / root
+
+    sources: list[str] = []
+    if tool_input.get("file_path"):
+        sources.append(tool_input["file_path"])
+    files = tool_input.get("files")
+    if isinstance(files, dict):
+        for value in files.values():
+            if isinstance(value, str):
+                sources.append(value)
+            elif isinstance(value, dict) and value.get("from"):
+                sources.append(value["from"])
+    elif isinstance(files, list):
+        for item in files:
+            if isinstance(item, str):
+                sources.append(item)
+            elif isinstance(item, dict) and item.get("path"):
+                sources.append(item["path"])
+
+    paths = []
+    for source in sources:
+        path = Path(source).expanduser()
+        if not path.is_absolute():
+            path = root / path
+        if path.is_file():
+            paths.append(path)
+    return paths
+
+
 # --- extractors --------------------------------------------------------
 
 
@@ -144,40 +178,6 @@ def _artifact(tool_input: dict, cwd: Path) -> Extract:
             continue
         texts += _strings((str(path), body), html=suffix in {".html", ".htm"})
     return Extract(texts)
-
-
-def published_paths(tool_input: dict, cwd: Path) -> list[Path]:
-    """The local files an Artifact publish sends: `file_path` plus every source
-    in `files`, resolved against `root` (else cwd). Missing files are dropped."""
-    root = Path(tool_input["root"]) if tool_input.get("root") else cwd
-    if not root.is_absolute():
-        root = cwd / root
-
-    sources: list[str] = []
-    if tool_input.get("file_path"):
-        sources.append(tool_input["file_path"])
-    files = tool_input.get("files")
-    if isinstance(files, dict):
-        for value in files.values():
-            if isinstance(value, str):
-                sources.append(value)
-            elif isinstance(value, dict) and value.get("from"):
-                sources.append(value["from"])
-    elif isinstance(files, list):
-        for item in files:
-            if isinstance(item, str):
-                sources.append(item)
-            elif isinstance(item, dict) and item.get("path"):
-                sources.append(item["path"])
-
-    paths = []
-    for source in sources:
-        path = Path(source).expanduser()
-        if not path.is_absolute():
-            path = root / path
-        if path.is_file():
-            paths.append(path)
-    return paths
 
 
 def _gh(tool_input: dict, cwd: Path) -> Extract:
