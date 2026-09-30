@@ -4,55 +4,18 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { hookEnv } from "./helpers.mjs";
+
 const PLUGIN = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PROMOTE = join(PLUGIN, "hooks", "promote.sh");
 const DEFAULT_RULES = join(PLUGIN, "defaults", "rules");
 const FIXTURE_RULES = mkdtempSync(join(tmpdir(), "wl-prom-rules-"));
-
-// A jq reached through a mise shim reads its trust list from HOME, so it
-// fails under the stand-in HOME some tests use. Those runs get a directory
-// first on PATH that holds only the first jq on PATH that is not a shim.
-const JQ_DIR = (() => {
-  for (const dir of (process.env.PATH ?? "").split(":")) {
-    if (!dir || dir.includes("/mise/shims")) continue;
-    const jq = join(dir, "jq");
-    if (!existsSync(jq)) continue;
-    const bin = mkdtempSync(join(tmpdir(), "wl-bin-"));
-    symlinkSync(jq, join(bin, "jq"));
-    return bin;
-  }
-  return null;
-})();
-
-// Any WRITING_LINE_* the caller has set is dropped, so the state directory is
-// always the one the test made. Passing rules as null leaves
-// WRITING_LINE_RULES unset, and the rules then resolve through HOME, which
-// such a test points at a directory it controls.
-function hookEnv(dir, { rules = FIXTURE_RULES, home } = {}) {
-  const env = { ...process.env, CLAUDE_PLUGIN_ROOT: PLUGIN };
-  for (const key of Object.keys(env)) {
-    if (key.startsWith("WRITING_LINE_")) delete env[key];
-  }
-  env.WRITING_LINE_STATE = dir;
-  if (rules !== null) env.WRITING_LINE_RULES = rules;
-  if (home !== undefined) {
-    env.HOME = home;
-    if (JQ_DIR) env.PATH = `${JQ_DIR}:${env.PATH}`;
-  }
-  return env;
-}
 
 let turn = 0;
 function correction(reason, { profile = "technical", promptId } = {}) {
@@ -77,7 +40,10 @@ function state(corrections) {
   return dir;
 }
 
-function promote(dir, { stopHookActive = false, rules, home } = {}) {
+function promote(
+  dir,
+  { stopHookActive = false, rules = FIXTURE_RULES, home } = {},
+) {
   const result = spawnSync(PROMOTE, {
     input: JSON.stringify({
       hook_event_name: "Stop",
@@ -85,7 +51,7 @@ function promote(dir, { stopHookActive = false, rules, home } = {}) {
       session_id: "s1",
     }),
     encoding: "utf-8",
-    env: hookEnv(dir, { rules, home }),
+    env: hookEnv({ state: dir, rules, home }),
   });
   assert.equal(result.error, undefined, `could not run ${PROMOTE}`);
   assert.equal(
