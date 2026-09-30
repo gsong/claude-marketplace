@@ -1,6 +1,6 @@
 ---
 name: "pnpm"
-description: "Upgrade the pnpm version itself across every reference in the project, respecting minimumReleaseAge. Use when the user asks to upgrade, update, or bump the pnpm version itself (not project dependencies — use repo-maintenance:pnpm-deps for that), or wants to update pnpm version references across a project."
+description: "Upgrade the pnpm version itself across every reference in the project, respecting minimumReleaseAge. Use when the user asks to upgrade the pnpm version itself (not project dependencies — use repo-maintenance:pnpm-deps for that)."
 compatibility: "Requires npm (for `npm view`) and network access to the npm registry."
 argument-hint: "[version]"
 ---
@@ -43,7 +43,7 @@ This returns a JSON object mapping version strings to ISO 8601 release timestamp
 2. Filter out:
    - Pre-release versions (any version containing `-alpha`, `-beta`, `-rc`, or similar suffixes)
    - The special keys `created` and `modified`
-3. Filter to versions where `now - release_date >= minimumReleaseAge` in minutes (using the resolved constraint, which is always set — either from config or the 7-day default)
+3. Filter to versions where `now - release_date >= minimumReleaseAge` in minutes, using the constraint resolved in step 3
 4. From remaining versions, select the one with the highest semver
 5. If the selected version equals the current version, inform the user: "pnpm is already at the latest eligible version ({version})." and stop
 6. Report the resolved version and its release date
@@ -74,9 +74,11 @@ Use Grep to search the entire repo for the current version string in pnpm-relate
 - `dist/`
 - `build/`
 
-**Verify context:** For each match, confirm it is actually a pnpm version reference by examining the surrounding context. Do NOT replace version strings that happen to match but are for unrelated packages.
+**Verify context:** For each match, confirm it is actually a pnpm version reference by examining the surrounding context.
 
 **Present findings:** Show the user each file and line where a pnpm version reference was found, and the planned replacement.
+
+**Confirm:** Use AskUserQuestion to confirm the planned replacements.
 
 **Update references:**
 
@@ -86,11 +88,9 @@ Use the Edit tool to replace the current version with the target version in each
 
 ### 6. Verify no remaining old references
 
-Re-run the same Grep searches from step 5 using the old version string. If any matches remain (excluding `pnpm-lock.yaml`, `node_modules/`, `.git/`, `dist/`, `build/`), flag them to the user for manual review.
+Re-run the step 5 searches, same exclusions, with the old version string. If any matches remain, flag them to the user for manual review.
 
 ## Important Notes
 
 - This skill updates pnpm version **references** only — it does not run `pnpm install` or update `pnpm-lock.yaml`
-- Pre-release versions are only used when explicitly requested by the user
-- The skill does not perform git operations (branch, commit, push, PR) — the user handles those
-- When searching for version references, always verify the match is in a pnpm context to avoid false positives
+- Stop after editing; the user commits.
