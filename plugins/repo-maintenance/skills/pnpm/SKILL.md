@@ -43,7 +43,7 @@ This returns a JSON object mapping version strings to ISO 8601 release timestamp
 2. Filter out:
    - Pre-release versions (any version containing `-alpha`, `-beta`, `-rc`, or similar suffixes)
    - The special keys `created` and `modified`
-3. Filter to versions where `now - release_date >= minimumReleaseAge` in minutes, using the constraint resolved in step 3
+3. Filter to versions where `now - release_date >= minimumReleaseAge` in minutes, using the constraint from step 3 (Resolve minimumReleaseAge)
 4. From remaining versions, select the one with the highest semver
 5. If the selected version equals the current version, inform the user: "pnpm is already at the latest eligible version ({version})." and stop
 6. Report the resolved version and its release date
@@ -53,7 +53,7 @@ This returns a JSON object mapping version strings to ISO 8601 release timestamp
 1. Check that the version exists in the registry data — if not, abort: "Version {version} not found in npm registry"
 2. If the version contains a pre-release suffix (alpha, beta, rc), warn: "Warning: {version} is a pre-release version."
 3. Calculate the version's age from its release date
-4. If the version's age is less than the resolved minimumReleaseAge (config or 7-day default), warn with specifics: "Warning: Version {version} was released {age} ago but minimumReleaseAge requires {constraint}." Then use AskUserQuestion to ask whether to proceed anyway
+4. If the version's age is less than the resolved minimumReleaseAge, warn with specifics: "Warning: Version {version} was released {age} ago but minimumReleaseAge requires {constraint}." Then use AskUserQuestion to ask whether to proceed anyway
 5. Report the target version and its release date
 
 ### 5. Find and update all pnpm version references
