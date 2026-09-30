@@ -2,7 +2,7 @@
 
 Runs the writing-line gate on comment bodies before they reach GitHub. Read this only when `~/.claude/skills/writing-line/` exists. The calling skill names the draft file, under `ai-swap/drafts/technical/`.
 
-This is the last point before the text reaches GitHub, and it is the only one that sees every source: findings from `gh-tools:review` and from `codex-tools:review` both arrive here. Gating here also gates exactly what ships, since triage has already dropped everything the user rejected.
+This is the last point before the text reaches GitHub, so gating here gates exactly what ships. For `post-comments`, it is also the only point that sees every source: findings from `gh-tools:review` and from `codex-tools:review` both arrive here, after triage has dropped everything the user rejected. For `address-review`, the bodies are replies the skill wrote itself.
 
 The gate is a PostToolUse hook. It fires on any write under `ai-swap/drafts/<profile>/`, so writing the bodies there is what runs it.
 
