@@ -22,7 +22,7 @@ Long items, such as an artifact or a doc, go through fixed stages. Claude drafts
 | `PostToolUse` | `capture.sh`      | Logs each edit to a draft next to the instruction that caused it. Silent.                                                                         |
 | `Stop`        | `promote.sh`      | Counts the logged corrections. When one pattern recurs, it surfaces that pattern once and asks where it belongs.                                  |
 | `PreToolUse`  | `send-lint.sh`    | Lints outgoing text on Slack, Gmail drafts, Claude Docs, Google Drive, artifacts, and `gh` PR and issue text. See below.                          |
-| `PreToolUse`  | `smart-quotes.py` | Denies an artifact publish, Slack canvas, Claude Doc, or Google Drive file whose prose holds straight quotes (`'` or `"`).                        |
+| `PreToolUse`  | `smart-quotes.sh` | Denies an artifact publish, Slack canvas, Claude Doc, or Google Drive file whose prose holds straight quotes (`'` or `"`).                        |
 
 Most sends get an advisory note. A send you cannot take back is different. That means a Slack message, sent or scheduled, or a `gh` comment, review, or PR body. When the lint finds violations, the send is bounced once. Claude sees the findings before the text goes out. It fixes what is a real violation, or keeps the text, and sends again. The retry always goes through.
 
@@ -60,7 +60,7 @@ Your directory must hold all four files. It replaces the defaults whole, so a mi
 
 - `jq`
 - `perl` at `/usr/bin/perl`
-- [`uv`](https://docs.astral.sh/uv/), for `send-lint.py` and `smart-quotes.py`
+- [`uv`](https://docs.astral.sh/uv/), for `send-lint.py` and `smart-quotes.py`. Without it, both hooks stay silent.
 
 ## Installation
 

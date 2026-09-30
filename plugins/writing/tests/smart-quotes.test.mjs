@@ -1,4 +1,4 @@
-// Drives hooks/smart-quotes.py as a subprocess, the way Claude Code invokes it:
+// Drives hooks/smart-quotes.sh as a subprocess, the way Claude Code invokes it:
 // the PreToolUse payload arrives on stdin, and a deny comes back on stdout when
 // visible text holds a straight quote. Silence means the call goes through.
 
@@ -11,7 +11,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const HOOK = join(HERE, "..", "hooks", "smart-quotes.py");
+const HOOK = join(HERE, "..", "hooks", "smart-quotes.sh");
 
 const CANVAS = "mcp__plugin_slack_slack__slack_create_canvas";
 const CANVAS_UPDATE = "mcp__plugin_slack_slack__slack_update_canvas";
@@ -19,10 +19,11 @@ const DOCS = "mcp__claude_ai_Claude_Docs__batch";
 const DRIVE = "mcp__claude_ai_Google_Drive__create_file";
 
 // Returns the deny reason, or null when the hook lets the call through.
-function guard(payload) {
+function guard(payload, env = process.env) {
   const result = spawnSync(HOOK, {
     input: typeof payload === "string" ? payload : JSON.stringify(payload),
     encoding: "utf-8",
+    env,
   });
   assert.equal(result.error, undefined, `could not run ${HOOK}`);
   assert.equal(
@@ -235,4 +236,12 @@ test("a malformed payload passes silently", () => {
   assert.equal(guard("not json"), null);
   assert.equal(guard(""), null);
   assert.equal(guard({ tool_name: CANVAS, tool_input: { content: 42 } }), null);
+});
+
+test("without uv on PATH, the hook stays silent", () => {
+  const payload = {
+    tool_name: CANVAS,
+    tool_input: { title: "T", content: 'She said "hi".' },
+  };
+  assert.equal(guard(payload, { ...process.env, PATH: "/usr/bin:/bin" }), null);
 });
