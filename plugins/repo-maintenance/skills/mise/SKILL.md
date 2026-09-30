@@ -1,6 +1,6 @@
 ---
 name: "mise"
-description: "Upgrade mise-managed tool versions in mise.toml, respecting minimum_release_age. Use when the user asks to upgrade, update, or bump mise-managed tool versions in `mise.toml`, or wants to check for outdated tools managed by mise."
+description: "Upgrade mise-managed tool versions in mise.toml, respecting minimum_release_age. Use when the user asks to bump mise-managed tools or check which are outdated."
 compatibility: "Requires mise and network access to resolve tool versions."
 ---
 
@@ -26,8 +26,8 @@ Mise supports a [`minimum_release_age`](https://mise.jdx.dev/configuration/setti
 
 **If not set in mise config**, check for a project-wide cool-down hint to recommend aligning:
 
-1. Read `${CLAUDE_PLUGIN_ROOT}/references/release-age.md`, resolve the project-wide value (for renovate `packageRules`, match entries covering mise-managed tools), and convert to mise's `Nd`/`Nh`/`Nm` format (e.g., `10080` minutes → `7d`). Deliberate divergence from the reference: do **not** apply the 7-day default here — this step only mirrors an explicit project policy.
-2. If a project-wide value is found, recommend adding `minimum_release_age = "Nd"` under `[settings]` in `mise.toml` to align mise with the existing policy — this recommendation is deliberate, since mise only honors the cool-down from its own config. Use AskUserQuestion to confirm before editing.
+1. Read `${CLAUDE_PLUGIN_ROOT}/references/release-age.md`, resolve the project-wide value (for renovate `packageRules`, match entries covering mise-managed tools), and convert to mise's `Nd`/`Nh`/`Nm` format (e.g., `10080` minutes → `7d`). Only an explicit project value counts here; the reference's 7-day default stays out of `mise.toml`, because mise honors a cool-down only from its own config.
+2. If a project-wide value is found, recommend adding `minimum_release_age = "Nd"` under `[settings]` in `mise.toml` to align mise with the existing policy. Use AskUserQuestion to confirm before editing.
 3. If no project-wide value is found, inform the user that mise will resolve `latest` pins immediately and proceed without adding the setting.
 
 ### 3. Check for outdated tools
@@ -41,7 +41,7 @@ Run: `mise outdated --bump`
 
 ### 4. Research significant updates
 
-For tools with major or minor version changes, research changelogs and release notes for new features and breaking changes that could affect this project. Present findings to the user before proceeding.
+For every major or minor bump, present either the breaking changes found or an explicit 'no changelog located'.
 
 ### 5. Confirm with user
 
@@ -61,19 +61,15 @@ Based on the user's choice:
 Notes on flags:
 
 - `--bump` rewrites the version pin in `mise.toml` to the latest available version. Without it, `mise upgrade` keeps the pinned range and only installs newer matching versions, which would not update `mise.toml`.
-- `--dry-run` / `-n` previews changes without applying. Useful if the user wants to inspect the plan before committing.
-- `--interactive` / `-i` shows a selection menu — only use this if the user is at the terminal and explicitly wants it.
-- `--minimum-release-age <DURATION>` overrides the setting for a single invocation, if the user wants a one-off stricter or looser cool-down.
+- Run it non-interactively.
 
 ### 7. Verify
 
 1. Run `mise outdated --bump` again to confirm the targeted tools are now up to date.
 2. Show the user the diff of `mise.toml` so they can see exactly what was bumped.
-3. Remind the user that some tools may need their per-project lockfiles, caches, or dependencies regenerated (e.g., reinstalling node_modules after a Node bump).
+3. Search the repo for each bumped tool's old version outside `mise.toml` (`.tool-versions`, `.nvmrc`, Dockerfiles, GitHub Actions `setup-*` steps). List every hit for the user to sync by hand.
+4. Remind the user that some tools may need their per-project lockfiles, caches, or dependencies regenerated (e.g., reinstalling node_modules after a Node bump).
 
 ## Important Notes
 
-- This skill updates `mise.toml` only — it does not perform git operations (branch, commit, push, PR).
-- `mise upgrade --bump` mutates `mise.toml` in place. There is no separate "references" sweep like the `pnpm` skill — `mise.toml` is the single source of truth.
-- `minimum_release_age` only filters fuzzy version requests (`latest`, `node@22`); exact pins (`node@22.5.0`) bypass it intentionally.
-- If the project also pins tool versions outside `mise.toml` (e.g., `.tool-versions`, `.nvmrc`, Dockerfiles, GitHub Actions `setup-*` steps), those will not be touched. Flag any such drift to the user for manual sync.
+- This skill updates `mise.toml` only. Stop after editing; the user commits.

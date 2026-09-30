@@ -1,6 +1,6 @@
 ---
 name: "zizmor"
-description: "Run a zizmor security audit of GitHub Actions workflows and offer fixes for the findings. Use when the user asks to run a security audit on GitHub Actions workflows, check CI/CD pipeline security, scan for workflow vulnerabilities, or use zizmor."
+description: "Run a zizmor security audit of GitHub Actions workflows and offer fixes for the findings. Use when the user asks to audit GitHub Actions workflow security or use zizmor."
 compatibility: "Requires zizmor. The gh CLI and network access enable its online audits; without them it falls back to --offline."
 ---
 
@@ -12,7 +12,7 @@ Run a security audit of GitHub Actions workflows using zizmor, a static analysis
 
 1. **Pre-flight checks:**
    - **Check zizmor is available**: Run `command -v zizmor`. If not installed, abort: "zizmor is not installed — see https://docs.zizmor.sh/installation/"
-   - **Check there's something to audit**: Verify `.github/workflows/` exists, or a root `action.yml`/`action.yaml`. If neither, abort: "This repo has no GitHub Actions workflows or action definitions to audit."
+   - **Check there's something to audit**: Verify `.github/workflows/` exists, or a root `action.yml`/`action.yaml`. If neither, abort: "This repo has no GitHub Actions workflows or action definitions to audit." Auditing `.` collects workflow files, `action.yml`/`action.yaml` definitions, and `dependabot.yml` (zizmor's default `--collect` behavior) — not just `.github/workflows/`
 
 2. **Run the audit:**
    - If `gh` is authenticated, execute: `GH_TOKEN=$(gh auth token) zizmor .` — passing the token via the environment keeps it out of process listings
@@ -21,15 +21,14 @@ Run a security audit of GitHub Actions workflows using zizmor, a static analysis
    - Present the full audit output to the user before proceeding
 
 3. **Research findings:**
-   - For each unique finding type, fetch the relevant documentation from https://docs.zizmor.sh/audits/
-   - Use the WebFetch tool to get specific guidance for each audit type
+   - For each unique finding type, WebFetch its page under https://docs.zizmor.sh/audits/
    - Group findings by type, severity, and affected workflow files
    - Present findings to the user with security implications and recommended mitigations
 
 4. **Offer to apply fixes:**
-   - Ask if the user wants to apply the recommended fixes
-   - If approved, make the necessary changes to the workflow files
-   - Re-run the audit to verify the fixes resolved the issues
+   - Use AskUserQuestion: fix all, fix a subset, or stop
+   - Edit the workflow files by hand (zizmor's `--fix` is experimental)
+   - Re-run the audit; done when no approved finding remains
 
 ## Output
 
@@ -42,11 +41,3 @@ Present findings in a structured format:
   - Security implication
   - Recommended fix with code example
 - **Next steps:** Clear action items for remediation
-
-## Important Notes
-
-- GitHub authentication is only needed for zizmor's online audits — `--offline` (or `--no-online-audits`) runs the static checks without it
-- Auditing `.` collects workflow files, `action.yml`/`action.yaml` definitions, and `dependabot.yml` (zizmor's default `--collect` behavior) — not just `.github/workflows/`
-- zizmor's `--fix` flag is experimental — prefer manual edits, which keep the user in control of each change
-- Prioritize high-severity findings first
-- Verify changes don't break existing workflows
