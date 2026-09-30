@@ -467,7 +467,9 @@ def _strings(*pairs: tuple[str, object], html: bool = False) -> list[Text]:
 
 # --- the table ---------------------------------------------------------
 # Matched against tool_name with re.search, first hit wins. hooks.json decides
-# which tools reach the hooks at all; this decides what each one says.
+# which tools reach the hooks at all; this decides what each one says. A new
+# row also needs both hooks.json matchers, the README hook table, and a sample
+# tool name in tests/surfaces.test.mjs, which checks the matchers against it.
 
 SURFACES = [
     Surface(r"__slack_(send_message|schedule_message)$", "comms", True, _slack_message),
