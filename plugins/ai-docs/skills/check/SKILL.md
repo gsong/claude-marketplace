@@ -1,11 +1,14 @@
 ---
 name: "check"
-description: "Check documentation freshness and detect drift, returning a staleness report with recommended actions. Read-only — modifies nothing. Use when the user wants to know which docs-ai/ files may be outdated relative to code changes."
+description: "Report which docs-ai/ files are stale relative to their Key Paths. Read-only."
+disable-model-invocation: true
 ---
 
 # Check Docs AI Freshness
 
 Orchestrated documentation freshness check using parallel per-doc checker agents. Three phases: discovery → parallel checking fanout → consolidated report.
+
+Every file stays as found; the report is the only output.
 
 ## Process
 
@@ -48,48 +51,26 @@ Each checker agent's prompt must include:
 
 Each checker performs:
 
-**If git is available:**
+1. Resolve each Key Path as `[path-root]/[key-path]` and Glob it. Count commits only for paths that resolve; if none resolve, rate `unresolved` and stop.
 
-1. Establish the baseline. Read the doc's first line. If it is a verification stamp:
+2. **If git is available**, establish the baseline and count changes:
 
-```markdown
-<!-- verified-against: [full-commit-sha] -->
-```
+   !`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/staleness-baseline.md"`
 
-and the SHA is a known commit (`git cat-file -e [sha]^{commit}` succeeds), use that SHA as the baseline. The stamp is the commit the doc was last generated or verified against — it is more precise than the doc's own git timestamp.
+   > **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/staleness-baseline.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
-2. If there is no stamp (or the SHA is unknown, e.g. after a rebase or in a shallow clone), fall back to the doc's last-modified commit:
+3. If any Key Path count is greater than zero, flag as potentially stale.
 
-```
-git log -1 --format=%H -- [docs-dir]/[filename].md
-```
+4. Spot-check 3-5 `file::Symbol` references from the doc (git or not):
 
-Note in the result that the doc is unstamped.
-
-3. For each Key Path in the doc's topic table row, count commits since the baseline. Key Paths are relative to `[path-root]`, so join first:
-
-```
-git rev-list --count [baseline]..HEAD -- [path-root]/[key-path]
-```
-
-4. If any Key Path count is greater than zero, flag as potentially stale.
-
-Read a zero count as "unchanged" only for a path that exists. Git prints `0` for a path it has never seen, so an unjoined or misspelled path looks exactly like a fresh doc. Confirm the path resolves (step 6) before you trust its count — this is the one failure mode that makes the whole report a quiet lie.
-
-**Always (git or not):**
-
-5. Spot-check 3-5 `file::Symbol` references from the doc:
-
-- Does the referenced file exist? (use Glob)
-- Does the referenced symbol exist in that file? (use Grep)
-
-6. Check if Key Path files/directories still exist (use Glob on `[path-root]/[key-path]`)
+   - Does the referenced file exist? (use Glob)
+   - Does the referenced symbol exist in that file? (use Grep)
 
 **Each checker returns a structured result:**
 
 - Doc filename
 - Rating: `fresh`, `possibly stale`, `likely stale`, or `unresolved`
-- Baseline used: stamp SHA or doc timestamp fallback (unstamped)
+- Baseline used: stamp SHA or the doc's last-modified commit (unstamped)
 - Key Path change details (commits behind, if git available)
 - Broken references (list of `file::Symbol` that failed validation)
 - Missing Key Paths (files/directories that no longer exist)
@@ -139,10 +120,3 @@ Checked [docs-dir] (path root [path-root])
 - Run `/ai-docs:audit` for comprehensive review ([N] docs need attention)
 [If any docs are unstamped: "- [N] docs have no verification stamp. Run `/ai-docs:audit` to verify and stamp them."]
 ```
-
-## Critical Rules
-
-- **Read-only** — do not modify any files
-- Never rate a doc `fresh` on git counts alone — a zero count on a path that does not resolve means the check did not run
-- Be specific about what's broken (which references, which Key Paths)
-- If git is unavailable, clearly state this limitation in the report header

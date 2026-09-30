@@ -3,7 +3,7 @@ Resolving docs produces **two** values. Every skill needs both:
 - `[docs-dir]` — the directory holding the docs and their `README.md`.
 - `[path-root]` — the directory that `Key Paths` in that README are relative to. Get it by stripping the recognized directory name from `[docs-dir]` — the whole name, not one level: `docs-ai/`, `docs/ai/`, and `.claude/docs/` all leave the same `[path-root]`. Taking the parent instead works only for `docs-ai/` and silently points inside the docs tree for the other two.
 
-`[path-root]` matters because Key Paths are written relative to the code they describe, not to wherever the command happens to run. In a monorepo, `apps/woody/docs-ai/README.md` lists `app/routes.ts`, and the real file is `apps/woody/app/routes.ts`. Join before you Glob or pass a path to git: `[path-root]/[key-path]`. Skipping the join is silent, not loud — `git rev-list --count [sha]..HEAD -- app/routes.ts` returns `0` for a path that never existed, which reads as "fresh" when you have actually checked nothing.
+`[path-root]` matters because Key Paths are written relative to the code they describe, not to wherever the command happens to run. In a monorepo, `apps/woody/docs-ai/README.md` lists `app/routes.ts`, and the real file is `apps/woody/app/routes.ts`. Join before you Glob or pass a path to git: `[path-root]/[key-path]`. Skipping the join is silent, not loud — an unjoined path fails to resolve without an error.
 
 ## 1. Discover candidate docs directories
 

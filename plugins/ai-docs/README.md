@@ -4,13 +4,15 @@ Full lifecycle AI documentation for Claude Code projects: bootstrap, lookup, upd
 
 ## Skills
 
-| Skill             | Description                                                         |
-| ----------------- | ------------------------------------------------------------------- |
-| `/ai-docs:init`   | Bootstrap `docs-ai/` with auto-populated content from code analysis |
-| `/ai-docs:lookup` | Look up project conventions before code changes (read-only, fast)   |
-| `/ai-docs:update` | Update specific docs after code changes (targeted, lightweight)     |
-| `/ai-docs:check`  | Check documentation freshness and detect drift (read-only)          |
-| `/ai-docs:audit`  | Comprehensive audit and cleanup using parallel subagents            |
+| Skill             | Description                                                                             |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| `/ai-docs:init`   | Bootstrap or refresh a `docs-ai/` directory, one per workspace, from code analysis      |
+| `/ai-docs:lookup` | Look up project conventions before code changes (read-only, fast)                       |
+| `/ai-docs:update` | Update the docs that a code change touched (targeted, lightweight)                      |
+| `/ai-docs:check`  | Report which docs are stale relative to their Key Paths (read-only)                     |
+| `/ai-docs:audit`  | Audit and clean up every doc: approved edits, a QA pass, and a fresh stamp on every doc |
+
+`lookup` and `update` are model-invoked: Claude can reach them on its own, and the hook points it at them. `init`, `check`, and `audit` are typed by the user.
 
 ## Hooks
 
@@ -58,6 +60,19 @@ every docs directory up to two levels deep. Its reminder names them all, unless 
 `docs-ai/` at the project root.
 
 Full rules: [`resources/docs-dir-resolution.md`](resources/docs-dir-resolution.md).
+
+## Shared Resources
+
+Each skill embeds the resources it needs at load time, so one edit changes every skill:
+
+| Resource                                                             | Used by                   |
+| -------------------------------------------------------------------- | ------------------------- |
+| [`docs-dir-resolution.md`](resources/docs-dir-resolution.md)         | all skills                |
+| [`staleness-baseline.md`](resources/staleness-baseline.md)           | `lookup`, `check`         |
+| [`doc-writer-brief.md`](resources/doc-writer-brief.md)               | `init`, `update`, `audit` |
+| [`verification-stamp.md`](resources/verification-stamp.md)           | `init`, `update`, `audit` |
+| [`docs-ai-readme-format.md`](resources/docs-ai-readme-format.md)     | `init`, `audit`           |
+| [`project-analysis-prompt.md`](resources/project-analysis-prompt.md) | `init`, `audit`           |
 
 ## Installation
 

@@ -1,6 +1,6 @@
 ---
 name: "update"
-description: "Update specific docs-ai/ documentation after code changes — a lightweight alternative to a full audit. Use when the user has made code changes and wants to update related documentation. Accepts an optional description of the change (e.g., 'added Redis caching layer')."
+description: "Update the docs-ai/ docs that a code change touched. Use when the user has changed code and wants related documentation updated."
 argument-hint: "[what changed]"
 ---
 
@@ -83,12 +83,13 @@ Wait for user approval.
 
 ### 5. Execute Updates
 
-Spawn writer agents (general-purpose type — writers need Write, which Explore lacks; one per affected doc, parallelized). Each writer:
+Spawn writer agents, one per affected doc, parallelized, each given this brief:
 
-- Reads current doc content + changed source files
-- Updates doc to reflect new reality, preserving accurate existing content
-- Uses `file::Symbol` references throughout
-- If creating a new doc: auto-populate with real content using the same approach as ai-docs:init (read source files, write content, use rich stubs for gaps)
+!`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/doc-writer-brief.md"`
+
+> **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/doc-writer-brief.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
+
+A writer updating an existing doc also reads its current content plus the changed source files, and updates it to reflect the new reality, preserving accurate existing content. A writer creating a new doc populates it from the source files the same way.
 
 ### 6. Update README.md
 
@@ -105,8 +106,6 @@ If docs were added or removed:
 > **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/verification-stamp.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
 Stamp only the docs that were updated or created (plus README.md if it changed). Leave untouched docs alone — their stamps still reflect when they were last verified.
-
-If the working tree has uncommitted changes, note in the summary that docs were verified against HEAD plus uncommitted changes.
 
 ### 8. Summary
 

@@ -1,6 +1,7 @@
 ---
 name: "audit"
-description: "Comprehensive audit and cleanup of docs-ai/ documentation using parallel subagents: structural analysis, per-doc content review, then user-approved edits, a QA pass, and a fresh verification stamp on every doc. Use when the user wants a full review and cleanup of all documentation for accuracy, completeness, and quality. Heavier than ai-docs:update — use for periodic deep reviews, not routine maintenance."
+description: "Audit and clean up every doc in a docs-ai/ directory: approved edits, a QA pass, and a fresh stamp on every doc. Heavier than ai-docs:update."
+disable-model-invocation: true
 ---
 
 # Audit Docs AI
@@ -70,6 +71,7 @@ Each reviewer's prompt must include:
 
 - Its assigned doc file path(s), plus `[path-root]` for resolving the code they reference
 - Relevant Phase 1 findings for those docs
+- "Resolve every `file::Symbol` reference and Key Path in the doc; list each that fails."
 - Instructions to return structured results (not edit files)
 
 Each reviewer reads its assigned doc(s) and the relevant source code, then returns:
@@ -91,7 +93,11 @@ Collect all reviewer results. Resolve cross-doc conflicts (if reviewer A and rev
 Apply all approved edits. Either:
 
 - Apply directly (edits touching ≤2 docs)
-- Spawn a single writer agent (general-purpose type — it needs Write, which Explore lacks) with the full edit plan (3+ docs)
+- Spawn a single writer agent with the full edit plan (3+ docs), briefed with:
+
+  !`cat "$(dirname "${CLAUDE_SKILL_DIR}")/../resources/doc-writer-brief.md"`
+
+  > **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/doc-writer-brief.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
 #### 7. QA Check
 
