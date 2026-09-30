@@ -1,7 +1,7 @@
 {
   "name": "writing",
   "description": "Keep text an audience reads in your voice: a drafting pipeline, a send-time lint, a draft gate, and correction capture",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "George Song"
   },
