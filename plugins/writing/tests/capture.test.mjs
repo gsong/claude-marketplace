@@ -7,6 +7,7 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
@@ -122,6 +123,16 @@ test("first write snapshots and logs nothing", () => {
   capture(ws, { body: "the first version\n" });
   assert.deepEqual(log(ws), []);
   assert.equal(existsSync(join(ws.state, "snapshots")), true);
+});
+
+// sha256sum and shasum print the same digest, so either tool finds a snapshot
+// the other one made.
+test("the snapshot is keyed by the path's SHA-256", () => {
+  const ws = workspace();
+  transcript(ws, "turn-1", "write me a draft");
+  capture(ws, { body: "the first version\n" });
+  const key = createHash("sha256").update(ws.draft).digest("hex").slice(0, 40);
+  assert.equal(existsSync(join(ws.state, "snapshots", key)), true);
 });
 
 test("a later write logs the change with the user's instruction as the reason", () => {
