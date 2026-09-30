@@ -36,19 +36,28 @@ read -r OWNER PROJECT_NUMBER <<< "$(echo "$PROJECT_URL" |
 if [ -z "$OWNER" ] || [ -z "$PROJECT_NUMBER" ]; then echo "Invalid GitHub project URL format" >&2; exit 1; fi
 
 # Get project details
-PROJECT_DATA=$(gh project view "$PROJECT_NUMBER" --owner "$OWNER" --format json)
+if ! PROJECT_DATA=$(gh project view "$PROJECT_NUMBER" --owner "$OWNER" --format json) ||
+  ! FIELDS_DATA=$(gh project field-list "$PROJECT_NUMBER" --owner "$OWNER" --format json); then
+  echo "Cannot access project - check permissions and URL" >&2; exit 1
+fi
 PROJECT_ID=$(echo "$PROJECT_DATA" | jq -r '.id')
 PROJECT_TITLE=$(echo "$PROJECT_DATA" | jq -r '.title')
 
 # Get status field information
-FIELDS_DATA=$(gh project field-list "$PROJECT_NUMBER" --owner "$OWNER" --format json)
 STATUS_FIELD=$(echo "$FIELDS_DATA" | jq -r '.[] | select(.name == "Status")')
 STATUS_FIELD_ID=$(echo "$STATUS_FIELD" | jq -r '.id')
 STATUS_OPTIONS=$(echo "$STATUS_FIELD" | jq -r '.options[] | "- **\(.name):** `\(.id)`"')
 STATUS_MAPPINGS=$(echo "$STATUS_FIELD" | jq -r '.options[] | "- \"\(.name | ascii_downcase)\" → `\(.id)`"')
+
+# Print every value: the next Bash call is a fresh shell, so this output is the only record
+echo "PROJECT_ID=$PROJECT_ID"
+echo "PROJECT_TITLE=$PROJECT_TITLE"
+echo "STATUS_FIELD_ID=$STATUS_FIELD_ID"
+echo "STATUS_OPTIONS:"; echo "$STATUS_OPTIONS"
+echo "STATUS_MAPPINGS:"; echo "$STATUS_MAPPINGS"
 ```
 
-If the URL does not parse, the block stops with "Invalid GitHub project URL format". If the project is not accessible, show "Cannot access project - check permissions and URL" and stop.
+The block stops with "Invalid GitHub project URL format" if the URL does not parse, and with "Cannot access project - check permissions and URL" if `gh` cannot read the project. Either way, show the message and stop.
 
 Every ID and status option in the generated agent comes from this output; a guessed mapping silently moves issues to the wrong column.
 
