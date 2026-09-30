@@ -151,33 +151,31 @@ The gate is a PostToolUse hook. It fires on any write under `ai-swap/drafts/<pro
    diffs its fresh bodies against this run's, which records the whole file as if you had
    corrected it.
 
-Step 5 then presents gated text, and Step 6 still lets the user edit any of it before posting.
+Step 5 then presents gated text, and the user can still drop or edit any of it before posting.
 
-## Step 5: Present for Approval
+## Step 5: Confirm
 
-Present **inline-postable** findings grouped by severity (must-fix first, then should-fix, then nit). General-comment findings were already curated during triage and are handled by Step 3.
+Triage has already curated these findings, and the user has already chosen to post them. Ask once, not per finding.
+
+Present **inline-postable** findings grouped by severity (must-fix first, then should-fix, then nit). Number them in that order. General-comment findings were already curated during triage and are handled by Step 3.
 
 For each finding, display:
 
 - **File:** `{path}:{start_line}-{line}` (or `{path}:{line}` for single-line)
-- **Code:** Read the actual lines from the file and show them
+- **Code:** Read the lines at the PR head with `git show {current PR head SHA from Step 2}:{path}` and show them. The local checkout can sit at an older head, for example after a rebase. If `side` or `start_side` is `LEFT`, the lines are on the old side, which the head does not have. Show them from the Step 3 diff hunk instead, keeping each line's `-`, `+` or space prefix.
 - **Comment:** The proposed comment body
 - **Severity:** {severity}
 
-Then use AskUserQuestion (multiSelect: true) to ask which findings to post. Each option should be labeled as:
-`[{severity}] {path}:{line} — {first 60 chars of body}...`
+Then ask one AskUserQuestion, not `multiSelect`: "Post these {N} comments as a pending review on PR #{pr}? Pick Other to drop or edit some first, for example: drop 3, reword 5 to …"
 
-## Step 6: Edit Comments (optional)
+- "Post all {N} (Recommended)": go to Step 6.
+- "Abort": stop the skill.
 
-After the user selects findings to post, ask (via AskUserQuestion):
-"Want to edit any comment text before posting?"
+If the user picks Other, the text names findings to drop or reword, by number. Apply the changes. If none are left, report "No comments left to post." and stop. Otherwise show the changed findings and ask this question again.
 
-- If yes: for each approved finding, show the body and ask if they want to change it
-- If no: proceed to posting
+## Step 6: Post Review
 
-## Step 7: Post Review
-
-1. Build the comments array from approved findings. Each comment's `body` MUST be prefixed with the severity tag in square brackets, e.g. `[nit] {body}`, `[must-fix] {body}`, `[should-fix] {body}`. Each comment object:
+1. Build the comments array from the confirmed findings. Each comment's `body` MUST be prefixed with the severity tag in square brackets, e.g. `[nit] {body}`, `[must-fix] {body}`, `[should-fix] {body}`. Each comment object:
 
    ```json
    {
@@ -215,11 +213,11 @@ After the user selects findings to post, ask (via AskUserQuestion):
      gh api --method POST /repos/{repo}/pulls/$ARGUMENTS/reviews --input -
    ```
 
-   Do NOT include an `event` field — omitting it creates a pending (draft) review. Always batch all approved comments into a single call.
+   Do NOT include an `event` field — omitting it creates a pending (draft) review. Always batch all confirmed comments into a single call.
 
 4. If the API call fails, show the full error and stop. Do not retry.
 
-## Step 8: Report
+## Step 7: Report
 
 - Show count of posted comments
 - Link to the PR: `https://github.com/{repo}/pull/$ARGUMENTS`

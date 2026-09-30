@@ -271,7 +271,7 @@ If `findings.json` has no findings, report "Nothing to post or fix." and stop.
    The same login means the user wrote the PR, so Fix is the likely goal. A different login makes Post the likely goal.
 
 2. **Ask once** with AskUserQuestion: "What next for the {N} curated findings? Pick Other to change a decision first." Put the guessed goal first and append " (Recommended)" to its label:
-   - "Post": "Post them as a pending review on PR #{pr}. post-comments shows each comment before it posts."
+   - "Post": "Post them as a pending review on PR #{pr}. post-comments shows all the comments and asks once before it posts."
    - "Fix": "Fix them in the working tree, run the repo's checks, and commit locally without pushing."
    - "Stop": "Keep findings.json and stop."
 
