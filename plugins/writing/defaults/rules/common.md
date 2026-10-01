@@ -23,7 +23,9 @@ is parsed second, and the last `maxwords` wins.
 # Punctuation
 density	(?:—|&mdash;)	4	4	em dashes are frequent here; a colon usually does the job, and a pair bracketing an aside is never right
 re	;	semicolon; use a period or a colon
-re	(?<![\d-])\d+\s*[-—]\s*\d+(?![\d-])	number range with a hyphen or em dash; use an en dash (–)
+# A hyphenated MM-DD date such as 10-15 is skipped on purpose. It has the same shape as a range,
+# and docs that write dates this way would trip the rule on every date.
+re	(?<![\d-])(?!(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])(?![\d-]))\d+\s*[-—]\s*\d+(?![\d-])	number range with a hyphen or em dash; use an en dash (–)
 re	\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*[-—]\s*(Mon|Tue|Wed|Thu|Fri|Sat|Sun|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)	date range with a hyphen or em dash; use an en dash (–)
 
 # Banned constructions — AI tells

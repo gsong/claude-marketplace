@@ -229,10 +229,42 @@ test("density: a short draft is never rated", () => {
 // them, so adding a rule cannot break the rest of the file.
 test("shipped rules: a hyphen between numbers is flagged as a range", () => {
   const out = onWrite(
-    draft("technical", "the run took 10-20 minutes\n"),
+    draft("technical", "the run took 15-30 minutes\n"),
     SHIPPED_RULES,
   );
   assert.match(out, /line 1: number range/);
+});
+
+test("shipped rules: a short range with a hyphen is flagged", () => {
+  const out = onWrite(
+    draft("technical", "expect 5-10 retries\n"),
+    SHIPPED_RULES,
+  );
+  assert.match(out, /line 1: number range/);
+});
+
+// MM-DD and a range like 10-20 cannot be told apart by shape. Docs that write
+// dates as MM-DD hit the rule on every date, so that shape goes unflagged.
+test("shipped rules: an MM-DD date is not read as a range", () => {
+  for (const line of [
+    "the review is Thu 10-15",
+    "after George’s 09-29 review",
+    "box zero (10-18) closes",
+    "land it by 12-31",
+  ]) {
+    assert.equal(
+      onWrite(draft("technical", `${line}\n`), SHIPPED_RULES),
+      null,
+      line,
+    );
+  }
+});
+
+test("shipped rules: a hyphen range outside MM-DD bounds is flagged", () => {
+  for (const line of ["pages 13-20 cover it", "pick 10-32 of them"]) {
+    const out = onWrite(draft("technical", `${line}\n`), SHIPPED_RULES);
+    assert.match(out ?? "", /line 1: number range/, line);
+  }
 });
 
 test("shipped rules: an ISO date is not read as a range", () => {
