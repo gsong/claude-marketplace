@@ -173,19 +173,29 @@ If the user picks Other, the text names findings to drop or reword, by number. A
      - **Submit it as-is** — `gh api --method POST /repos/{repo}/pulls/{pr}/reviews/{review_id}/events --input <(echo '{"event":"COMMENT"}')` — then proceed to sub-step 3.
      - **Abort** — stop the skill.
 
-3. Build and post the review via `gh api`. Construct the full JSON payload and pipe via stdin:
+3. **Write the payload** to `ai-swap/pr-review-$ARGUMENTS/review.json` with the Write tool, overwriting any existing file:
+
+   ```json
+   {
+     "commit_id": "{current PR head SHA from Step 2}",
+     "body": "{review body from Step 3}",
+     "comments": [{comment objects from sub-step 1}]
+   }
+   ```
+
+   Leave out `body` when there are no review-body findings. Use `"comments": []` when there are no inline findings. Writing a file keeps the bodies out of shell quoting, where an apostrophe would end the string. It also lets the writing plugin's send-lint hook read every `body` in the payload: the hook reads an `--input` file, but not stdin.
+
+   Check the file parses: `jq -e 'has("commit_id") and (.comments | type == "array")' ai-swap/pr-review-$ARGUMENTS/review.json`
+
+4. **Post the review:**
 
    ```bash
-   jq -n '{commit_id: $cid, comments: $c} + (if $b == "" then {} else {body: $b} end)' \
-     --arg cid "<current PR head SHA from Step 2>" \
-     --argjson c '<comments array as JSON, or [] when there are no inline findings>' \
-     --arg b '<review body from Step 3, or empty when there are no review-body findings>' |
-     gh api --method POST /repos/{repo}/pulls/$ARGUMENTS/reviews --input -
+   gh api --method POST /repos/{repo}/pulls/$ARGUMENTS/reviews --input ai-swap/pr-review-$ARGUMENTS/review.json
    ```
 
    Do NOT include an `event` field — omitting it creates a pending (draft) review. Always batch all confirmed findings, inline and review-body, into this single call. The review body has to go in now: GitHub rejects a later PUT that adds a body to a pending review created without one (`422 Could not edit a review with a missing body`). A review-body finding reaches the PR only through this body. A separate PR comment would go public at once, ahead of the pending review.
 
-4. If the API call fails, show the full error and stop. Do not retry.
+5. If the API call fails, show the full error and stop. Do not retry. A send-lint bounce is not a failure: fix what is a real violation in `review.json`, or keep the text, and post again.
 
 ## Step 7: Report
 
