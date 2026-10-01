@@ -26,9 +26,9 @@ Every validation command below spells out the validator path. Claude Code replac
 
 1. **Clean output directory:** Remove stale artifacts from prior runs so they don't interfere:
    ```bash
-   rm -f ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json ai-swap/pr-review-$ARGUMENTS/general-comments.md
+   rm -f ai-swap/pr-review-$ARGUMENTS/findings-gh-review.json
    ```
-   Only delete artifacts this skill produces (`findings-gh-review.json`) or that become stale after a new review (`general-comments.md` from post-comments). Never delete `findings.json` — it contains the user's curated triage decisions and cannot be regenerated.
+   Only delete the artifact this skill produces (`findings-gh-review.json`). Never delete `findings.json` — it contains the user's curated triage decisions and cannot be regenerated.
 2. Checkout the PR branch: `gh pr checkout $ARGUMENTS`
 3. Get PR metadata: `gh pr view $ARGUMENTS --json title,body,files,additions,deletions,headRefOid,baseRefName,closingIssuesReferences`
 4. Get repo name: `gh repo view --json nameWithOwner --jq .nameWithOwner`

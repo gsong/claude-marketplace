@@ -73,43 +73,51 @@ Post code-level review comments to GitHub PR #$ARGUMENTS as a pending review.
 2. For each finding, verify:
    - The `path` exists in the diff
    - The `line` (and `start_line` if present) falls within a diff hunk. **Side-aware validation:** if the finding has `side: "LEFT"`, validate line numbers against the **old-side** range from the hunk header (`-start,count`, which covers both context and deleted lines). If `side` is omitted (defaults to RIGHT), validate against the **new-side** range from the hunk header (`+start,count`, which covers both context and added lines).
-3. **Separate** findings into two lists based on validation results:
-   - **Inline-postable:** findings that pass position validation.
-   - **General-comment:** findings that fail position validation. Re-validate all findings regardless of the `unmappable` flag — the PR may have been updated since the review was generated.
-4. If the general-comment list is non-empty, **write** `ai-swap/pr-review-$ARGUMENTS/general-comments.md` (overwriting any existing file):
+3. **Separate** findings into two lists based on validation results. Both lists ship in the same pending review.
+   - **Inline:** findings that pass position validation. Each one becomes an inline comment on its line.
+   - **Review-body:** findings that fail position validation, because the file is not in the diff or the line is outside every hunk. GitHub cannot attach these to a line, so they go in the review's top-level `body`. Re-validate all findings regardless of the `unmappable` flag — the PR may have been updated since the review was generated.
+
+   Done when every finding is in exactly one list.
+
+4. If the review-body list is non-empty, **build the review body** in this format:
 
    ```markdown
-   ## Findings Outside the Diff
+   ## Findings outside the diff
 
-   The following review findings reference code that isn't part of this PR's diff, so they couldn't be posted as inline comments.
+   These findings point at code that this PR does not change, so they cannot go inline.
 
    ### Must-fix
 
-   - [source: architecture & design] **`{path}:{line}`** — {body}
+   **`{path}:{line}`** [source: architecture & design]
+
+   {body}
 
    ### Should-fix
 
-   - [source: Correctness & Safety] **`{path}:{start_line}-{line}`** — {body}
+   **`{path}:{start_line}-{line}`** [source: Correctness & Safety]
+
+   {body}
 
    ### Nit
 
-   - **`{path}:{line}`** — {body}
+   **`{path}:{line}`**
+
+   {body}
    ```
 
-   Rules: each finding is a bullet with optional `[source: {agent_label from first source_detail entry}]` prefix, then ``**`{path}:{line}`**`` (or `{path}:{start_line}-{line}` for ranges) followed by `— {body}`. Use the finding's **full** body text verbatim — do not truncate it. Group by severity (must-fix → should-fix → nit). Omit empty groups.
+   Rules: each finding is a label line, a blank line, then the body. The label is ``**`{path}:{line}`**`` (or `{path}:{start_line}-{line}` for ranges), with an optional `[source: {agent_label from first source_detail entry}]` after it. Keep the label on its own line. The writing plugin's send-lint hook reads a label and a sentence on one line as one long sentence, and bounces the POST. Use the finding's **full** body text verbatim — do not truncate it. Group by severity (must-fix → should-fix → nit). Omit empty groups.
 
-5. If zero general-comment findings, delete any existing `general-comments.md`: `rm -f ai-swap/pr-review-$ARGUMENTS/general-comments.md`
-6. Report validation results:
-   - Inline-postable findings: count
-   - General-comment findings: count and list with reason (file not in diff, line not in hunk)
-   - If `general-comments.md` was written: "{N} findings written to `general-comments.md`"
-   - If `general-comments.md` was deleted (stale from previous run): note that it was cleaned up
+   Step 6 sends the review body in the same POST as the inline comments.
+
+5. Report validation results:
+   - Inline findings: count
+   - Review-body findings: count and list with reason (file not in diff, line not in hunk)
 
 ## Step 4: Voice Gate
 
 Skip this step if the `writing:draft` skill is not available. Say nothing about it and go to Step 5.
 
-Otherwise read `${CLAUDE_PLUGIN_ROOT}/references/voice-gate.md` and run the gate on every postable body, writing them to `ai-swap/drafts/technical/pr-$ARGUMENTS-bodies.md`.
+Otherwise read `${CLAUDE_PLUGIN_ROOT}/references/voice-gate.md` and run the gate on every body that ships, inline and review-body findings alike, writing them to `ai-swap/drafts/technical/pr-$ARGUMENTS-bodies.md`.
 
 This step is the only one that sees every source: findings from `gh-tools:review` and from `codex-tools:review` both arrive here. Triage has already dropped everything the user rejected, and Step 5 gates any body the user rewords. Together they gate exactly what ships.
 
@@ -117,25 +125,26 @@ This step is the only one that sees every source: findings from `gh-tools:review
 
 Triage has already curated these findings, and the user has already chosen to post them. Ask once, not per finding.
 
-Present **inline-postable** findings grouped by severity (must-fix first, then should-fix, then nit). Number them in that order. General-comment findings were already curated during triage and are handled by Step 3.
+Present **all** findings, inline and review-body, grouped by severity (must-fix first, then should-fix, then nit). Number them in that order.
 
 For each finding, display:
 
 - **File:** `{path}:{start_line}-{line}` (or `{path}:{line}` for single-line)
+- **Goes to:** `inline`, or `review body` with the Step 3 reason (file not in diff, line not in hunk)
 - **Code:** Read the lines at the PR head with `git show {current PR head SHA from Step 2}:{path}` and show them. The local checkout can sit at an older head, for example after a rebase. If `side` or `start_side` is `LEFT`, the lines are on the old side, which the head does not have. Show them from the Step 3 diff hunk instead, keeping each line's `-`, `+` or space prefix.
 - **Comment:** The proposed comment body
 - **Severity:** {severity}
 
-Then ask one AskUserQuestion, not `multiSelect`: "Post these {N} comments as a pending review on PR #{pr}? Pick Other to drop or edit some first, for example: drop 3, reword 5 to …"
+Then ask one AskUserQuestion, not `multiSelect`: "Post these {N} findings as one pending review on PR #{pr}, {I} inline and {B} in the review body? Pick Other to drop or edit some first, for example: drop 3, reword 5 to …" Leave out the inline and review-body counts when one of them is zero.
 
 - "Post all {N} (Recommended)": go to Step 6.
 - "Abort": stop the skill.
 
-If the user picks Other, the text names findings to drop or reword, by number. Apply the changes. If none are left, report "No comments left to post." and stop. If Step 4 ran and the user reworded any body, run the gate again on the reworded bodies only, at the same draft path. Then show the changed findings and ask this question again.
+If the user picks Other, the text names findings to drop or reword, by number. Apply the changes, and rebuild the review body from the review-body findings that are left. If none are left, report "No comments left to post." and stop. If Step 4 ran and the user reworded any body, run the gate again on the reworded bodies only, at the same draft path. Then show the changed findings and ask this question again.
 
 ## Step 6: Post Review
 
-1. Build the comments array from the confirmed findings. Each comment's `body` MUST be prefixed with the severity tag in square brackets, e.g. `[nit] {body}`, `[must-fix] {body}`, `[should-fix] {body}`. Each comment object:
+1. Build the comments array from the confirmed inline findings. Each comment's `body` MUST be prefixed with the severity tag in square brackets, e.g. `[nit] {body}`, `[must-fix] {body}`, `[should-fix] {body}`. Each comment object:
 
    ```json
    {
@@ -167,19 +176,19 @@ If the user picks Other, the text names findings to drop or reword, by number. A
 3. Build and post the review via `gh api`. Construct the full JSON payload and pipe via stdin:
 
    ```bash
-   jq -n '{commit_id: $cid, comments: $c}' \
+   jq -n '{commit_id: $cid, comments: $c} + (if $b == "" then {} else {body: $b} end)' \
      --arg cid "<current PR head SHA from Step 2>" \
-     --argjson c '<comments array as JSON>' |
+     --argjson c '<comments array as JSON, or [] when there are no inline findings>' \
+     --arg b '<review body from Step 3, or empty when there are no review-body findings>' |
      gh api --method POST /repos/{repo}/pulls/$ARGUMENTS/reviews --input -
    ```
 
-   Do NOT include an `event` field — omitting it creates a pending (draft) review. Always batch all confirmed comments into a single call.
+   Do NOT include an `event` field — omitting it creates a pending (draft) review. Always batch all confirmed findings, inline and review-body, into this single call. The review body has to go in now: GitHub rejects a later PUT that adds a body to a pending review created without one (`422 Could not edit a review with a missing body`). A review-body finding reaches the PR only through this body. A separate PR comment would go public at once, ahead of the pending review.
 
 4. If the API call fails, show the full error and stop. Do not retry.
 
 ## Step 7: Report
 
-- Show count of posted comments
+- Show the count of inline comments, and the count of findings in the review body
 - Link to the PR: `https://github.com/{repo}/pull/$ARGUMENTS`
-- If `ai-swap/pr-review-$ARGUMENTS/general-comments.md` exists: "**{N} findings couldn't be posted inline** and were saved to `ai-swap/pr-review-$ARGUMENTS/general-comments.md`. You can copy-paste this file's contents as a general PR comment."
 - Remind: "Review is pending — go to the PR on GitHub to submit it with your verdict (Comment, Approve, or Request Changes)."
