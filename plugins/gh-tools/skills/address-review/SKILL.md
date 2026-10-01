@@ -41,25 +41,81 @@ Give each comment a **verdict** against the code at the PR head:
 - **wrong**: the claim does not hold.
 - **decision**: the claim holds, and the response is the user's call. It changes the spec or the scope, or it reverses a tradeoff the PR chose on purpose.
 
-The reviewer's label (fix, suggestion, nit, must-fix) is input to the verdict, not the verdict.
+A subagent gives each verdict, so it comes from an independent reading of the code. You settle the results and then apply them.
 
-Read the cited file and line yourself. Check a claim about behavior by running it: plant the violation in a scratch copy, pipe in a sample input, run the suite. Hand a claim about a tool's documented behavior to a subagent that quotes the doc, for example `claude-code-guide` for Claude Code. Launch independent checks in parallel.
+### Investigate
 
-Group the comments that one change or one decision settles. The review body often says which.
+Spawn one subagent per work-list comment, `subagent_type: general-purpose`. Launch at most 15 per message, and wait for each batch to return before the next. A session runs at most 20 subagents at once, and a spawn past that fails. Each subagent starts with a clean context, so its prompt carries every value below, spelled out. A shell variable never crosses into a subagent.
 
-Done when each work-list comment has a verdict, and each fix, decline and wrong verdict has the evidence behind it.
+Strip a leading label such as "nit:" or "[must-fix]" from the body you pass, so the subagent judges the claim alone.
+
+Each subagent receives this prompt:
+
+---
+
+You are investigating one review comment on PR #{number}. Give a verdict that rests on evidence from the code at the PR head.
+
+**Comment {id}** at `{path}:{line}`:
+
+{body, label stripped}
+
+**PR head:** {headRefOid}, checked out in the working tree.
+**PR title:** {title}
+**PR body:** {PR body}
+**Linked issues:** {each issue's title and full body, or "none"}
+
+**Verdicts:** {the four verdict definitions above, copied as written}
+
+Other investigators share this working tree, so treat it as read-only. Read files, and run commands that write nothing inside the tree. To try an edit, copy the files to a directory from `mktemp -d` and work there. Return any check that must edit the tree or run the test suite in `proposed_checks`. The orchestrator runs those checks one at a time. Post nothing to GitHub.
+
+Check a claim about behavior by running it: plant the violation in a scratch copy, or pipe in a sample input. Hand a claim about a tool's documented behavior to a subagent that quotes the doc, for example `claude-code-guide` for Claude Code.
+
+Before you give `decision`, read the PR body and the linked issues. When one of them states the intent the comment touches, give `fix` or `decline` instead, and quote that text as evidence.
+
+Set `status` to `unclear` when one of these holds, and name it in `reason`:
+
+- The verdict rests on a claim you could not verify.
+- The evidence fits two verdicts.
+- The fix has two forms that behave differently.
+- The verdict is `decision`.
+
+Otherwise set `status` to `clear`. A claim that a proposed check settles counts as verified.
+
+Return only this JSON object, with no code fence:
+
+{"comment_id": {id}, "verdict": "fix | decline | wrong | decision", "status": "clear | unclear", "reason": "why unclear, or null", "evidence": [{"what": "the command run, file read, or doc quoted", "result": "its output or the quoted text"}], "proposed_fix": "the files and the change, or null", "proposed_checks": [{"edit": "the change to make in the tree", "command": "the command to run", "expected": "the output that confirms the verdict"}], "unverified": ["each claim the verdict rests on that you could not check"]}
+
+Done when each claim in the comment has evidence or appears in `unverified`.
+
+---
+
+### Settle
+
+After the last batch returns, parse each result.
+
+1. Run each proposed check, one at a time. Make the edit, run the command, and compare its output with `expected`. Restore the files with `git restore`, and confirm that `git status` is clean before the next check.
+2. Mark a comment **unclear** when any of these holds:
+   - its result says `unclear`
+   - its subagent failed, or returned output that does not parse
+   - its evidence cites no command, output or quote
+   - a proposed check failed, or its output did not match `expected`
+3. Read the results together. Group the comments whose proposed fixes make the same change; the group gets one fix, and each reply cites its SHA. The review body often says which comments belong together. Two fixes that edit the same lines differently, or where one undoes the other, are a **conflict**. Mark both comments unclear.
+
+Print one line per comment: its id, `path:line`, verdict, and status. Go on without waiting for the user.
+
+Done when each work-list comment has a verdict and a status, and each clear verdict has the evidence behind it.
 
 ## Step 3: Ask
 
-Put every decision to the user with AskUserQuestion, up to four questions per call. Each question names the comments it settles and says in one sentence what is at stake. Put your recommendation first, marked "(Recommended)". Offer the lightest option the reviewer gave, such as "record the change on the issue", beside "change the code".
+Put every unclear comment to the user with AskUserQuestion, up to four questions per call. A conflict pair shares one question. Each question names the comments it settles, gives the subagent's `reason`, and says in one sentence what is at stake. Put your recommendation first, marked "(Recommended)". Offer the lightest option the reviewer gave, such as "record the change on the issue", beside "change the code".
 
-Ask too when a verdict rests on something you could not verify. With no decisions and nothing unverified, go to Step 4.
+A clear verdict stands as the subagent gave it. With nothing unclear, go to Step 4.
 
 ## Step 4: Apply
 
 Make the fixes and the options the user chose. Follow the repo's own instructions for each file you touch. Update every place that restates what you changed: docs, code comments, the PR body.
 
-Verify each change the way you validated its comment. The planted violation now fails, the sample input gives the right result, and the full test and lint suites pass.
+Verify each change against the evidence behind its verdict. The planted violation now fails, the sample input gives the right result, and the full test and lint suites pass.
 
 Commit in logical groups, in the repo's commit convention, so each reply can cite a SHA. Push the branch before you reply, because the replies cite the commits.
 
