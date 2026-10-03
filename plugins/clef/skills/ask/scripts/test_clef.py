@@ -80,6 +80,8 @@ class Stub:
                 pass
 
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        # Join handler threads on close, so a delayed reply cannot write into a later test.
+        self.server.daemon_threads = False
         self.url = f"http://127.0.0.1:{self.server.server_port}"
 
     def respond(self, status, reply, delay=0.0, extra_length=0, drop=False):
