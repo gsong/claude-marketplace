@@ -561,6 +561,12 @@ class TestGuess:
         assert code == 0
         assert log()[0]["agree"] == {"u": None}
 
+    def test_score_too_large_for_a_float_disagrees(self, stub, run, log):
+        stub.respond(200, {"answers": {"u": {"type": "score", "score": 10**400}}, "usage": {}})
+        code, _, err = run(_body(questions={"u": MIXED_QUESTIONS["u"]}), "--guess", '{"u": 1}')
+        assert (code, err) == (0, "")
+        assert log()[0]["agree"] == {"u": False}
+
     def test_missing_answer_agrees_with_nothing(self, stub, run, log):
         stub.respond(200, {"answers": {}, "usage": {}})
         run(_body(questions=MIXED_QUESTIONS), "--guess", '{"t": "shipping"}')
