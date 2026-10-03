@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Sourced by the writing hooks. Resolves where the rules and the state live,
 # so every hook agrees on one answer.
 #

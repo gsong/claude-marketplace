@@ -1,0 +1,30 @@
+[tools]
+claude = "2.1.283"
+node = "24.21.0" # prettier installs through npm
+prettier = "3.9.9"
+ruff = "0.16.9"
+shellcheck = "0.11.0"
+zizmor = "1.30.1"
+
+[tasks.lint]
+description = "Run every check that CI runs"
+depends = ["lint:*"]
+
+[tasks."lint:plugins"]
+description = "Validate the marketplace and each plugin"
+run = """
+claude plugin validate --strict .
+for plugin in plugins/*/; do claude plugin validate --strict "$plugin"; done
+"""
+
+[tasks."lint:prettier"]
+run = "git ls-files -z '*.json' '*.md' '*.yml' '*.yaml' '*.mjs' | xargs -0 prettier --check"
+
+[tasks."lint:ruff"]
+run = "git ls-files -z '*.py' | xargs -0 ruff check"
+
+[tasks."lint:shellcheck"]
+run = "git ls-files -z '*.sh' | xargs -0 shellcheck"
+
+[tasks."lint:zizmor"]
+run = "zizmor .github/workflows"

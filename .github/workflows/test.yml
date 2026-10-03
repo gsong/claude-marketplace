@@ -60,3 +60,17 @@ jobs:
 
       # A bare directory is read as one test file, so pass a glob. node expands it.
       - run: node --test 'plugins/writing/tests/*.test.mjs'
+
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      # Installs the tools pinned in mise.toml.
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      - run: mise run lint

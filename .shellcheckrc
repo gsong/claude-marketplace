@@ -1,0 +1,3 @@
+# Follow each `# shellcheck source=` line, read from the script's own directory.
+external-sources=true
+source-path=SCRIPTDIR
