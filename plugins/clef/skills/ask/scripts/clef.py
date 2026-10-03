@@ -137,7 +137,10 @@ def resolve_url():
 
 
 def send(url, source, request, timeout):
-    """POST the request and return the server's JSON reply text, unchanged."""
+    """POST the request and return the server's JSON reply text, unchanged.
+
+    A reply that is not JSON is an error, so a proxy's HTML page never reads as an answer.
+    """
     req = urllib.request.Request(
         url + ENDPOINT,
         data=json.dumps(request).encode("utf-8"),
@@ -146,7 +149,7 @@ def send(url, source, request, timeout):
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read().decode("utf-8")
+            text = resp.read().decode("utf-8")
     except urllib.error.HTTPError as e:
         message = f"HTTP {e.code}: {_error_text(_read_error_body(e))}"
         if e.code == 404:
@@ -162,6 +165,11 @@ def send(url, source, request, timeout):
         raise _no_answer(url, source, f"unreachable: {e.reason}") from e
     except OSError as e:
         raise _no_answer(url, source, f"unreachable: {e}") from e
+    try:
+        json.loads(text)
+    except json.JSONDecodeError as e:
+        raise ClefError(f"HTTP 200 from {url}, but the reply is not JSON", EXIT_ERROR) from e
+    return text
 
 
 # ---------------------------------------------------------------------------
