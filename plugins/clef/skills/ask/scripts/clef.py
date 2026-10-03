@@ -227,7 +227,7 @@ def send(url: str, source: str, request: dict, timeout: float) -> tuple[str, dic
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            text = resp.read().decode("utf-8")
+            raw = resp.read()
     except urllib.error.HTTPError as e:
         message = f"HTTP {e.code}: {_error_text(_read_error_body(e))}"
         if e.code == 404:
@@ -241,8 +241,9 @@ def send(url: str, source: str, request: dict, timeout: float) -> tuple[str, dic
             raise _no_answer(url, source, f"no reply within {timeout:g}s") from e
         raise _no_answer(url, source, f"unreachable: {reason}") from e
     try:
+        text = raw.decode("utf-8")
         reply = json.loads(text)
-    except ValueError as e:  # JSONDecodeError, or an integer over Python's digit limit
+    except ValueError as e:  # UnicodeDecodeError, JSONDecodeError, or an integer over Python's digit limit
         raise ClefError(f"HTTP 200 from {url}, but the reply is not JSON", EXIT_ERROR) from e
     if not isinstance(reply, dict):
         raise ClefError(f"HTTP 200 from {url}, but the reply is not a JSON object", EXIT_ERROR)

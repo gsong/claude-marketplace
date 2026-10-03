@@ -76,7 +76,7 @@ class Stub:
                 if stub.drop:
                     return
                 status, reply = stub.queue.pop(0) if stub.queue else (stub.status, stub.reply)
-                payload = reply.encode()
+                payload = reply if isinstance(reply, bytes) else reply.encode()
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(payload) + stub.extra_length))
@@ -94,7 +94,7 @@ class Stub:
     def respond(self, status, reply, delay=0.0, extra_length=0, drop=False):
         """Set the reply. `extra_length` overstates Content-Length; `drop` closes with no reply."""
         self.status, self.delay, self.extra_length, self.drop = status, delay, extra_length, drop
-        self.reply = reply if isinstance(reply, str) else json.dumps(reply)
+        self.reply = reply if isinstance(reply, (str, bytes)) else json.dumps(reply)
 
     def respond_each(self, *replies):
         """Send these (status, reply) pairs in order, one per request, then the set reply."""
@@ -422,7 +422,7 @@ class TestServerErrors:
         assert code == 3
         assert "no reply within 5s" in _one_line(err)
 
-    @pytest.mark.parametrize("body", ["<html>proxy login</html>", '{"n": ' + "1" * 5000 + "}"])
+    @pytest.mark.parametrize("body", ["<html>proxy login</html>", '{"n": ' + "1" * 5000 + "}", b'{"a": "\xff"}'])
     def test_non_json_200_is_other_error(self, stub, run, body):
         stub.respond(200, body)
         code, out, err = run(_body())
