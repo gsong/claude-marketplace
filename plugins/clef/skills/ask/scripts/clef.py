@@ -533,7 +533,7 @@ def _error_text(raw):
     text = raw.decode("utf-8", errors="replace")
     try:
         error = json.loads(text).get("error")
-    except (json.JSONDecodeError, AttributeError):
+    except (ValueError, AttributeError):  # ValueError: JSONDecodeError, or an over-long integer
         error = None
     if isinstance(error, dict):
         error = error.get("message")
