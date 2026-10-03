@@ -355,7 +355,7 @@ def _parse_guess(text):
         return {}
     try:
         return json.loads(text)
-    except json.JSONDecodeError as e:
+    except ValueError as e:  # JSONDecodeError, or an integer over Python's digit limit
         raise _bad(f"--guess is not JSON: {e}") from e
 
 
@@ -363,7 +363,7 @@ def _load_object(text, where):
     """Parse stdin or a batch line, which must be a JSON object."""
     try:
         value = json.loads(text)
-    except json.JSONDecodeError as e:
+    except ValueError as e:  # JSONDecodeError, or an integer over Python's digit limit
         raise _bad(f"{where} is not JSON: {e}") from e
     if not isinstance(value, dict):
         raise _bad(f"{where} must be a JSON object with `state` and `questions`")
@@ -375,7 +375,8 @@ def _line_ref(item, number):
     if "id" not in item:
         return {"line": number}
     value = item["id"]
-    if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+    # json.loads takes NaN and Infinity, but a result line holding one is not valid JSON.
+    if not (isinstance(value, str) or _is_int(value) or isinstance(value, float) and math.isfinite(value)):
         raise _bad("`id` must be a string or number")
     return {"id": value}
 
