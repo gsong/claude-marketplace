@@ -74,6 +74,8 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 
    Docker Desktop resolves `host.docker.internal` by default.
 
+4. If you set `CLEF_LOG` to keep a decision log, set it in the container too. Point it at a file in a folder that exists in the container and that the container can write to. `clef.py` never creates that folder. If the folder is missing, the script warns once, answers anyway and logs nothing.
+
 ## Warnings
 
 - Update a model only by rerunning steps 3 and 4. Never run `ollama pull clef` or `ollama pull clef-flash`. Each of these pulls overwrites the copy with the library's `latest` build.
