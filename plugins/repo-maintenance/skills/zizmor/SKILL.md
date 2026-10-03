@@ -42,3 +42,7 @@ Present findings in a structured format:
   - Security implication
   - Recommended fix with code example
 - **Next steps:** Clear action items for remediation
+
+## Important Notes
+
+- This skill edits workflow files, action definitions, and `dependabot.yml` only for the findings the user approves. Stop after editing; the user commits.
