@@ -536,7 +536,7 @@ def _error_text(raw):
     text = raw.decode("utf-8", errors="replace")
     try:
         error = json.loads(text).get("error")
-    except (ValueError, AttributeError):  # ValueError: JSONDecodeError, or an over-long integer
+    except (ValueError, AttributeError):  # JSONDecodeError, or an integer over Python's digit limit
         error = None
     if isinstance(error, dict):
         error = error.get("message")
