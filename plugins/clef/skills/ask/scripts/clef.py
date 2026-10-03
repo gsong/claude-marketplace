@@ -3,10 +3,12 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""Ask Clef one set of questions with one POST /v1/systemone and print the reply.
+"""Ask Clef questions with POST /v1/systemone and print the reply.
 
 Stdin holds a JSON object with `state` and `questions`, in Cloudflare's shape.
-Flags carry the model, images, a state file and the timeout.
+Flags carry the model, images, a state file, the timeout and the caller's guess.
+`--batch` makes one call per line of a JSONL file instead.
+When CLEF_LOG names a file, each answered call appends one JSON line to it.
 
 Exit codes: 0 answered, 2 bad request, 3 no answer from the server, 1 any other error.
 """
@@ -15,12 +17,15 @@ import argparse
 import base64
 import http.client
 import json
+import math
 import os
 import re
 import socket
 import sys
+import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 MODELS = ("clef", "clef-flash")
@@ -50,6 +55,9 @@ FLAG_FOR_KEY = {
     "timeout": "--timeout",
     "state_file": "--state-file",
 }
+LINE_KEYS = {"state", "questions", "id", "images", "guess"}
+# Flags that --batch refuses, and the line key that carries each instead.
+LINE_KEY_FOR_FLAG = {"image": "images", "state_file": "state", "guess": "guess"}
 
 EXIT_OK, EXIT_ERROR, EXIT_BAD_REQUEST, EXIT_NO_ANSWER = 0, 1, 2, 3
 
@@ -65,10 +73,7 @@ class ClefError(Exception):
 def main(argv: list[str] | None = None) -> int:
     try:
         args = _parse_args(argv)
-        request = build_request(args, sys.stdin.read())
-        url, source = resolve_url()
-        sys.stdout.write(send(url, source, request, args.timeout))
-        return EXIT_OK
+        return run_batch(args) if args.batch is not None else run_one(args)
     except ClefError as e:
         print(f"clef: {e}", file=sys.stderr)
         return e.code
@@ -77,23 +82,77 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_ERROR
 
 
+def run_one(args: argparse.Namespace) -> int:
+    """Ask one set of questions from stdin, print the server's reply unchanged, and log it."""
+    request = build_request(args, sys.stdin.read())
+    guess = check_guess(_parse_guess(args.guess), request["questions"])
+    url, source = resolve_url()
+    text, reply, latency = _ask(url, source, request, args.timeout)
+    sys.stdout.write(text)
+    _Log.from_env().write(_log_record(request, args.image, guess, reply, latency))
+    return EXIT_OK
+
+
+def run_batch(args: argparse.Namespace) -> int:
+    """Make one call per line of the --batch file and write one result line for each.
+
+    A bad line, from a local check or a 4xx, gets an error line and the run goes on.
+    Any other failure stops the run with that failure's exit code.
+    """
+    for flag, key in LINE_KEY_FOR_FLAG.items():
+        if getattr(args, flag) not in (None, []):
+            name = "--" + flag.replace("_", "-")
+            raise _bad(f"--batch and {name} do not mix; give each line its own `{key}`")
+    lines = _read_text(args.batch, "batch file").split("\n")
+    out = _open_out(args.out) if args.out else sys.stdout
+    url, source = resolve_url()
+    log = _Log.from_env()
+    answered = failed = 0
+    try:
+        for number, line in enumerate(lines, 1):
+            if not line.strip():
+                continue
+            key = {"line": number}
+            try:
+                item = _parse_line(line)
+                key = _line_key(item, number)
+                _check_line(item)
+                request = _make_request(args.model, item, item.get("images", []))
+                guess = check_guess(item.get("guess", {}), request["questions"])
+                _, reply, latency = _ask(url, source, request, args.timeout)
+            except ClefError as e:
+                if e.code != EXIT_BAD_REQUEST:
+                    raise
+                failed += 1
+                _emit(out, {**key, "error": f"clef: {e}", "exit": e.code})
+                continue
+            answered += 1
+            _emit(out, {**reply, **key})
+            log.write(_log_record(request, item.get("images", []), guess, reply, latency))
+    finally:
+        if out is not sys.stdout:
+            out.close()
+
+    summary = f"{answered} answered, {failed} failed"
+    if args.out:
+        print(f"{summary} -> {args.out}")
+    else:
+        print(f"clef: {summary}", file=sys.stderr)
+    return EXIT_BAD_REQUEST if failed else EXIT_OK
+
+
 def build_request(args: argparse.Namespace, stdin_text: str) -> dict:
     """Return the request body from stdin and flags, after Cloudflare's checks."""
     body = _parse_stdin(stdin_text)
     if args.state_file is not None:
         if "state" in body:
             raise _bad("give the state on stdin or with --state-file, not both")
-        body["state"] = _read_text(args.state_file)
+        body["state"] = _read_text(args.state_file, "state file")
     if "state" not in body:
         raise _bad("no state: put `state` on stdin or use --state-file")
     if "questions" not in body:
         raise _bad("no questions: put `questions` on stdin")
-    check_questions(body["questions"])
-
-    request = {"model": args.model, "state": body["state"], "questions": body["questions"]}
-    if args.image:
-        request["images"] = encode_images(args.image)
-    return request
+    return _make_request(args.model, body, args.image)
 
 
 def check_questions(questions: object) -> None:
@@ -104,6 +163,24 @@ def check_questions(questions: object) -> None:
         raise _bad(f"give {MIN_QUESTIONS}–{MAX_QUESTIONS} questions, not {len(questions)}")
     for qid, question in questions.items():
         _check_question(qid, question)
+
+
+def check_guess(guess: object, questions: dict) -> dict:
+    """Check the caller's own answers against the questions they name, and return them."""
+    if not isinstance(guess, dict):
+        raise _bad("guess must be an object of question id to answer")
+    for qid, value in guess.items():
+        question = questions.get(qid)
+        if question is None:
+            raise _bad(f"guess {qid}: no such question")
+        kind, criteria = question["type"], question.get("criteria")
+        if kind == "noul" and not isinstance(value, bool):
+            raise _bad(f"guess {qid}: give true or false for a noul question")
+        if kind == "choice" and not (isinstance(value, str) and value in criteria):
+            raise _bad(f"guess {qid}: give one of the question's option ids")
+        if kind == "score" and not (_is_int(value) and 0 <= value < len(criteria)):
+            raise _bad(f"guess {qid}: give a level index from 0 to {len(criteria) - 1}")
+    return guess
 
 
 def encode_images(paths: list[str]) -> list[str]:
@@ -136,10 +213,10 @@ def resolve_url() -> tuple[str, str]:
     return DOCKER_URL, f"{DOCKER_HOST} resolves"
 
 
-def send(url: str, source: str, request: dict, timeout: float) -> str:
-    """POST the request and return the server's JSON reply text, unchanged.
+def send(url: str, source: str, request: dict, timeout: float) -> tuple[str, dict]:
+    """POST the request and return the server's reply text, unchanged, and its JSON.
 
-    A reply that is not JSON is an error, so a proxy's HTML page never reads as an answer.
+    A reply that is not a JSON object is an error, so a proxy's HTML page never reads as an answer.
     """
     req = urllib.request.Request(
         url + ENDPOINT,
@@ -163,10 +240,12 @@ def send(url: str, source: str, request: dict, timeout: float) -> str:
             raise _no_answer(url, source, f"no reply within {timeout:g}s") from e
         raise _no_answer(url, source, f"unreachable: {reason}") from e
     try:
-        json.loads(text)
+        reply = json.loads(text)
     except json.JSONDecodeError as e:
         raise ClefError(f"HTTP 200 from {url}, but the reply is not JSON", EXIT_ERROR) from e
-    return text
+    if not isinstance(reply, dict):
+        raise ClefError(f"HTTP 200 from {url}, but the reply is not a JSON object", EXIT_ERROR)
+    return text, reply
 
 
 # ---------------------------------------------------------------------------
@@ -174,18 +253,80 @@ def send(url: str, source: str, request: dict, timeout: float) -> str:
 # ---------------------------------------------------------------------------
 
 
+class _Log:
+    """Appends one JSON line per answered call to the CLEF_LOG file, and warns once if it cannot."""
+
+    def __init__(self, path):
+        self.path, self.warned = path, False
+
+    @classmethod
+    def from_env(cls):
+        path = os.environ.get("CLEF_LOG", "").strip()
+        return cls(os.path.expanduser(path) if path else None)
+
+    def write(self, record):
+        if self.path is None:
+            return
+        # ASCII escapes, so a lone surrogate from a JSON escape cannot fail the encode.
+        line = (json.dumps(record) + "\n").encode("ascii")
+        try:
+            fd = os.open(self.path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+            try:
+                os.write(fd, line)
+            finally:
+                os.close(fd)
+        except FileNotFoundError:
+            self._warn(f"the CLEF_LOG folder {Path(self.path).parent} is missing, so this run is not logged")
+        except OSError as e:
+            self._warn(f"cannot write CLEF_LOG {self.path} ({e.strerror}), so this run is not logged")
+
+    def _warn(self, message):
+        if not self.warned:
+            print(f"clef: warning: {message}", file=sys.stderr)
+            self.warned = True
+
+
 class _Parser(argparse.ArgumentParser):
     def error(self, message):
         raise ClefError(message, EXIT_BAD_REQUEST)
 
 
+_EPILOG = """\
+A guess is true or false for a noul question, an option id for choice,
+or a level index for score. It changes nothing in the request.
+
+A --batch line holds `state` and `questions`, and may hold `id` (string or
+number), `images` (up to 4 paths) and `guess`. Each result line carries the
+line's `id`, or "line": N. A bad line gets an error line with "exit": 2, and
+the run goes on. Exit 3 or 1 stops the run.
+
+When CLEF_LOG names a file, each answered call appends one JSON line to it.
+
+Exit codes: 0 answered, 2 bad request, 3 no answer from the server, 1 any other error.
+"""
+
+
 def _parse_args(argv):
-    parser = _Parser(prog="clef.py", description="Ask Clef one set of questions and print the reply.")
-    parser.add_argument("--model", choices=MODELS, default=DEFAULT_MODEL)
-    parser.add_argument("--image", action="append", default=[], metavar="PATH")
-    parser.add_argument("--state-file", metavar="PATH")
-    parser.add_argument("--timeout", type=_positive_float, default=DEFAULT_TIMEOUT, metavar="N")
-    return parser.parse_args(argv)
+    parser = _Parser(
+        prog="clef.py",
+        description="Ask Clef a set of questions from stdin and print the reply.",
+        epilog=_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--model", choices=MODELS, default=DEFAULT_MODEL, help="default: clef-flash")
+    parser.add_argument("--image", action="append", default=[], metavar="PATH", help="repeat for up to 4 images")
+    parser.add_argument("--state-file", metavar="PATH", help="read the state from this file")
+    parser.add_argument(
+        "--timeout", type=_positive_float, default=DEFAULT_TIMEOUT, metavar="N",
+        help="seconds to wait for each reply (default: 120)",
+    )
+    parser.add_argument("--guess", metavar="JSON", help='your own answers, for the log: {"<question id>": <answer>}')
+    parser.add_argument("--batch", metavar="IN.jsonl", help="make one call per line of this file")
+    parser.add_argument("--out", metavar="OUT.jsonl", help="with --batch, write results here, not to stdout")
+    args = parser.parse_args(argv)
+    if args.out is not None and args.batch is None:
+        parser.error("--out needs --batch")
+    return args
 
 
 def _positive_float(text):
@@ -212,6 +353,112 @@ def _parse_stdin(text):
             raise _bad(f"stdin key `{key}` is not allowed; use {FLAG_FOR_KEY[key]}")
         raise _bad(f"stdin key `{key}` is not allowed; stdin takes only `state` and `questions`")
     return body
+
+
+def _parse_guess(text):
+    if text is None:
+        return {}
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        raise _bad(f"--guess is not JSON: {e}") from e
+
+
+def _parse_line(text):
+    try:
+        item = json.loads(text)
+    except json.JSONDecodeError as e:
+        raise _bad(f"line is not JSON: {e}") from e
+    if not isinstance(item, dict):
+        raise _bad("a line must be a JSON object with `state` and `questions`")
+    return item
+
+
+def _line_key(item, number):
+    """Return the key a result line carries: the line's `id`, or its line number."""
+    if "id" not in item:
+        return {"line": number}
+    if isinstance(item["id"], bool) or not isinstance(item["id"], (str, int, float)):
+        raise _bad("`id` must be a string or number")
+    return {"id": item["id"]}
+
+
+def _check_line(item):
+    for key in item:
+        if key not in LINE_KEYS:
+            raise _bad(f"line key `{key}` is not allowed; a line takes only state, questions, id, images and guess")
+    for key in ("state", "questions"):
+        if key not in item:
+            raise _bad(f"line has no `{key}`")
+    images = item.get("images", [])
+    if not isinstance(images, list) or not all(isinstance(path, str) for path in images):
+        raise _bad("`images` must be a list of paths")
+
+
+def _make_request(model, body, image_paths):
+    check_questions(body["questions"])
+    request = {"model": model, "state": body["state"], "questions": body["questions"]}
+    if image_paths:
+        request["images"] = encode_images(image_paths)
+    return request
+
+
+def _ask(url, source, request, timeout):
+    """Send the request. Return the reply text, its JSON and the seconds it took."""
+    start = time.monotonic()
+    text, reply = send(url, source, request, timeout)
+    return text, reply, time.monotonic() - start
+
+
+def _open_out(path):
+    try:
+        return open(path, "w", encoding="utf-8")
+    except OSError as e:
+        raise _bad(f"cannot write --out file {path}: {e}") from e
+
+
+def _emit(out, record):
+    out.write(json.dumps(record) + "\n")
+    out.flush()
+
+
+def _log_record(request, image_paths, guess, reply, latency):
+    state, answers = request["state"], reply.get("answers")
+    return {
+        "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "cwd": os.getcwd(),
+        "model": request["model"],
+        "state": state,
+        "state_chars": len(state) if isinstance(state, str) else len(json.dumps(state, ensure_ascii=False)),
+        "images": list(image_paths),
+        "questions": request["questions"],
+        "answers": answers,
+        "guess": guess,
+        "agree": _agreement(guess, request["questions"], answers),
+        "usage": reply.get("usage"),
+        "latency_s": round(latency, 3),
+    }
+
+
+def _agreement(guess, questions, answers):
+    """Return, per guessed question, whether Clef's answer agrees. None when it cannot tell."""
+    answers = answers if isinstance(answers, dict) else {}
+    return {qid: _agrees(questions[qid]["type"], value, answers.get(qid)) for qid, value in guess.items()}
+
+
+def _agrees(kind, guess, answer):
+    value = answer.get(kind) if isinstance(answer, dict) else None
+    if kind == "choice":
+        return value == guess if isinstance(value, str) else None
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return None
+    if kind == "noul":
+        return None if value == 0.5 else (value > 0.5) == guess
+    return math.floor(value + 0.5) == guess
+
+
+def _is_int(value):
+    return isinstance(value, int) and not isinstance(value, bool)
 
 
 def _check_question(qid, question):
@@ -261,11 +508,11 @@ def _image_type(data):
     return None
 
 
-def _read_text(path):
+def _read_text(path, what):
     try:
         return Path(path).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as e:
-        raise _bad(f"cannot read state file {path}: {e}") from e
+        raise _bad(f"cannot read {what} {path}: {e}") from e
 
 
 def _read_bytes(path):

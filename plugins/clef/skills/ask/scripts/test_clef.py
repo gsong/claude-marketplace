@@ -3,16 +3,19 @@
 # requires-python = ">=3.11"
 # dependencies = ["pytest>=8.0"]
 # ///
-"""Tests for clef.py — request checks, exit codes, error shapes and the server URL order."""
+"""Tests for clef.py — request checks, exit codes, error shapes, the server URL order,
+batch mode, `--guess` and the decision log."""
 
 import base64
 import importlib.util
 import io
 import json
+import os
 import socket
 import sys
 import threading
 import time
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -59,6 +62,7 @@ class Stub:
     def __init__(self):
         self.status, self.reply, self.delay = 200, json.dumps(ANSWER), 0.0
         self.extra_length, self.drop = 0, False
+        self.queue = []
         self.requests = []
         stub = self
 
@@ -69,8 +73,9 @@ class Stub:
                 time.sleep(stub.delay)
                 if stub.drop:
                     return
-                payload = stub.reply.encode()
-                self.send_response(stub.status)
+                status, reply = stub.queue.pop(0) if stub.queue else (stub.status, stub.reply)
+                payload = reply.encode()
+                self.send_response(status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(payload) + stub.extra_length))
                 self.end_headers()
@@ -89,11 +94,34 @@ class Stub:
         self.status, self.delay, self.extra_length, self.drop = status, delay, extra_length, drop
         self.reply = reply if isinstance(reply, str) else json.dumps(reply)
 
+    def respond_each(self, *replies):
+        """Send these (status, reply) pairs in order, one per request, then the set reply."""
+        self.queue = [(status, r if isinstance(r, str) else json.dumps(r)) for status, r in replies]
+
     @property
     def sent(self):
         """The body of the only request the stub received."""
         assert len(self.requests) == 1
         return self.requests[0][1]
+
+
+@pytest.fixture(autouse=True)
+def no_log(monkeypatch):
+    """Keep a developer's own CLEF_LOG out of the tests."""
+    monkeypatch.delenv("CLEF_LOG", raising=False)
+
+
+@pytest.fixture
+def log(monkeypatch, tmp_path):
+    """Point CLEF_LOG at a file. Return a function that reads its records."""
+    path = tmp_path / "logs" / "clef.jsonl"
+    path.parent.mkdir()
+    monkeypatch.setenv("CLEF_LOG", str(path))
+
+    def _records():
+        return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
+
+    return _records
 
 
 @pytest.fixture
@@ -394,11 +422,346 @@ class TestServerErrors:
         assert (code, out) == (1, "")
         assert _one_line(err) == f"clef: HTTP 200 from {stub.url}, but the reply is not JSON\n"
 
+    def test_json_200_not_an_object_is_other_error(self, stub, run):
+        stub.respond(200, "[1, 2]")
+        code, out, err = run(_body())
+        assert (code, out) == (1, "")
+        assert _one_line(err) == f"clef: HTTP 200 from {stub.url}, but the reply is not a JSON object\n"
+
     def test_5xx_is_other_error(self, stub, run):
         stub.respond(500, {"error": "runner crashed"})
         code, out, err = run(_body())
         assert (code, out) == (1, "")
         assert _one_line(err) == "clef: HTTP 500: runner crashed\n"
+
+
+# ---------------------------------------------------------------------------
+# --guess and the decision log
+# ---------------------------------------------------------------------------
+
+# One question of each type, and the answers the live server gives in their shape.
+MIXED_QUESTIONS = {
+    "c": {"type": "noul", "instructions": "Is this a complaint?"},
+    "t": {"type": "choice", "instructions": "Which team?", "criteria": {"shipping": "Delivery", "billing": "Payments"}},
+    "u": {"type": "score", "instructions": "How urgent?", "criteria": ["Can wait", "This week", "Today"]},
+}
+MIXED_ANSWER = {
+    "model": "clef-flash",
+    "answers": {
+        "c": {"type": "noul", "noul": 0.97},
+        "t": {"type": "choice", "choice": "shipping", "probabilities": {"billing": 0.15, "shipping": 0.85},
+              "confidence": 0.4},
+        "u": {"type": "score", "score": 1.55, "legend": {"0": "Can wait", "1": "This week", "2": "Today"},
+              "probabilities": {"0": 0.13, "1": 0.18, "2": 0.69}, "confidence": 0.23},
+    },
+    "usage": {"input_tokens": 290, "output_tokens": 0},
+}
+
+
+class TestDecisionLog:
+    def test_nothing_logged_when_unset(self, stub, run, tmp_path):
+        code, out, err = run(_body())
+        assert (code, err) == (0, "")
+        assert list(tmp_path.iterdir()) == []
+
+    def test_one_line_per_call(self, stub, run, log, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        path = _write(tmp_path, "a.png", PNG)
+        code, out, err = run(_body(), "--model", "clef", "--image", path)
+        assert (code, out, err) == (0, json.dumps(ANSWER), "")
+        [record] = log()
+        assert set(record) == {
+            "time", "cwd", "model", "state", "state_chars", "images", "questions",
+            "answers", "guess", "agree", "usage", "latency_s",
+        }
+        datetime.fromisoformat(record["time"])
+        assert record["cwd"] == os.getcwd()
+        assert record["model"] == "clef"
+        assert (record["state"], record["state_chars"]) == ("The sky is blue.", 16)
+        assert record["images"] == [path]
+        assert record["questions"] == _body()["questions"]
+        assert record["answers"] == ANSWER["answers"]
+        assert record["usage"] == ANSWER["usage"]
+        assert (record["guess"], record["agree"]) == ({}, {})
+        assert record["latency_s"] >= 0
+
+    def test_json_state_counts_its_json(self, stub, run, log):
+        state = {"ticket": "Login fails"}
+        run(_body(state=state))
+        [record] = log()
+        assert record["state"] == state
+        assert record["state_chars"] == len(json.dumps(state))
+
+    def test_appends_with_mode_0600(self, stub, run, log):
+        run(_body())
+        run(_body())
+        assert len(log()) == 2
+        assert Path(os.environ["CLEF_LOG"]).stat().st_mode & 0o777 == 0o600
+
+    def test_failed_call_not_logged(self, stub, run, log):
+        stub.respond(400, {"error": "bad"})
+        assert run(_body())[0] == 2
+        assert log() == []
+
+    def test_lone_surrogate_logs_and_keeps_exit_0(self, stub, run, log):
+        code, out, err = run('{"state": "a\\ud800", "questions": {"blue": {"type": "noul", "instructions": "x"}}}')
+        assert (code, out, err) == (0, json.dumps(ANSWER), "")
+        assert log()[0]["state"] == "a\ud800"
+
+    def test_missing_folder_warns_and_answers(self, stub, run, monkeypatch, tmp_path):
+        monkeypatch.setenv("CLEF_LOG", str(tmp_path / "missing" / "clef.jsonl"))
+        code, out, err = run(_body())
+        assert (code, out) == (0, json.dumps(ANSWER))
+        assert "clef: warning:" in _one_line(err)
+        assert str(tmp_path / "missing") in err
+        assert not (tmp_path / "missing").exists()
+
+
+class TestGuess:
+    def test_guess_goes_only_to_the_log(self, stub, run, log):
+        stub.respond(200, MIXED_ANSWER)
+        guess = {"c": True, "t": "billing", "u": 2}
+        code, _, _ = run(_body(questions=MIXED_QUESTIONS), "--guess", json.dumps(guess))
+        assert code == 0
+        assert stub.sent == {"model": "clef-flash", **_body(questions=MIXED_QUESTIONS)}
+        [record] = log()
+        assert record["guess"] == guess
+        assert record["agree"] == {"c": True, "t": False, "u": True}
+
+    @pytest.mark.parametrize(
+        "guess, agree",
+        [
+            ({"c": False}, {"c": False}),
+            ({"t": "shipping"}, {"t": True}),
+            ({"u": 1}, {"u": False}),
+        ],
+    )
+    def test_agree_per_type(self, stub, run, log, guess, agree):
+        stub.respond(200, MIXED_ANSWER)
+        run(_body(questions=MIXED_QUESTIONS), "--guess", json.dumps(guess))
+        assert log()[0]["agree"] == agree
+
+    @pytest.mark.parametrize("value, agree", [(0.49, False), (0.5, None), (0.51, True)])
+    def test_noul_agrees_on_the_same_side_of_half(self, stub, run, log, value, agree):
+        stub.respond(200, {"answers": {"c": {"type": "noul", "noul": value}}, "usage": {}})
+        run(_body(questions={"c": MIXED_QUESTIONS["c"]}), "--guess", '{"c": true}')
+        assert log()[0]["agree"] == {"c": agree}
+
+    @pytest.mark.parametrize("score", ["NaN", "Infinity"])
+    def test_score_not_finite_agrees_with_nothing(self, stub, run, log, score):
+        stub.respond(200, '{"answers": {"u": {"type": "score", "score": %s}}, "usage": {}}' % score)
+        code, _, _ = run(_body(questions={"u": MIXED_QUESTIONS["u"]}), "--guess", '{"u": 1}')
+        assert code == 0
+        assert log()[0]["agree"] == {"u": None}
+
+    def test_missing_answer_agrees_with_nothing(self, stub, run, log):
+        stub.respond(200, {"answers": {}, "usage": {}})
+        run(_body(questions=MIXED_QUESTIONS), "--guess", '{"t": "shipping"}')
+        assert log()[0]["agree"] == {"t": None}
+
+    @pytest.mark.parametrize(
+        "guess, message",
+        [
+            ("yes", "--guess is not JSON"),
+            ("[true]", "guess must be an object"),
+            ('{"nope": true}', "guess nope: no such question"),
+            ('{"c": 1}', "guess c: give true or false"),
+            ('{"t": "sales"}', "guess t: give one of the question's option ids"),
+            ('{"u": 3}', "guess u: give a level index from 0 to 2"),
+            ('{"u": -1}', "guess u: give a level index from 0 to 2"),
+            ('{"u": true}', "guess u: give a level index from 0 to 2"),
+            ('{"u": 1.0}', "guess u: give a level index from 0 to 2"),
+        ],
+    )
+    def test_bad_guess(self, stub, run, guess, message):
+        code, out, err = run(_body(questions=MIXED_QUESTIONS), "--guess", guess)
+        assert (code, out) == (2, "")
+        assert message in _one_line(err)
+        assert stub.requests == []
+
+
+# ---------------------------------------------------------------------------
+# Batch mode
+# ---------------------------------------------------------------------------
+
+
+def _jsonl(tmp_path, *lines, name="in.jsonl"):
+    """Write lines to a JSONL file. A str line goes as is; anything else as JSON."""
+    path = tmp_path / name
+    path.write_text("".join((l if isinstance(l, str) else json.dumps(l)) + "\n" for l in lines))
+    return str(path)
+
+
+def _results(path):
+    return [json.loads(line) for line in Path(path).read_text().splitlines()]
+
+
+class TestBatch:
+    def test_one_call_per_line_to_out(self, stub, run, tmp_path):
+        src = _jsonl(tmp_path, {"id": "a", **_body()}, {"id": 7, **_body(state="Two")}, _body(state="Three"))
+        dst = str(tmp_path / "out.jsonl")
+        code, out, err = run("", "--batch", src, "--out", dst, "--model", "clef")
+        assert (code, out, err) == (0, f"3 answered, 0 failed -> {dst}\n", "")
+        assert [r[1]["state"] for r in stub.requests] == ["The sky is blue.", "Two", "Three"]
+        assert {r[1]["model"] for r in stub.requests} == {"clef"}
+        assert _results(dst) == [{"id": "a", **ANSWER}, {"id": 7, **ANSWER}, {"line": 3, **ANSWER}]
+
+    def test_results_to_stdout_and_summary_to_stderr(self, stub, run, tmp_path):
+        code, out, err = run("", "--batch", _jsonl(tmp_path, _body(), _body()))
+        assert code == 0
+        assert [json.loads(l) for l in out.splitlines()] == [{"line": 1, **ANSWER}, {"line": 2, **ANSWER}]
+        assert _one_line(err) == "clef: 2 answered, 0 failed\n"
+
+    def test_ignores_stdin(self, stub, run, tmp_path):
+        assert run("not json", "--batch", _jsonl(tmp_path, _body()))[0] == 0
+
+    def test_blank_lines_skipped_but_counted(self, stub, run, tmp_path):
+        code, out, _ = run("", "--batch", _jsonl(tmp_path, "", _body(), "  "))
+        assert code == 0
+        assert [json.loads(l)["line"] for l in out.splitlines()] == [2]
+
+    def test_empty_batch(self, stub, run, tmp_path):
+        code, out, err = run("", "--batch", _jsonl(tmp_path))
+        assert (code, out, err) == (0, "", "clef: 0 answered, 0 failed\n")
+
+    def test_images_per_line(self, stub, run, tmp_path):
+        png, jpg = _write(tmp_path, "a.png", PNG), _write(tmp_path, "b.jpg", JPEG)
+        code, _, _ = run("", "--batch", _jsonl(tmp_path, {**_body(), "images": [png, jpg]}, _body()))
+        assert code == 0
+        assert stub.requests[0][1]["images"] == [base64.b64encode(d).decode() for d in (PNG, JPEG)]
+        assert "images" not in stub.requests[1][1]
+
+    @pytest.mark.parametrize(
+        "line, key, message",
+        [
+            ("not json", {"line": 1}, "line is not JSON"),
+            ("[1]", {"line": 1}, "a line must be a JSON object"),
+            ({**_body(), "id": True}, {"line": 1}, "`id` must be a string or number"),
+            ({**_body(), "id": [1]}, {"line": 1}, "`id` must be a string or number"),
+            ({**_body(), "id": "x", "model": "clef"}, {"id": "x"}, "line key `model` is not allowed"),
+            ({"id": "x", "questions": {"q": _noul()}}, {"id": "x"}, "line has no `state`"),
+            ({"id": "x", "state": "s"}, {"id": "x"}, "line has no `questions`"),
+            ({**_body(questions={}), "id": "x"}, {"id": "x"}, "give 1–64 questions, not 0"),
+            ({**_body(), "id": "x", "images": "a.png"}, {"id": "x"}, "`images` must be a list of paths"),
+            ({**_body(), "id": "x", "images": ["missing.png"]}, {"id": "x"}, "cannot read image"),
+            ({**_body(), "id": "x", "guess": {"blue": "yes"}}, {"id": "x"}, "guess blue: give true or false"),
+        ],
+    )
+    def test_bad_line_writes_its_error_and_goes_on(self, stub, run, tmp_path, line, key, message):
+        dst = str(tmp_path / "out.jsonl")
+        code, out, err = run("", "--batch", _jsonl(tmp_path, line, _body()), "--out", dst)
+        assert (code, out, err) == (2, f"1 answered, 1 failed -> {dst}\n", "")
+        bad, good = _results(dst)
+        assert set(bad) == {*key, "error", "exit"}
+        assert {k: bad[k] for k in key} == key
+        assert bad["error"].startswith("clef: ") and message in bad["error"]
+        assert bad["exit"] == 2
+        assert good == {"line": 2, **ANSWER}
+        assert len(stub.requests) == 1
+
+    def test_lone_surrogate_line_writes_its_error_and_goes_on(self, stub, run, tmp_path):
+        bad = '{"id": "a\\udc80", "\\udc80x": 1, "state": "s", "questions": {"q": {"type": "noul", "instructions": "x"}}}'
+        code, out, err = run("", "--batch", _jsonl(tmp_path, bad, _body()))
+        assert code == 2
+        first, second = [json.loads(l) for l in out.splitlines()]
+        assert (first["id"], first["exit"]) == ("a\udc80", 2)
+        assert second == {"line": 2, **ANSWER}
+
+    def test_reply_id_does_not_replace_the_line_id(self, stub, run, tmp_path):
+        stub.respond(200, {"id": "srv-1", **ANSWER})
+        _, out, _ = run("", "--batch", _jsonl(tmp_path, {"id": "mine", **_body()}))
+        assert json.loads(out)["id"] == "mine"
+
+    def test_4xx_line_writes_its_error_and_goes_on(self, stub, run, tmp_path):
+        stub.respond_each((200, ANSWER), (400, {"error": "question too\nlong"}))
+        dst = str(tmp_path / "out.jsonl")
+        code, out, _ = run("", "--batch", _jsonl(tmp_path, _body(), {"id": "b", **_body()}, _body()), "--out", dst)
+        assert (code, out) == (2, f"2 answered, 1 failed -> {dst}\n")
+        assert _results(dst)[1] == {"id": "b", "error": "clef: HTTP 400: question too long", "exit": 2}
+
+    def test_server_stopped_exits_3(self, run, tmp_path, monkeypatch):
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+        monkeypatch.setenv("CLEF_URL", f"http://127.0.0.1:{port}")
+        dst = tmp_path / "out.jsonl"
+        code, out, err = run("", "--batch", _jsonl(tmp_path, _body(), _body()), "--out", str(dst))
+        assert (code, out) == (3, "")
+        line = _one_line(err)
+        assert f"no answer from http://127.0.0.1:{port} (URL from CLEF_URL): unreachable" in line
+        assert "setup.md#fixes-for-exit-3" in line
+        assert dst.read_text() == ""
+
+    def test_exit_3_keeps_earlier_results(self, stub, run, tmp_path):
+        stub.respond_each((200, ANSWER), (404, {"error": "model not found"}))
+        dst = str(tmp_path / "out.jsonl")
+        code, out, err = run("", "--batch", _jsonl(tmp_path, _body(), _body(), _body()), "--out", dst)
+        assert (code, out) == (3, "")
+        assert "HTTP 404: model not found" in _one_line(err)
+        assert _results(dst) == [{"line": 1, **ANSWER}]
+        assert len(stub.requests) == 2
+
+    def test_5xx_stops_with_exit_1(self, stub, run, tmp_path):
+        stub.respond_each((200, ANSWER), (500, {"error": "runner crashed"}))
+        dst = str(tmp_path / "out.jsonl")
+        code, out, err = run("", "--batch", _jsonl(tmp_path, _body(), _body(), _body()), "--out", dst)
+        assert (code, out, err) == (1, "", "clef: HTTP 500: runner crashed\n")
+        assert _results(dst) == [{"line": 1, **ANSWER}]
+
+    def test_each_answered_line_logged_with_its_guess(self, stub, run, tmp_path, log):
+        stub.respond(200, MIXED_ANSWER)
+        png = _write(tmp_path, "a.png", PNG)
+        lines = [
+            {**_body(questions=MIXED_QUESTIONS), "guess": {"t": "shipping"}, "images": [png]},
+            {**_body(questions=MIXED_QUESTIONS), "guess": {"u": 0}},
+            _body(questions={}),
+        ]
+        assert run("", "--batch", _jsonl(tmp_path, *lines))[0] == 2
+        first, second = log()
+        assert (first["guess"], first["agree"], first["images"]) == ({"t": "shipping"}, {"t": True}, [png])
+        assert (second["guess"], second["agree"], second["images"]) == ({"u": 0}, {"u": False}, [])
+
+    def test_missing_log_folder_warns_once(self, stub, run, tmp_path, monkeypatch):
+        monkeypatch.setenv("CLEF_LOG", str(tmp_path / "missing" / "clef.jsonl"))
+        dst = str(tmp_path / "out.jsonl")
+        code, out, err = run("", "--batch", _jsonl(tmp_path, _body(), _body()), "--out", dst)
+        assert (code, out) == (0, f"2 answered, 0 failed -> {dst}\n")
+        assert "clef: warning:" in _one_line(err)
+
+    @pytest.mark.parametrize(
+        "argv, message",
+        [
+            (["--image", "a.png"], "--batch and --image do not mix"),
+            (["--state-file", "s.txt"], "--batch and --state-file do not mix"),
+            (["--guess", "{}"], "--batch and --guess do not mix"),
+            (["--guess", ""], "--batch and --guess do not mix"),
+            (["--state-file", ""], "--batch and --state-file do not mix"),
+        ],
+    )
+    def test_batch_flag_conflicts(self, stub, run, tmp_path, argv, message):
+        code, out, err = run("", "--batch", _jsonl(tmp_path, _body()), *argv)
+        assert (code, out) == (2, "")
+        assert message in _one_line(err)
+        assert stub.requests == []
+
+    def test_out_needs_batch(self, stub, run, tmp_path):
+        code, _, err = run(_body(), "--out", str(tmp_path / "out.jsonl"))
+        assert code == 2
+        assert "--out needs --batch" in _one_line(err)
+        assert stub.requests == []
+
+    def test_missing_batch_file(self, stub, run, tmp_path):
+        dst = tmp_path / "out.jsonl"
+        code, _, err = run("", "--batch", str(tmp_path / "missing.jsonl"), "--out", str(dst))
+        assert code == 2
+        assert "cannot read batch file" in _one_line(err)
+        assert not dst.exists()
+
+    def test_unwritable_out(self, stub, run, tmp_path):
+        code, _, err = run("", "--batch", _jsonl(tmp_path, _body()), "--out", str(tmp_path / "no" / "out.jsonl"))
+        assert code == 2
+        assert "cannot write --out file" in _one_line(err)
+        assert stub.requests == []
 
 
 # ---------------------------------------------------------------------------
