@@ -27,6 +27,7 @@ import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TypeGuard
 
 MODELS = ("clef", "clef-flash")
 DEFAULT_MODEL = "clef-flash"
@@ -455,7 +456,7 @@ def _agrees(kind, guess, answer):
     return math.floor(value + 0.5) == guess
 
 
-def _is_int(value):
+def _is_int(value: object) -> TypeGuard[int]:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
