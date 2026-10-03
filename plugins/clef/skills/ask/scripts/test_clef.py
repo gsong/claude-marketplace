@@ -386,6 +386,12 @@ class TestServerErrors:
         assert code == 3
         assert "no reply within 5s" in _one_line(err)
 
+    def test_non_json_200_is_other_error(self, stub, run):
+        stub.respond(200, "<html>proxy login</html>")
+        code, out, err = run(_body())
+        assert (code, out) == (1, "")
+        assert _one_line(err) == f"clef: HTTP 200 from {stub.url}, but the reply is not JSON\n"
+
     def test_5xx_is_other_error(self, stub, run):
         stub.respond(500, {"error": "runner crashed"})
         code, out, err = run(_body())
