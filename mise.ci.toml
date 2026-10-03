@@ -1,0 +1,4 @@
+# CI sets MISE_ENV=ci to load this file. Claude Code is pinned here, not in
+# mise.toml, so a local shell in this repo keeps the native install.
+[tools]
+claude = "2.1.283"
