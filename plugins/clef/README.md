@@ -14,8 +14,8 @@ None yet. The plugin is a scaffold until its first skill lands.
 - Homebrew's Ollama, 0.35.1 or later. Ollama.app at the same version also works, but run only one of the two. See [Install and start](skills/ask/setup.md#install-and-start).
 - About 27 GB of disk for the two models, `clef:27b` and `clef-flash:9b`. See [Install and start](skills/ask/setup.md#install-and-start).
 - Memory: both models loaded together take about 36 GB. With less free memory, Ollama unloads one model to load the other. A swap costs a few seconds and never changes an answer. See [Defaults to keep](skills/ask/setup.md#defaults-to-keep).
-- [uv](https://docs.astral.sh/uv/), to run the script. See the [setup guide](skills/ask/setup.md).
-- For container sessions: the container mounts `~/.claude/plugins` at its Mac path and can resolve `host.docker.internal`. Docker Desktop resolves it by default. See the [setup guide](skills/ask/setup.md).
+- [uv](https://docs.astral.sh/uv/), to run the script. See [Install uv](skills/ask/setup.md#install-uv).
+- For container sessions: the container mounts `~/.claude/plugins` at its Mac path and can resolve `host.docker.internal`. Docker Desktop resolves it by default. See [Container sessions](skills/ask/setup.md#container-sessions).
 
 ## Installation
 
