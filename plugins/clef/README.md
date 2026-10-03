@@ -6,7 +6,7 @@ Clef and Clef-flash are Cloudflare's decision models. Ollama serves both on an A
 
 ## Skills
 
-None yet. The plugin is a scaffold until the `clef:ask` skill lands.
+None yet. The plugin is a scaffold until its first skill lands.
 
 ## Prerequisites
 

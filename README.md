@@ -44,7 +44,7 @@ Ask Clef, a local decision model, yes/no, pick-one, or rating questions and get 
 
 **Skills:** none yet
 
-**Requires:** an Apple Silicon Mac, Homebrew's Ollama 0.35.1 or later with the Clef models, and uv. See the [plugin README](plugins/clef/README.md#prerequisites).
+**Requires:** an Apple Silicon Mac, Ollama, and uv. See the [plugin README](plugins/clef/README.md#prerequisites).
 
 ### codex-tools
 
