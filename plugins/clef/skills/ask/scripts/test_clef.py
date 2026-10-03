@@ -10,6 +10,7 @@ import base64
 import importlib.util
 import io
 import json
+import math
 import os
 import socket
 import sys
@@ -242,6 +243,7 @@ class TestLocalChecks:
         [
             ("not json", "stdin is not JSON"),
             ("[1, 2]", "stdin must be a JSON object"),
+            ("1" * 5000, "stdin is not JSON"),
             (_body(model="clef"), "use --model"),
             (_body(images=["x"]), "use --image"),
             (_body(timeout=5), "use --timeout"),
@@ -560,6 +562,7 @@ class TestGuess:
         "guess, message",
         [
             ("yes", "--guess is not JSON"),
+            ('{"c": ' + "1" * 5000 + "}", "--guess is not JSON"),
             ("[true]", "guess must be an object"),
             ('{"nope": true}', "guess nope: no such question"),
             ('{"c": 1}', "guess c: give true or false"),
@@ -635,6 +638,9 @@ class TestBatch:
             ("[1]", {"line": 1}, "line must be a JSON object"),
             ({**_body(), "id": True}, {"line": 1}, "`id` must be a string or number"),
             ({**_body(), "id": [1]}, {"line": 1}, "`id` must be a string or number"),
+            (json.dumps({**_body(), "id": math.nan}), {"line": 1}, "`id` must be a string or number"),
+            (json.dumps({**_body(), "id": math.inf}), {"line": 1}, "`id` must be a string or number"),
+            ('{"id": ' + "1" * 5000 + "}", {"line": 1}, "line is not JSON"),
             ({**_body(), "id": "x", "model": "clef"}, {"id": "x"}, "line key `model` is not allowed"),
             ({"id": "x", "questions": {"q": _noul()}}, {"id": "x"}, "line has no `state`"),
             ({"id": "x", "state": "s"}, {"id": "x"}, "line has no `questions`"),
@@ -655,6 +661,11 @@ class TestBatch:
         assert bad["exit"] == 2
         assert good == {"line": 2, **ANSWER}
         assert len(stub.requests) == 1
+
+    def test_huge_integer_id_is_carried(self, stub, run, tmp_path):
+        code, out, _ = run("", "--batch", _jsonl(tmp_path, {**_body(), "id": 10**400}))
+        assert code == 0
+        assert json.loads(out) == {"id": 10**400, **ANSWER}
 
     def test_lone_surrogate_line_writes_its_error_and_goes_on(self, stub, run, tmp_path):
         bad = '{"id": "a\\udc80", "\\udc80x": 1, "state": "s", "questions": {"q": {"type": "noul", "instructions": "x"}}}'
