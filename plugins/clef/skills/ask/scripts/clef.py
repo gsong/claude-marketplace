@@ -87,7 +87,7 @@ def run_one(args: argparse.Namespace) -> int:
     request = build_request(args, sys.stdin.read())
     guess = check_guess(_parse_guess(args.guess), request["questions"])
     url, source = resolve_url()
-    text, reply, latency = _ask(url, source, request, args.timeout)
+    text, reply, latency = _timed_send(url, source, request, args.timeout)
     sys.stdout.write(text)
     _Log.from_env().write(_log_record(request, args.image, guess, reply, latency))
     return EXIT_OK
@@ -112,22 +112,22 @@ def run_batch(args: argparse.Namespace) -> int:
         for number, line in enumerate(lines, 1):
             if not line.strip():
                 continue
-            key = {"line": number}
+            ref = {"line": number}
             try:
-                item = _parse_line(line)
-                key = _line_key(item, number)
+                item = _load_object(line, "line")
+                ref = _line_ref(item, number)
                 _check_line(item)
                 request = _make_request(args.model, item, item.get("images", []))
                 guess = check_guess(item.get("guess", {}), request["questions"])
-                _, reply, latency = _ask(url, source, request, args.timeout)
+                _, reply, latency = _timed_send(url, source, request, args.timeout)
             except ClefError as e:
                 if e.code != EXIT_BAD_REQUEST:
                     raise
                 failed += 1
-                _emit(out, {**key, "error": f"clef: {e}", "exit": e.code})
+                _emit(out, {**ref, "error": f"clef: {e}", "exit": e.code})
                 continue
             answered += 1
-            _emit(out, {**reply, **key})
+            _emit(out, {**reply, **ref})
             log.write(_log_record(request, item.get("images", []), guess, reply, latency))
     finally:
         if out is not sys.stdout:
@@ -340,12 +340,7 @@ def _positive_float(text):
 
 
 def _parse_stdin(text):
-    try:
-        body = json.loads(text)
-    except json.JSONDecodeError as e:
-        raise _bad(f"stdin is not JSON: {e}") from e
-    if not isinstance(body, dict):
-        raise _bad("stdin must be a JSON object with `state` and `questions`")
+    body = _load_object(text, "stdin")
     for key in body:
         if key in STDIN_KEYS:
             continue
@@ -364,23 +359,25 @@ def _parse_guess(text):
         raise _bad(f"--guess is not JSON: {e}") from e
 
 
-def _parse_line(text):
+def _load_object(text, where):
+    """Parse stdin or a batch line, which must be a JSON object."""
     try:
-        item = json.loads(text)
+        value = json.loads(text)
     except json.JSONDecodeError as e:
-        raise _bad(f"line is not JSON: {e}") from e
-    if not isinstance(item, dict):
-        raise _bad("a line must be a JSON object with `state` and `questions`")
-    return item
+        raise _bad(f"{where} is not JSON: {e}") from e
+    if not isinstance(value, dict):
+        raise _bad(f"{where} must be a JSON object with `state` and `questions`")
+    return value
 
 
-def _line_key(item, number):
-    """Return the key a result line carries: the line's `id`, or its line number."""
+def _line_ref(item, number):
+    """Return what a result line carries to name its input: the line's `id`, or its line number."""
     if "id" not in item:
         return {"line": number}
-    if isinstance(item["id"], bool) or not isinstance(item["id"], (str, int, float)):
+    value = item["id"]
+    if isinstance(value, bool) or not isinstance(value, (str, int, float)):
         raise _bad("`id` must be a string or number")
-    return {"id": item["id"]}
+    return {"id": value}
 
 
 def _check_line(item):
@@ -403,7 +400,7 @@ def _make_request(model, body, image_paths):
     return request
 
 
-def _ask(url, source, request, timeout):
+def _timed_send(url, source, request, timeout):
     """Send the request. Return the reply text, its JSON and the seconds it took."""
     start = time.monotonic()
     text, reply = send(url, source, request, timeout)
