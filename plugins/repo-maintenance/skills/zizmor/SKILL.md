@@ -28,7 +28,7 @@ Run a security audit of GitHub Actions workflows using zizmor, a static analysis
 
 4. **Offer to apply fixes:**
    - Use AskUserQuestion: fix all, fix a subset, or stop
-   - Edit the workflow files by hand (zizmor's `--fix` is experimental)
+   - Edit the affected workflow files, action definitions, or `dependabot.yml` by hand (zizmor's `--fix` is experimental)
    - Re-run the audit; done when no approved finding remains
 
 ## Output
@@ -45,4 +45,4 @@ Present findings in a structured format:
 
 ## Important Notes
 
-- This skill edits workflow files, action definitions, and `dependabot.yml` only for the findings the user approves. Stop after editing; the user commits.
+- This skill edits workflow files, action definitions, and `dependabot.yml`, and only for the findings the user approves. Stop after the re-run audit; the user commits.
