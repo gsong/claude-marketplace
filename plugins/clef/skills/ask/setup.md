@@ -86,6 +86,7 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 - Each model loads on its first call and unloads after 5 idle minutes. A call to an unloaded model takes a few seconds longer.
 - Both models loaded together take about 36 GB of memory. With less free memory, Ollama unloads one model to load the other. The swap takes a few seconds and never changes an answer.
 - Both models keep Ollama's default context window of 16,384 tokens. Setup needs no Modelfile, which is Ollama's file for model settings. Setup also needs no `OLLAMA_CONTEXT_LENGTH`.
+- Homebrew's service sets `OLLAMA_FLASH_ATTENTION=1` and `OLLAMA_KV_CACHE_TYPE=q8_0`. Together they cut the memory the context window takes. Keep both.
 - After each `brew upgrade ollama`, run `scripts/check.py` again.
 
 ## Fixes for exit 3
