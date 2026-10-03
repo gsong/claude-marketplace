@@ -466,7 +466,7 @@ MIXED_ANSWER = {
 
 class TestDecisionLog:
     def test_nothing_logged_when_unset(self, stub, run, tmp_path):
-        code, out, err = run(_body())
+        code, _, err = run(_body())
         assert (code, err) == (0, "")
         assert list(tmp_path.iterdir()) == []
 
@@ -553,9 +553,9 @@ class TestGuess:
         run(_body(questions={"c": MIXED_QUESTIONS["c"]}), "--guess", '{"c": true}')
         assert log()[0]["agree"] == {"c": agree}
 
-    @pytest.mark.parametrize("score", ["NaN", "Infinity"])
+    @pytest.mark.parametrize("score", [math.nan, math.inf])
     def test_score_not_finite_agrees_with_nothing(self, stub, run, log, score):
-        stub.respond(200, '{"answers": {"u": {"type": "score", "score": %s}}, "usage": {}}' % score)
+        stub.respond(200, {"answers": {"u": {"type": "score", "score": score}}, "usage": {}})
         code, _, _ = run(_body(questions={"u": MIXED_QUESTIONS["u"]}), "--guess", '{"u": 1}')
         assert code == 0
         assert log()[0]["agree"] == {"u": None}
@@ -676,7 +676,7 @@ class TestBatch:
 
     def test_lone_surrogate_line_writes_its_error_and_goes_on(self, stub, run, tmp_path):
         bad = '{"id": "a\\udc80", "\\udc80x": 1, "state": "s", "questions": {"q": {"type": "noul", "instructions": "x"}}}'
-        code, out, err = run("", "--batch", _jsonl(tmp_path, bad, _body()))
+        code, out, _ = run("", "--batch", _jsonl(tmp_path, bad, _body()))
         assert code == 2
         first, second = [json.loads(l) for l in out.splitlines()]
         assert (first["id"], first["exit"]) == ("a\udc80", 2)
