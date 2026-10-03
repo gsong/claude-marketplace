@@ -362,6 +362,12 @@ class TestServerErrors:
         assert code == 2
         assert "HTTP 422: plain text error" in _one_line(err)
 
+    def test_error_body_with_over_long_integer(self, stub, run):
+        stub.respond(400, '{"error": "bad", "n": ' + "1" * 5000 + "}")
+        code, out, err = run(_body())
+        assert (code, out) == (2, "")
+        assert _one_line(err).startswith('clef: HTTP 400: {"error": "bad", "n": 111')
+
     def test_404_is_no_answer(self, stub, run):
         stub.respond(404, {"error": 'model "clef-flash" not found, try pulling it first'})
         code, out, err = run(_body())
