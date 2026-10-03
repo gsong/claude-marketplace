@@ -704,6 +704,16 @@ class TestBatch:
         assert (code, out) == (2, f"2 answered, 1 failed -> {dst}\n")
         assert _results(dst)[1] == {"id": "b", "error": "clef: HTTP 400: question too long", "exit": 2}
 
+    def test_4xx_body_with_over_long_integer_writes_its_error_and_goes_on(self, stub, run, tmp_path):
+        stub.respond_each((400, '{"n": ' + OVER_LONG_INT + "}"), (200, ANSWER))
+        dst = str(tmp_path / "out.jsonl")
+        code, out, _ = run("", "--batch", _jsonl(tmp_path, {"id": "a", **_body()}, _body()), "--out", dst)
+        assert (code, out) == (2, f"1 answered, 1 failed -> {dst}\n")
+        bad, good = _results(dst)
+        assert (bad["id"], bad["exit"]) == ("a", 2)
+        assert bad["error"].startswith('clef: HTTP 400: {"n": 111')
+        assert good == {"line": 2, **ANSWER}
+
     def test_server_stopped_exits_3(self, run, tmp_path, monkeypatch):
         with socket.socket() as s:
             s.bind(("127.0.0.1", 0))
