@@ -31,7 +31,7 @@ DOCKER_HOST = "host.docker.internal"
 DOCKER_URL = f"http://{DOCKER_HOST}:11434"
 LOOPBACK_URL = "http://127.0.0.1:11434"
 ENDPOINT = "/v1/systemone"
-SETUP_FIXES = Path(__file__).resolve().parent.parent / "setup.md#fixes-for-exit-3"
+SETUP_FIXES = f"{Path(__file__).resolve().parent.parent / 'setup.md'}#fixes-for-exit-3"
 
 MIN_QUESTIONS, MAX_QUESTIONS = 1, 64
 QUESTION_ID = re.compile(r"[A-Za-z0-9_.-]{1,100}")
@@ -62,7 +62,7 @@ class ClefError(Exception):
         self.code = code
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> int:
     try:
         args = _parse_args(argv)
         request = build_request(args, sys.stdin.read())
@@ -77,7 +77,7 @@ def main(argv=None):
         return EXIT_ERROR
 
 
-def build_request(args, stdin_text):
+def build_request(args: argparse.Namespace, stdin_text: str) -> dict:
     """Return the request body from stdin and flags, after Cloudflare's checks."""
     body = _parse_stdin(stdin_text)
     if args.state_file is not None:
@@ -96,7 +96,7 @@ def build_request(args, stdin_text):
     return request
 
 
-def check_questions(questions):
+def check_questions(questions: object) -> None:
     """Check the question count and each question against Cloudflare's schema."""
     if not isinstance(questions, dict):
         raise _bad("`questions` must be an object of question id to question")
@@ -106,7 +106,7 @@ def check_questions(questions):
         _check_question(qid, question)
 
 
-def encode_images(paths):
+def encode_images(paths: list[str]) -> list[str]:
     """Return each image as raw base64, after the count, type and size checks."""
     if len(paths) > MAX_IMAGES:
         raise _bad(f"give at most {MAX_IMAGES} images, not {len(paths)}")
@@ -124,7 +124,7 @@ def encode_images(paths):
     return encoded
 
 
-def resolve_url():
+def resolve_url() -> tuple[str, str]:
     """Return the server URL and where it came from. The first that applies wins."""
     env = os.environ.get("CLEF_URL", "").strip()
     if env:
@@ -136,7 +136,7 @@ def resolve_url():
     return DOCKER_URL, f"{DOCKER_HOST} resolves"
 
 
-def send(url, source, request, timeout):
+def send(url: str, source: str, request: dict, timeout: float) -> str:
     """POST the request and return the server's JSON reply text, unchanged.
 
     A reply that is not JSON is an error, so a proxy's HTML page never reads as an answer.
@@ -157,14 +157,11 @@ def send(url, source, request, timeout):
         if 400 <= e.code < 500:
             raise ClefError(message, EXIT_BAD_REQUEST) from e
         raise ClefError(message, EXIT_ERROR) from e
-    except TimeoutError as e:
-        raise _no_answer(url, source, f"no reply within {timeout:g}s") from e
-    except urllib.error.URLError as e:
-        if isinstance(e.reason, TimeoutError):
+    except OSError as e:  # URLError and TimeoutError included
+        reason = e.reason if isinstance(e, urllib.error.URLError) else e
+        if isinstance(reason, TimeoutError):
             raise _no_answer(url, source, f"no reply within {timeout:g}s") from e
-        raise _no_answer(url, source, f"unreachable: {e.reason}") from e
-    except OSError as e:
-        raise _no_answer(url, source, f"unreachable: {e}") from e
+        raise _no_answer(url, source, f"unreachable: {reason}") from e
     try:
         json.loads(text)
     except json.JSONDecodeError as e:
