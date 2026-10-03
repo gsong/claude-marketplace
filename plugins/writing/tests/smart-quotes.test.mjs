@@ -44,38 +44,35 @@ function artifact(files, tool_input = {}) {
   return guard({ tool_name: "Artifact", cwd: dir, tool_input });
 }
 
-// --- Artifact: unchanged from the original guard -------------------------
+// --- Artifact -------------------------------------------------------------
 
-test("artifact: straight quotes in Markdown prose are denied", () => {
+test("artifact: straight quotes in HTML text are denied", () => {
   const reason = artifact(
-    { "page.md": 'Line one.\nShe said "hi".\n' },
-    { file_path: "page.md" },
+    { "page.html": '<p>Line one.</p>\n<p>She said "hi".</p>\n' },
+    { file_path: "page.html" },
   );
   assert.match(reason, /Straight quotes in visible artifact text/);
-  assert.match(reason, /page\.md:2: She said "hi"\./);
+  assert.match(reason, /page\.html:2: She said "hi"\./);
 });
 
 test("artifact: smart quotes pass", () => {
   assert.equal(
     artifact(
-      { "page.md": "She said “hi” and it’s fine.\n" },
-      { file_path: "page.md" },
+      { "page.html": "<p>She said “hi” and it’s fine.</p>\n" },
+      { file_path: "page.html" },
     ),
     null,
   );
 });
 
-test("artifact: Markdown code spans, fences, link targets and inline HTML are exempt", () => {
-  const body = [
-    "Run `echo 'x'` first.",
-    "```",
-    'const a = "b";',
-    "```",
-    '[link](https://x.test/?q="a")',
-    '<span class="c">plain</span>',
-    "",
-  ].join("\n");
-  assert.equal(artifact({ "page.md": body }, { file_path: "page.md" }), null);
+test("artifact: a Markdown file keeps straight quotes", () => {
+  assert.equal(
+    artifact(
+      { "page.md": 'She said "hi" and it\'s fine.\n' },
+      { file_path: "page.md" },
+    ),
+    null,
+  );
 });
 
 test("artifact: HTML text is checked, attributes and <code> are exempt", () => {
@@ -97,14 +94,12 @@ test("artifact: files map sources and JSON string values are checked", () => {
 });
 
 test("artifact: non-publish actions and asset uploads pass", () => {
+  const page = { "page.html": '<p>"x"</p>' };
   assert.equal(
-    artifact({ "page.md": '"x"' }, { action: "read", file_path: "page.md" }),
+    artifact(page, { action: "read", file_path: "page.html" }),
     null,
   );
-  assert.equal(
-    artifact({ "page.md": '"x"' }, { asset: true, file_path: "page.md" }),
-    null,
-  );
+  assert.equal(artifact(page, { asset: true, file_path: "page.html" }), null);
 });
 
 // --- MCP surfaces ---------------------------------------------------------
@@ -132,13 +127,15 @@ test("slack update_canvas: sections[].content is checked", () => {
   assert.match(reason, /sections\[1\]\.content:1: a "quote"/);
 });
 
-test("slack canvas: code spans and fences are exempt", () => {
+test("slack canvas: code spans, fences, link targets and inline HTML are exempt", () => {
   const content = [
     "Use `it's` here.",
     "```",
     'x = "y"',
     "```",
     "![](@U123) and ![](#C1)",
+    '[link](https://x.test/?q="a")',
+    '<span class="c">plain</span>',
   ].join("\n");
   assert.equal(
     guard({ tool_name: CANVAS, tool_input: { title: "T", content } }),

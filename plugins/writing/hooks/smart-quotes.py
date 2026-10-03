@@ -5,11 +5,12 @@
 # ///
 """PreToolUse guard for Artifact, Slack canvases, Claude Docs, and Google Drive
 create_file. Blocks a publish whose visible text holds straight quotes (' or ").
-CLAUDE.md asks for smart quotes in every artifact; this makes the rule stick.
-Reads the hook payload on stdin, writes a permissionDecision on stdout.
+The draft skill asks for smart quotes on rendered surfaces; this makes the rule
+stick. Reads the hook payload on stdin, writes a permissionDecision on stdout.
 
-Artifact, checked: text nodes of .html/.htm/.svg files, prose of .md files, and
-string values of .json files (run through the HTML check when they hold markup).
+Artifact, checked: text nodes of .html/.htm/.svg files and string values of
+.json files (run through the HTML check when they hold markup). A .md file is
+source, not rendered prose, so it keeps straight quotes like any Markdown file.
 The other tools: the strings send-lint reads for that tool (surfaces.py), run
 through the Markdown check, or the HTML check when the text is HTML.
 Exempt: tags, attribute values, <code>/<pre>/<script>/<style> and similar,
@@ -86,8 +87,6 @@ def _check_file(path: Path) -> list[str]:
         return []
     if suffix in {".html", ".htm", ".svg"}:
         return [f"{path}:{line}: {snippet}" for line, snippet in _html_hits(text)]
-    if suffix == ".md":
-        return [f"{path}:{line}: {snippet}" for line, snippet in _markdown_hits(text)]
     if suffix == ".json":
         return _json_hits(path, text)
     return []

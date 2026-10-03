@@ -22,7 +22,7 @@ Long items, such as an artifact or a doc, go through fixed stages. Claude drafts
 | `PostToolUse` | `capture.sh`      | Logs each edit to a draft next to the instruction that caused it. Silent.                                                                         |
 | `Stop`        | `promote.sh`      | Counts the logged corrections. When one pattern recurs, it surfaces that pattern once and asks where it belongs.                                  |
 | `PreToolUse`  | `send-lint.sh`    | Lints outgoing text on Slack, Gmail drafts, Claude Docs, Google Drive, artifacts, and `gh` PR and issue text. See below.                          |
-| `PreToolUse`  | `smart-quotes.sh` | Denies an artifact publish, Slack canvas, Claude Doc, or Google Drive file whose prose holds straight quotes (`'` or `"`).                        |
+| `PreToolUse`  | `smart-quotes.sh` | Denies an HTML artifact, Slack canvas, Claude Doc, or Google Drive file whose prose holds straight quotes (`'` or `"`). Markdown files pass.      |
 
 Most sends get an advisory note. A send you cannot take back is different. That means a Slack message, sent or scheduled, or a `gh` comment, review, or PR body. When the lint finds violations, the send is bounced once. Claude sees the findings before the text goes out. It fixes what is a real violation, or keeps the text, and sends again. A retry within 30 minutes goes through. A later one is bounced again.
 

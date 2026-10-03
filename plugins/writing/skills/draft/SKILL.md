@@ -12,7 +12,7 @@ Hooks that run on their own:
 - **gate** reports voice violations after every write to a draft, and after every edit to human-facing repo markdown.
 - **capture** logs each draft edit against the instruction that caused it. **promote** surfaces repeated corrections at the end of a turn.
 - **send-lint** lints outgoing text before a send. It bounces a send that cannot be taken back (a Slack message, a `gh` comment or PR body) once.
-- **smart-quotes** denies a publish whose prose has straight quotes. Write ’ “ ” from the start.
+- **smart-quotes** denies an HTML artifact, Claude Doc, Google file, or Slack canvas whose prose has straight quotes. Write ’ “ ” on those surfaces from the start. Markdown files keep straight quotes.
 
 ## 1. Pick the route and the profile
 
