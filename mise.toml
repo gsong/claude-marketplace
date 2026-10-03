@@ -1,5 +1,4 @@
 [tools]
-claude = "2.1.283"
 node = "24.21.0" # prettier installs through npm
 prettier = "3.9.9"
 ruff = "0.16.9"

@@ -65,12 +65,15 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    # Loads mise.ci.toml on top of mise.toml.
+    env:
+      MISE_ENV: ci
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
-      # Installs the tools pinned in mise.toml.
+      # Installs the tools pinned in mise.toml and mise.ci.toml.
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
       - run: mise run lint
