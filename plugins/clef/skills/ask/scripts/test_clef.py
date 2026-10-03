@@ -118,10 +118,7 @@ def log(monkeypatch, tmp_path):
     path.parent.mkdir()
     monkeypatch.setenv("CLEF_LOG", str(path))
 
-    def _records():
-        return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
-
-    return _records
+    return lambda: _results(path) if path.exists() else []
 
 
 @pytest.fixture
@@ -632,10 +629,10 @@ class TestBatch:
         assert "images" not in stub.requests[1][1]
 
     @pytest.mark.parametrize(
-        "line, key, message",
+        "line, ref, message",
         [
             ("not json", {"line": 1}, "line is not JSON"),
-            ("[1]", {"line": 1}, "a line must be a JSON object"),
+            ("[1]", {"line": 1}, "line must be a JSON object"),
             ({**_body(), "id": True}, {"line": 1}, "`id` must be a string or number"),
             ({**_body(), "id": [1]}, {"line": 1}, "`id` must be a string or number"),
             ({**_body(), "id": "x", "model": "clef"}, {"id": "x"}, "line key `model` is not allowed"),
@@ -647,13 +644,13 @@ class TestBatch:
             ({**_body(), "id": "x", "guess": {"blue": "yes"}}, {"id": "x"}, "guess blue: give true or false"),
         ],
     )
-    def test_bad_line_writes_its_error_and_goes_on(self, stub, run, tmp_path, line, key, message):
+    def test_bad_line_writes_its_error_and_goes_on(self, stub, run, tmp_path, line, ref, message):
         dst = str(tmp_path / "out.jsonl")
         code, out, err = run("", "--batch", _jsonl(tmp_path, line, _body()), "--out", dst)
         assert (code, out, err) == (2, f"1 answered, 1 failed -> {dst}\n", "")
         bad, good = _results(dst)
-        assert set(bad) == {*key, "error", "exit"}
-        assert {k: bad[k] for k in key} == key
+        assert set(bad) == {*ref, "error", "exit"}
+        assert {k: bad[k] for k in ref} == ref
         assert bad["error"].startswith("clef: ") and message in bad["error"]
         assert bad["exit"] == 2
         assert good == {"line": 2, **ANSWER}
