@@ -44,7 +44,7 @@ function surfaceRows() {
 function matcherFor(script) {
   const config = JSON.parse(readFileSync(join(HOOKS, "hooks.json"), "utf-8"));
   const entry = config.hooks.PreToolUse.find((e) =>
-    e.hooks.some((h) => h.command.endsWith(`/hooks/${script}`)),
+    e.hooks.some((h) => h.command.includes(`/hooks/${script}`)),
   );
   assert.ok(entry, `no PreToolUse entry runs ${script}`);
   return new RegExp(`^(?:${entry.matcher})$`);
