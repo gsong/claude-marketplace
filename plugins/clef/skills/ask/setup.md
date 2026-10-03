@@ -1,6 +1,6 @@
 # Clef setup
 
-These steps set up Ollama on an Apple Silicon Mac to serve Clef and Clef-flash. Run them yourself. Claude shows you the steps but never runs them.
+These steps set up Ollama on an Apple Silicon Mac to serve Clef and Clef-flash. You run them. Claude shows you a step and runs it only when you ask.
 
 ## Install and start
 
@@ -71,7 +71,7 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 
 ## Warnings
 
-- Never run `ollama pull clef` or `ollama pull clef-flash`. A pull overwrites the copy with the library's `latest` build.
+- Update a model only by rerunning steps 3 and 4. A pull of `clef` or `clef-flash` by that bare name overwrites the copy with the library's `latest` build.
 - Keep Ollama on its default address, `127.0.0.1:11434`. Never set `OLLAMA_HOST=0.0.0.0`. That setting opens Ollama's full API to the local network.
 - Any process or container on the Mac can call Ollama's full API, including pull and delete. If `clef` or `clef-flash` goes missing or answers oddly, rerun steps 3 and 4.
 - Ollama.app at 0.35.1 or later also works. Run only one of the two, because both use port 11434.
@@ -87,5 +87,6 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 `clef.py` exits with code 3 when it cannot get an answer from the server. Each cause has one fix:
 
 - **Unreachable:** run `brew services start ollama`, then the `curl` check from step 5.
+- **Unreachable from a container only:** the Mac passes step 5, but the container fails its check in [Container sessions](#container-sessions). Fix the route from the container to the Mac.
 - **Model missing (HTTP 404):** rerun steps 3 and 4.
 - **Timeout:** check `ollama ps` and `/opt/homebrew/var/log/ollama.log`.
