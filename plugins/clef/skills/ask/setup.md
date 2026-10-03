@@ -16,7 +16,7 @@ These steps set up Ollama on an Apple Silicon Mac to serve Clef and Clef-flash. 
    brew services start ollama
    ```
 
-   The service starts at login and restarts if it exits, so you run this once.
+   The service starts at login. It also restarts if it exits. You run this step once.
 
 3. Pull the two tested builds:
 
@@ -38,7 +38,7 @@ These steps set up Ollama on an Apple Silicon Mac to serve Clef and Clef-flash. 
    curl 127.0.0.1:11434/api/version
    ```
 
-   Then run `scripts/check.py`. It sits in the `scripts` directory beside this guide, and it asks both models six questions.
+   Then run `scripts/check.py`, which asks both models six questions. It exits 0 when every answer is correct. The script sits in the `scripts` directory beside this guide. After a plugin install, that is `~/.claude/plugins/cache/gsong-marketplace/clef/<version>/skills/ask/scripts/check.py`. Replace `<version>` with the installed plugin version.
 
 To stop the server, run `brew services stop ollama`.
 
@@ -48,7 +48,7 @@ To stop the server, run `brew services stop ollama`.
 brew install uv
 ```
 
-The skill runs `clef.py` with `uv run`. Every session that uses Clef needs uv on its `PATH`. A container session needs its own uv inside the container.
+The first line of `clef.py` starts the script with uv. Every session that uses Clef needs uv on its `PATH`. A container session needs its own uv inside the container.
 
 ## Container sessions
 
@@ -60,7 +60,12 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
    -v "$HOME/.claude/plugins:$HOME/.claude/plugins"
    ```
 
-2. Install uv in the container.
+2. Install uv in the container, and put it on the container's `PATH`. The uv installer works in a Linux container:
+
+   ```sh
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
 3. Check the route from inside the container:
 
    ```sh
@@ -71,22 +76,24 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 
 ## Warnings
 
-- Update a model only by rerunning steps 3 and 4. A pull of `clef` or `clef-flash` by that bare name overwrites the copy with the library's `latest` build.
+- Update a model only by rerunning steps 3 and 4. Never run `ollama pull clef` or `ollama pull clef-flash`. Each of these pulls overwrites the copy with the library's `latest` build.
 - Keep Ollama on its default address, `127.0.0.1:11434`. Never set `OLLAMA_HOST=0.0.0.0`. That setting opens Ollama's full API to the local network.
-- Any process or container on the Mac can call Ollama's full API, including pull and delete. If `clef` or `clef-flash` goes missing or answers oddly, rerun steps 3 and 4.
+- Any process or container on the Mac can call Ollama's full API, including pull and delete. If `clef` or `clef-flash` goes missing or gives wrong answers, rerun steps 3 and 4.
 - Ollama.app at 0.35.1 or later also works. Run only one of the two, because both use port 11434.
 
 ## Defaults to keep
 
 - Each model loads on its first call and unloads after 5 idle minutes. A call to an unloaded model takes a few seconds longer.
-- Both models keep Ollama's stock context window of 16,384 tokens. Setup needs no Modelfile and no `OLLAMA_CONTEXT_LENGTH`.
+- Both models loaded together take about 36 GB of memory. With less free memory, Ollama unloads one model to load the other. The swap takes a few seconds and never changes an answer.
+- Both models keep Ollama's default context window of 16,384 tokens. Setup needs no Modelfile, which is Ollama's file for model settings. Setup also needs no `OLLAMA_CONTEXT_LENGTH`.
 - After each `brew upgrade ollama`, run `scripts/check.py` again.
 
 ## Fixes for exit 3
 
-`clef.py` exits with code 3 when it cannot get an answer from the server. Each cause has one fix:
+`clef.py` exits with code 3 when it cannot get an answer from the server. Its error line names the server URL and where that URL came from. Each cause has one fix:
 
+- **Wrong `CLEF_URL`:** the error line names `CLEF_URL` as the source. Correct the variable, or unset it so that the script picks the URL.
 - **Unreachable:** run `brew services start ollama`, then the `curl` check from step 5.
-- **Unreachable from a container only:** the Mac passes step 5, but the container fails its check in [Container sessions](#container-sessions). Fix the route from the container to the Mac.
+- **Unreachable from a container only:** the Mac passes step 5, but the container fails its check in [Container sessions](#container-sessions). Use Docker Desktop, which resolves `host.docker.internal` by default. With another Docker runtime, add `--add-host=host.docker.internal:host-gateway` to `docker run`.
 - **Model missing (HTTP 404):** rerun steps 3 and 4.
 - **Timeout:** check `ollama ps` and `/opt/homebrew/var/log/ollama.log`.
