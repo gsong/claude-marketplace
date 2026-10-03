@@ -1,0 +1,12 @@
+{
+  "name": "clef",
+  "description": "Ask Clef, a local decision model, yes/no, pick-one, or rating questions and get a probability with each answer",
+  "version": "0.1.0",
+  "author": {
+    "name": "George Song"
+  },
+  "homepage": "https://github.com/gsong/claude-marketplace",
+  "repository": "https://github.com/gsong/claude-marketplace",
+  "license": "MIT",
+  "keywords": ["clef", "ollama", "decision", "classification", "local-model"]
+}
