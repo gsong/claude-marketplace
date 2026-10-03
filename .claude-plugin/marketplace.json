@@ -29,7 +29,13 @@
       "description": "Ask Clef, a local decision model, yes/no, pick-one, or rating questions and get a probability with each answer",
       "author": { "name": "George Song" },
       "category": "productivity",
-      "keywords": ["clef", "ollama", "decision", "classification", "local-model"]
+      "keywords": [
+        "clef",
+        "ollama",
+        "decision",
+        "classification",
+        "local-model"
+      ]
     },
     {
       "name": "codex-tools",
