@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/send-lint.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/send-lint.sh\""
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/smart-quotes.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/smart-quotes.sh\""
           }
         ]
       }
@@ -26,11 +26,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gate.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/gate.sh\""
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/capture.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/capture.sh\""
           }
         ]
       }
@@ -40,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/promote.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/promote.sh\""
           }
         ]
       }
