@@ -449,11 +449,12 @@ def _agrees(kind, guess, answer):
     value = answer.get(kind) if isinstance(answer, dict) else None
     if kind == "choice":
         return value == guess if isinstance(value, str) else None
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+    # An int skips math.isfinite and the + 0.5, which overflow past a float's range.
+    if not (_is_int(value) or isinstance(value, float) and math.isfinite(value)):
         return None
     if kind == "noul":
         return None if value == 0.5 else (value > 0.5) == guess
-    return math.floor(value + 0.5) == guess
+    return (value if _is_int(value) else math.floor(value + 0.5)) == guess
 
 
 def _is_int(value: object) -> TypeGuard[int]:
