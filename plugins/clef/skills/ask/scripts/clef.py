@@ -241,7 +241,7 @@ def send(url: str, source: str, request: dict, timeout: float) -> tuple[str, dic
         raise _no_answer(url, source, f"unreachable: {reason}") from e
     try:
         reply = json.loads(text)
-    except json.JSONDecodeError as e:
+    except ValueError as e:  # JSONDecodeError, or an integer over Python's digit limit
         raise ClefError(f"HTTP 200 from {url}, but the reply is not JSON", EXIT_ERROR) from e
     if not isinstance(reply, dict):
         raise ClefError(f"HTTP 200 from {url}, but the reply is not a JSON object", EXIT_ERROR)
@@ -533,7 +533,7 @@ def _error_text(raw):
     text = raw.decode("utf-8", errors="replace")
     try:
         error = json.loads(text).get("error")
-    except (json.JSONDecodeError, AttributeError):
+    except (ValueError, AttributeError):  # ValueError: JSONDecodeError, or an over-long integer
         error = None
     if isinstance(error, dict):
         error = error.get("message")

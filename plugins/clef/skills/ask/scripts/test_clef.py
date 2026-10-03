@@ -362,6 +362,12 @@ class TestServerErrors:
         assert code == 2
         assert "HTTP 422: plain text error" in _one_line(err)
 
+    def test_error_body_with_over_long_integer(self, stub, run):
+        stub.respond(400, '{"error": "bad", "n": ' + "1" * 5000 + "}")
+        code, out, err = run(_body())
+        assert (code, out) == (2, "")
+        assert _one_line(err).startswith('clef: HTTP 400: {"error": "bad", "n": 111')
+
     def test_404_is_no_answer(self, stub, run):
         stub.respond(404, {"error": 'model "clef-flash" not found, try pulling it first'})
         code, out, err = run(_body())
@@ -415,8 +421,9 @@ class TestServerErrors:
         assert code == 3
         assert "no reply within 5s" in _one_line(err)
 
-    def test_non_json_200_is_other_error(self, stub, run):
-        stub.respond(200, "<html>proxy login</html>")
+    @pytest.mark.parametrize("body", ["<html>proxy login</html>", '{"n": ' + "1" * 5000 + "}"])
+    def test_non_json_200_is_other_error(self, stub, run, body):
+        stub.respond(200, body)
         code, out, err = run(_body())
         assert (code, out) == (1, "")
         assert _one_line(err) == f"clef: HTTP 200 from {stub.url}, but the reply is not JSON\n"
@@ -459,7 +466,7 @@ MIXED_ANSWER = {
 
 class TestDecisionLog:
     def test_nothing_logged_when_unset(self, stub, run, tmp_path):
-        code, out, err = run(_body())
+        code, _, err = run(_body())
         assert (code, err) == (0, "")
         assert list(tmp_path.iterdir()) == []
 
@@ -546,9 +553,9 @@ class TestGuess:
         run(_body(questions={"c": MIXED_QUESTIONS["c"]}), "--guess", '{"c": true}')
         assert log()[0]["agree"] == {"c": agree}
 
-    @pytest.mark.parametrize("score", ["NaN", "Infinity"])
+    @pytest.mark.parametrize("score", [math.nan, math.inf])
     def test_score_not_finite_agrees_with_nothing(self, stub, run, log, score):
-        stub.respond(200, '{"answers": {"u": {"type": "score", "score": %s}}, "usage": {}}' % score)
+        stub.respond(200, {"answers": {"u": {"type": "score", "score": score}}, "usage": {}})
         code, _, _ = run(_body(questions={"u": MIXED_QUESTIONS["u"]}), "--guess", '{"u": 1}')
         assert code == 0
         assert log()[0]["agree"] == {"u": None}
@@ -669,7 +676,7 @@ class TestBatch:
 
     def test_lone_surrogate_line_writes_its_error_and_goes_on(self, stub, run, tmp_path):
         bad = '{"id": "a\\udc80", "\\udc80x": 1, "state": "s", "questions": {"q": {"type": "noul", "instructions": "x"}}}'
-        code, out, err = run("", "--batch", _jsonl(tmp_path, bad, _body()))
+        code, out, _ = run("", "--batch", _jsonl(tmp_path, bad, _body()))
         assert code == 2
         first, second = [json.loads(l) for l in out.splitlines()]
         assert (first["id"], first["exit"]) == ("a\udc80", 2)
