@@ -38,6 +38,8 @@ PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
 JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 16
 WEBP = b"RIFF\x00\x00\x00\x00WEBPVP8 " + b"\x00" * 16
 MIB = 1024 * 1024
+# More digits than json.loads takes (4,300 by default), so it raises a plain ValueError.
+OVER_LONG_INT = "1" * 5000
 
 ANSWER = {
     "model": "clef-flash",
@@ -244,7 +246,7 @@ class TestLocalChecks:
         [
             ("not json", "stdin is not JSON"),
             ("[1, 2]", "stdin must be a JSON object"),
-            ("1" * 5000, "stdin is not JSON"),
+            (OVER_LONG_INT, "stdin is not JSON"),
             (_body(model="clef"), "use --model"),
             (_body(images=["x"]), "use --image"),
             (_body(timeout=5), "use --timeout"),
@@ -363,11 +365,12 @@ class TestServerErrors:
         assert code == 2
         assert "HTTP 422: plain text error" in _one_line(err)
 
-    def test_error_body_with_over_long_integer(self, stub, run):
-        stub.respond(400, '{"error": "bad", "n": ' + "1" * 5000 + "}")
+    @pytest.mark.parametrize("status, exit_code", [(400, 2), (404, 3)])
+    def test_error_body_with_over_long_integer_keeps_its_exit_code(self, stub, run, status, exit_code):
+        stub.respond(status, '{"error": "bad", "n": ' + OVER_LONG_INT + "}")
         code, out, err = run(_body())
-        assert (code, out) == (2, "")
-        assert _one_line(err).startswith('clef: HTTP 400: {"error": "bad", "n": 111')
+        assert (code, out) == (exit_code, "")
+        assert f'HTTP {status}: {{"error": "bad", "n": 111' in _one_line(err)
 
     def test_404_is_no_answer(self, stub, run):
         stub.respond(404, {"error": 'model "clef-flash" not found, try pulling it first'})
@@ -422,7 +425,7 @@ class TestServerErrors:
         assert code == 3
         assert "no reply within 5s" in _one_line(err)
 
-    @pytest.mark.parametrize("body", ["<html>proxy login</html>", '{"n": ' + "1" * 5000 + "}", b'{"a": "\xff"}'])
+    @pytest.mark.parametrize("body", ["<html>proxy login</html>", '{"n": ' + OVER_LONG_INT + "}", b'{"a": "\xff"}'])
     def test_non_json_200_is_other_error(self, stub, run, body):
         stub.respond(200, body)
         code, out, err = run(_body())
@@ -576,7 +579,7 @@ class TestGuess:
         "guess, message",
         [
             ("yes", "--guess is not JSON"),
-            ('{"c": ' + "1" * 5000 + "}", "--guess is not JSON"),
+            ('{"c": ' + OVER_LONG_INT + "}", "--guess is not JSON"),
             ("[true]", "guess must be an object"),
             ('{"nope": true}', "guess nope: no such question"),
             ('{"c": 1}', "guess c: give true or false"),
@@ -654,7 +657,7 @@ class TestBatch:
             ({**_body(), "id": [1]}, {"line": 1}, "`id` must be a string or number"),
             (json.dumps({**_body(), "id": math.nan}), {"line": 1}, "`id` must be a string or number"),
             (json.dumps({**_body(), "id": math.inf}), {"line": 1}, "`id` must be a string or number"),
-            ('{"id": ' + "1" * 5000 + "}", {"line": 1}, "line is not JSON"),
+            ('{"id": ' + OVER_LONG_INT + "}", {"line": 1}, "line is not JSON"),
             ({**_body(), "id": "x", "model": "clef"}, {"id": "x"}, "line key `model` is not allowed"),
             ({"id": "x", "questions": {"q": _noul()}}, {"id": "x"}, "line has no `state`"),
             ({"id": "x", "state": "s"}, {"id": "x"}, "line has no `questions`"),
