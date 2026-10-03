@@ -421,8 +421,9 @@ class TestServerErrors:
         assert code == 3
         assert "no reply within 5s" in _one_line(err)
 
-    def test_non_json_200_is_other_error(self, stub, run):
-        stub.respond(200, "<html>proxy login</html>")
+    @pytest.mark.parametrize("body", ["<html>proxy login</html>", '{"n": ' + "1" * 5000 + "}"])
+    def test_non_json_200_is_other_error(self, stub, run, body):
+        stub.respond(200, body)
         code, out, err = run(_body())
         assert (code, out) == (1, "")
         assert _one_line(err) == f"clef: HTTP 200 from {stub.url}, but the reply is not JSON\n"
