@@ -17,13 +17,17 @@ for plugin in plugins/*/; do claude plugin validate --strict "$plugin"; done
 """
 
 [tasks."lint:prettier"]
+description = "Check formatting of JSON, Markdown, YAML and .mjs files"
 run = "git ls-files -z '*.json' '*.md' '*.yml' '*.yaml' '*.mjs' | xargs -0 prettier --check"
 
 [tasks."lint:ruff"]
+description = "Lint the Python scripts"
 run = "git ls-files -z '*.py' | xargs -0 ruff check"
 
 [tasks."lint:shellcheck"]
+description = "Lint the shell scripts"
 run = "git ls-files -z '*.sh' | xargs -0 shellcheck"
 
 [tasks."lint:zizmor"]
+description = "Audit the GitHub Actions workflows"
 run = "zizmor .github/workflows"
