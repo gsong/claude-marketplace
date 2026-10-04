@@ -3,17 +3,7 @@ name: "Skill scan"
 on:
   push:
     branches: [main]
-    paths:
-      - "plugins/**"
-      - "skill-scanner-policy.yaml"
-      - "mise.toml"
-      - ".github/workflows/skill-scan.yml"
   pull_request:
-    paths:
-      - "plugins/**"
-      - "skill-scanner-policy.yaml"
-      - "mise.toml"
-      - ".github/workflows/skill-scan.yml"
 
 permissions: {}
 
