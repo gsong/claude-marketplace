@@ -28,7 +28,8 @@ The hook approves these calls. A skill's `allowed-tools` rule should do this. Bu
 - jq, for the hook. macOS 15 and later ship it. Without jq, each Clef call asks before it runs.
 - For container sessions:
   - The container mounts `~/.claude/plugins` at its Mac path. A marketplace added from a local folder needs that folder mounted at its Mac path too.
-  - The container sets `CLAUDE_CONFIG_DIR` to the Mac path of `~/.claude`, and enables the plugin with `claude plugin enable`.
+  - The container sets `CLAUDE_CONFIG_DIR` to the Mac path of `~/.claude`. The container's user owns that folder.
+  - You enable the plugin in the container with `claude plugin enable`.
   - The container has its own uv and jq.
   - The container can resolve `host.docker.internal`. Docker Desktop resolves it by default.
 

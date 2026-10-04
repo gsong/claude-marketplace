@@ -66,15 +66,25 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
    -v "<path>:<path>"
    ```
 
-   Claude Code in the container looks for plugins in its own config folder, which is `~/.claude` under the container's home by default. The container's home is often not the Mac's home, so Claude Code finds no plugins. Point the config folder at the Mac path:
+2. Point Claude Code's config folder at the Mac path of `~/.claude`. With `docker run`, the flag is:
 
    ```sh
    -e CLAUDE_CONFIG_DIR="$HOME/.claude"
    ```
 
-   Claude Code in the container then keeps its settings and login in that folder. Only the `plugins` folder inside it comes from the Mac.
+   Claude Code in the container looks for plugins in its own config folder. By default, that folder is `~/.claude` under the container's home. The container's home is often not the Mac's home, so Claude Code finds no plugins.
 
-2. Enable the plugin in the container:
+   With the flag set, Claude Code in the container keeps its settings and login in that folder. Only the `plugins` folder inside it comes from the Mac. A container that used another config folder before must log in again.
+
+   Docker creates that folder for the step 1 mount, and root owns it. If the container runs as a user other than root, that user cannot write its settings or login there. Make the user the folder's owner. From the Mac, run:
+
+   ```sh
+   docker exec -u root <container> chown <user> "$HOME/.claude"
+   ```
+
+   A fresh container needs this at each start.
+
+3. Enable the plugin in the container:
 
    ```sh
    claude plugin enable clef@gsong-marketplace
@@ -82,7 +92,7 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 
    The Mac's `settings.json` records which plugins are enabled, and the container does not mount it. So the container starts with `clef` disabled. The command writes the container's own `settings.json` and changes nothing on the Mac. A container that keeps its config folder between runs needs this step once. A fresh container needs it at each start.
 
-3. Install uv and jq in the container, and put both on the container's `PATH`. The uv installer works in a Linux container:
+4. Install uv and jq in the container, and put both on the container's `PATH`. The uv installer works in a Linux container:
 
    ```sh
    curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -94,7 +104,7 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
    apt-get update && apt-get install -y jq
    ```
 
-4. Check the route from inside the container:
+5. Check the route from inside the container:
 
    ```sh
    curl host.docker.internal:11434/api/version
@@ -102,13 +112,13 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 
    Docker Desktop resolves `host.docker.internal` by default.
 
-5. If you set `CLEF_LOG` to keep a decision log, set it in the container too. Point it at a file in a folder that exists in the container and that the container can write to. `clef.py` never creates that folder. If the folder is missing, the script warns once, answers anyway and logs nothing.
+6. If you set `CLEF_LOG` to keep a decision log, set it in the container too. Point it at a file in a folder that exists in the container and that the container can write to. `clef.py` never creates that folder. If the folder is missing, the script warns once, answers anyway and logs nothing.
 
 ## Warnings
 
-- Update a model only by rerunning steps 3 and 4. Never run `ollama pull clef` or `ollama pull clef-flash`. Each of these pulls overwrites the copy with the library's `latest` build.
+- Update a model only by rerunning steps 3 and 4 of [Install and start](#install-and-start). Never run `ollama pull clef` or `ollama pull clef-flash`. Each of these pulls overwrites the copy with the library's `latest` build.
 - Keep Ollama on its default address, `127.0.0.1:11434`. Never set `OLLAMA_HOST=0.0.0.0`. That setting opens Ollama's full API to the local network.
-- Any process or container on the Mac can call Ollama's full API, including pull and delete. If `clef` or `clef-flash` goes missing or gives wrong answers, rerun steps 3 and 4.
+- Any process or container on the Mac can call Ollama's full API, including pull and delete. If `clef` or `clef-flash` goes missing or gives wrong answers, rerun steps 3 and 4 of [Install and start](#install-and-start).
 - Ollama.app at 0.35.1 or later also works. Run only one of the two, because both use port 11434.
 
 ## Defaults to keep
@@ -124,7 +134,7 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 `clef.py` exits with code 3 when it cannot get an answer from the server. Its error line names the server URL and where that URL came from. Each cause has one fix:
 
 - **Wrong `CLEF_URL`:** the error line names `CLEF_URL` as the source. Correct the variable, or unset it so that the script picks the URL.
-- **Unreachable:** run `brew services start ollama`, then the `curl` check from step 5.
-- **Unreachable from a container only:** the Mac passes step 5, but the container fails its check in [Container sessions](#container-sessions). Use Docker Desktop, which resolves `host.docker.internal` by default. With another Docker runtime, add `--add-host=host.docker.internal:host-gateway` to `docker run`.
-- **Model missing (HTTP 404):** rerun steps 3 and 4.
+- **Unreachable:** run `brew services start ollama`, then the `curl` check from step 5 of [Install and start](#install-and-start).
+- **Unreachable from a container only:** the Mac passes step 5 of [Install and start](#install-and-start), but the container fails its check in [Container sessions](#container-sessions). Use Docker Desktop, which resolves `host.docker.internal` by default. With another Docker runtime, add `--add-host=host.docker.internal:host-gateway` to `docker run`.
+- **Model missing (HTTP 404):** rerun steps 3 and 4 of [Install and start](#install-and-start).
 - **Timeout:** check `ollama ps` and `/opt/homebrew/var/log/ollama.log`.
