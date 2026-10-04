@@ -28,8 +28,8 @@ _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 
 main = _mod.main
-PLUGIN_JSON = Path(__file__).resolve().parents[3] / ".claude-plugin" / "plugin.json"
 resolve_url = _mod.resolve_url
+PLUGIN_JSON = Path(__file__).resolve().parents[3] / ".claude-plugin" / "plugin.json"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -636,10 +636,10 @@ class TestDecisionLog:
         assert record["error"] == _one_line(err).rstrip("\n")
 
     def test_other_error_logged_with_exit_1(self, stub, run, log, monkeypatch):
-        def broken():
+        def broken(*args, **kwargs):
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(_mod, "resolve_url", broken)
+        monkeypatch.setattr(_mod.urllib.request, "urlopen", broken)
         code, _, err = run(_body())
         assert (code, err) == (1, "clef: RuntimeError: boom\n")
         [record] = log()
@@ -994,10 +994,11 @@ class TestBatch:
         [record] = log()
         assert (record["exit"], record["error"], record["session"]) == (3, _one_line(err).rstrip("\n"), "73be7f1c")
 
-    @pytest.mark.parametrize("argv", [["--guess", "{}"], ["--out", "{tmp}"]])
-    def test_other_batch_refusals_log_once(self, stub, run, tmp_path, log, argv):
-        argv = [a.replace("{tmp}", str(tmp_path)) for a in argv]
-        assert run("", "--batch", _jsonl(tmp_path, _body()), *argv)[0] == 2
+    @pytest.mark.parametrize("flag", ["--guess", "--out"])
+    def test_other_batch_refusals_log_once(self, stub, run, tmp_path, log, flag):
+        # A folder is a bad --out file. {} is a good --guess, but --batch refuses the flag.
+        value = str(tmp_path) if flag == "--out" else "{}"
+        assert run("", "--batch", _jsonl(tmp_path, _body()), flag, value)[0] == 2
         [record] = log()
         assert (record["exit"], record["state"]) == (2, None)
 
