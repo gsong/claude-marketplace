@@ -11,6 +11,7 @@ Flags carry the model, images, a state file, the timeout and the caller's guess.
 When CLEF_LOG names a file, each answered call appends one JSON line to it.
 
 Exit codes: 0 answered, 2 bad request, 3 no answer from the server, 1 any other error.
+A --batch run that reaches its last line exits 0, even when some lines failed.
 """
 
 import argparse
@@ -99,6 +100,8 @@ def run_batch(args: argparse.Namespace) -> int:
 
     A bad line, from a local check or a 4xx, gets an error line and the run goes on.
     Any other failure stops the run with that failure's exit code.
+    A run that reaches its last line exits 0, even with failed lines. Claude Code shows a
+    failed command's output only as an excerpt, so a nonzero exit would hide answer lines.
     """
     for flag, key in LINE_KEY_FOR_FLAG.items():
         if getattr(args, flag) not in (None, []):
@@ -145,7 +148,7 @@ def run_batch(args: argparse.Namespace) -> int:
         print(f"{summary} -> {args.out}")
     else:
         print(f"clef: {summary}", file=sys.stderr)
-    return EXIT_BAD_REQUEST if failed else EXIT_OK
+    return EXIT_OK
 
 
 def choose_lines(lines: list[tuple[int, str]], ids: list[str]) -> set[int]:
@@ -346,6 +349,11 @@ A --batch line holds `state` and `questions`, and may hold `id` (string or
 number), `images` (up to 4 paths) and `guess`. Each result line carries the
 line's `id`, or "line": N. A bad line gets an error line with "exit": 2, and
 the run goes on. Exit 3 or 1 stops the run.
+
+A batch run that reaches its last line exits 0, even when some lines failed.
+Find the failed lines by their `error` key. The stderr summary, or the --out
+line, gives the counts: "N answered, M failed". A batch refused before any
+call exits 2 and prints no result lines.
 
 --ids 'A B 7' runs only the batch lines whose `id` is listed, or, for a
 line with no `id` or a bad one, whose line number is. Other lines get no
