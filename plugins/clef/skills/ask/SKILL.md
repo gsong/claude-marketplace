@@ -9,8 +9,10 @@ description: >-
   condition, choosing among options, rating against a rubric. Also
   use when the user names Clef, or to judge many items with the
   same questions in one batch run. Do not use when the answer is
-  free text, a computed number or an extracted list, or when the
-  judgment needs files, tools or history the state does not hold.
+  free text, a computed number or an extracted list, when the
+  judgment needs files, tools or history the state does not hold,
+  or when the question is the user's: whether to act without asking,
+  or what the user wants.
 ---
 
 # Ask Clef
@@ -69,6 +71,7 @@ The reply keys `answers` by question id. Each answer holds its value under a key
 
 - No question type fits: the answer is free text, a computed number or an extracted list.
 - The judgment needs files, tools or history that the state does not hold.
+- The question is the user's to answer: whether to act without asking, such as push, force push or delete, or what the user wants. Ask the user.
 - Clef's answer alone would trigger a hard-to-undo act, such as delete, send or deploy. Show the user the answers and your threshold first.
 
 Otherwise, Clef's answer is the decision.
