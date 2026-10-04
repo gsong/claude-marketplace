@@ -59,7 +59,7 @@ OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi
 
 **Skills:** `/codex-tools:review`, `/codex-tools:run`, `/codex-tools:discuss`
 
-**Requires:** Codex CLI and the codex plugin (installs with codex-tools); `review` also needs gh, uv, and the gh-tools directory. See the [plugin README](plugins/codex-tools/README.md#prerequisites).
+**Requires:** Codex CLI and the codex plugin (installs with codex-tools once the `openai-codex` marketplace is added); `review` also needs gh, uv, and the gh-tools directory. See the [plugin README](plugins/codex-tools/README.md#prerequisites).
 
 ### gh-tools
 
