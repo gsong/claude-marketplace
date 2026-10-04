@@ -76,7 +76,25 @@ Clef saves your tokens only when the facts stay out of your context. Prefer `--s
 
 ## Batch runs
 
-Use `--batch IN.jsonl` to judge many items with the same questions. A large batch can run past the Bash tool's 2-minute default. Raise the Bash timeout, or run the batch in the background.
+A batch judges many items with the same questions. It takes two separate tool calls, so the second one runs with no prompt:
+
+1. **Build the batch file.** Each line holds `state` and `questions`, and may hold `id`. Write the file with one `jq` command and absolute paths, into your scratchpad folder when your system prompt names one:
+
+   ```sh
+   jq -c '{id: .id, state: .text, questions: {...}}' /abs/tickets.jsonl > /abs/scratchpad/batch.jsonl
+   ```
+
+   This step asks the user once in default mode. `jq` keeps the items out of your context. For items already in your context, the Write tool works too.
+
+2. **Run the batch.** The Bash command is the call alone, with nothing before or after it:
+
+   ```sh
+   ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --batch /abs/scratchpad/batch.jsonl
+   ```
+
+   Read the result lines from its output. A `cd`, `&&`, pipe, `> file` or `--out` makes the call ask the user first.
+
+A large batch can run past the Bash tool's 2-minute default. Raise the Bash timeout, or run the batch in the background.
 
 ## `--guess` and `CLEF_LOG`
 
