@@ -47,3 +47,8 @@ jobs:
           name: skill-scan
           path: skill-scan.sarif
           if-no-files-found: ignore
+
+      # The ruleset requires this job, so the hook scan runs here to block the merge too.
+      # It fails when a plugin hook uses the network or runs downloaded code.
+      - if: ${{ !cancelled() }}
+        run: mise run scan:hooks
