@@ -10,7 +10,11 @@ These steps set up Ollama on an Apple Silicon Mac to serve Clef and Clef-flash. 
    brew install ollama
    ```
 
-   Ollama.app at 0.35.1 or later also works. Run only one of the two, because both use port 11434.
+   Ollama.app at 0.35.1 or later also works. Run only one of the two, because both use port 11434. With the app, each `brew` command in this guide has a replacement:
+
+   - To start the server, open the app.
+   - To stop the server, quit the app.
+   - To upgrade, update the app.
 
 2. Start the server, then check its version:
 
@@ -19,9 +23,9 @@ These steps set up Ollama on an Apple Silicon Mac to serve Clef and Clef-flash. 
    ollama --version
    ```
 
-   The service starts at login. It also restarts if it exits. You start it once. With Ollama.app, open the app in place of the `brew services` command.
+   The service starts at login. It also restarts if it exits. You start it once.
 
-   `ollama --version` prints `ollama version is <version>`. Clef needs 0.35.1 or later. To upgrade, run `brew upgrade ollama`, then `brew services restart ollama`. A warning that it could not connect means the server is not running.
+   `ollama --version` prints `ollama version is <version>`. Clef needs 0.35.1 or later. To upgrade, run `brew upgrade ollama`, then `brew services restart ollama`. The warning `could not connect to a running Ollama instance` means the server is not running.
 
 3. Pull the two tested builds:
 
@@ -59,7 +63,7 @@ To stop the server, run `brew services stop ollama`.
 
 ## Install the plugin
 
-Install the plugin at user level, as [Installation](../../README.md#installation) in the README describes:
+Install the plugin at user level, as [Installation](../../README.md#installation) in the README describes. Do not enable it in a project's settings. A teammate without the Mac setup would get a skill that always fails.
 
 ```
 /plugin marketplace add gsong/claude-marketplace
@@ -74,7 +78,7 @@ Install the plugin at user level, as [Installation](../../README.md#installation
    ~/.claude/plugins/cache/gsong-marketplace/clef/<version>/skills/ask/scripts/check.py
    ```
 
-   To find `<version>`, list the installed versions and take the newest:
+   To find `<version>`, list the installed versions and take the highest version number. `ls` sorts the names as text, so `0.10.0` lists before `0.9.0`.
 
    ```sh
    ls ~/.claude/plugins/cache/gsong-marketplace/clef/
@@ -82,11 +86,11 @@ Install the plugin at user level, as [Installation](../../README.md#installation
 
    For a marketplace added from a local folder, the script is in that folder at `plugins/clef/skills/ask/scripts/check.py`.
 
-2. Run `check.py`. It asks both models six questions, and its exit code gives the result:
+2. Run `check.py`. It asks both models six questions. Its exit code gives the result:
 
    - **0:** every answer is correct.
    - **1, after a line such as `11 of 12 answers right`:** an answer is wrong. The output marks it `WRONG`.
-   - **2, 3, or 1 with a `clef:` line on stderr and no count:** an error from `clef.py` stopped the run. The check exits with that error's code. For exit 3, see [Fixes for exit 3](#fixes-for-exit-3).
+   - **2, 3 or 1 with a `clef:` line on stderr and no count:** an error from `clef.py` stopped the run. The check exits with that error's code. For exit 3, see [Fixes for exit 3](#fixes-for-exit-3).
 
 ## Container sessions
 
@@ -164,15 +168,15 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 - Both models loaded together take about 36 GB of memory. With less free memory, Ollama unloads one model to load the other. The swap takes a few seconds and never changes an answer.
 - Both models keep Ollama's default context window of 16,384 tokens. Setup needs no Modelfile, which is Ollama's file for model settings. Setup also needs no `OLLAMA_CONTEXT_LENGTH`.
 - Homebrew's service sets `OLLAMA_FLASH_ATTENTION=1` and `OLLAMA_KV_CACHE_TYPE=q8_0`. Together they cut the memory the context window takes. Keep both.
-- After each `brew upgrade ollama`, run `scripts/check.py` again.
+- After each `brew upgrade ollama`, run `check.py` again, as [Check the setup](#check-the-setup) describes.
 
 ## Fixes for exit 3
 
 `clef.py` exits with code 3 when it cannot get an answer from the server. Its error line names the server URL and where that URL came from. Each cause has one fix:
 
 - **Wrong `CLEF_URL`:** the error line names `CLEF_URL` as the source. Correct the variable, or unset it so that the script picks the URL.
-- **Unreachable:** run `brew services start ollama`, then the version check from step 2 of [Install and start](#install-and-start).
+- **Unreachable:** start the server and run the version check, as step 2 of [Install and start](#install-and-start) describes.
 - **Unreachable from a container only:** the Mac passes the version check in step 2 of [Install and start](#install-and-start), but the container fails its check in [Container sessions](#container-sessions). Use Docker Desktop, which resolves `host.docker.internal` by default. With another Docker runtime, add `--add-host=host.docker.internal:host-gateway` to `docker run`.
 - **Model missing:** the error line holds `HTTP 404: model "<name>" not found`. Rerun steps 3 and 4 of [Install and start](#install-and-start).
 - **Ollama too old:** the error line holds `HTTP 404: 404 page not found`. Upgrade Ollama, as step 2 of [Install and start](#install-and-start) describes.
-- **Timeout:** the error line holds `no reply within <N>s`. A first call waits for the model to load, which can pass the limit. Retry once. A long state can also pass the limit on every try. For that, pass `clef.py` a larger limit, such as `--timeout 300`. If neither works, check `ollama ps` and `/opt/homebrew/var/log/ollama.log`.
+- **Timeout:** the error line holds `no reply within <N>s`. A first call waits for the model to load, which can pass the limit. Retry once. During [Check the setup](#check-the-setup), a retry is the only fix, because `check.py` always uses the default limit of 120 s. A long state can also pass the limit on every try. For that, pass `clef.py` a larger limit, such as `--timeout 300`. In a batch run, a larger limit makes the run stop sooner at its time limit, with more lines left for a rerun. If neither works, check `ollama ps` and `/opt/homebrew/var/log/ollama.log`.
