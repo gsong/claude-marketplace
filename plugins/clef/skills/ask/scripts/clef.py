@@ -7,7 +7,7 @@
 
 Stdin holds a JSON object with `state` and `questions`, in Cloudflare's shape.
 Flags carry the model, images, a state file, the timeout and the caller's guess.
-`--batch` makes one call per line of a JSONL file instead. `--ids` picks some of those lines.
+`--batch` makes one call per line of a JSONL file instead. `--ids` or `--lines` picks some of those lines.
 When CLEF_LOG names a file, each answered call appends one JSON line to it.
 
 Exit codes: 0 answered, 2 bad request, 3 no answer from the server, 1 any other error.
@@ -104,8 +104,13 @@ def run_batch(args: argparse.Namespace) -> int:
         if getattr(args, flag) not in (None, []):
             name = "--" + flag.replace("_", "-")
             raise _bad(f"--batch and {name} do not mix; give each line its own `{key}`")
-    lines = list(_batch_lines(_read_text(args.batch, "batch file")))
-    chosen = choose_lines(lines, args.ids.split()) if args.ids is not None else None
+    text = _read_text(args.batch, "batch file")
+    lines = list(_batch_lines(text))
+    chosen = None
+    if args.ids is not None:
+        chosen = choose_lines(lines, args.ids.split())
+    elif args.lines is not None:
+        chosen = choose_line_numbers(text, args.lines.split())
     out = _open_out(args.out) if args.out else sys.stdout
     url, source = resolve_url()
     log = _Log.from_env()
@@ -161,6 +166,25 @@ def choose_lines(lines: list[tuple[int, str]], ids: list[str]) -> set[int]:
     if missing:
         raise _bad(f"--ids {' '.join(missing)}: no batch line has that id or line number")
     return chosen
+
+
+def choose_line_numbers(text: str, values: list[str]) -> set[int]:
+    """Return the line numbers that --lines names, whether or not those lines have an `id`.
+
+    A listed blank line runs nothing. A value that is not a line number of the file is a bad request.
+    """
+    if not values:
+        raise _bad("--lines lists no line numbers")
+    bad = [value for value in dict.fromkeys(values) if not re.fullmatch(r"[1-9][0-9]*", value)]
+    if bad:
+        raise _bad(f"--lines {' '.join(bad)}: not a line number")
+    # The count that `grep -c ''` gives: a last line with no newline counts too.
+    count = text.count("\n") + (1 if text and not text.endswith("\n") else 0)
+    numbers = {int(value) for value in values}
+    over = sorted(number for number in numbers if number > count)
+    if over:
+        raise _bad(f"--lines {' '.join(map(str, over))}: the batch file has {count} lines")
+    return numbers
 
 
 def build_request(args: argparse.Namespace, stdin_text: str) -> dict:
@@ -328,6 +352,10 @@ line with no `id` or a bad one, whose line number is. Other lines get no
 result line.
 A listed value that matches no line exits 2 before any call.
 
+--lines '1 2 3' runs only the batch lines with these line numbers, whether
+or not they have an `id`. It does not mix with --ids. A value past the last
+line exits 2 before any call.
+
 When CLEF_LOG names a file, each answered call appends one JSON line to it.
 
 Exit codes: 0 answered, 2 bad request, 3 no answer from the server, 1 any other error.
@@ -352,10 +380,13 @@ def _parse_args(argv):
     parser.add_argument("--batch", metavar="IN.jsonl", help="make one call per line of this file")
     parser.add_argument("--out", metavar="OUT.jsonl", help="with --batch, write results here, not to stdout")
     parser.add_argument("--ids", metavar="'ID ...'", help="with --batch, run only the lines with these ids or line numbers")
+    parser.add_argument("--lines", metavar="'N ...'", help="with --batch, run only the lines with these line numbers")
     args = parser.parse_args(argv)
-    for flag in ("out", "ids"):
+    for flag in ("out", "ids", "lines"):
         if getattr(args, flag) is not None and args.batch is None:
             parser.error(f"--{flag} needs --batch")
+    if args.ids is not None and args.lines is not None:
+        parser.error("--ids and --lines do not mix")
     return args
 
 
