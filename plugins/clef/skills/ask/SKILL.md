@@ -78,7 +78,7 @@ Batches stay on `clef-flash`. Re-ask only a batch's close lines on `clef`:
    ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --model clef --batch <scratchpad>/batch.jsonl --ids 'T3 T7 12'
    ```
 
-`--ids` runs only the lines it lists. The re-ask writes no file, so it gets no prompt. A re-ask of more than 100 values runs in parts of up to 100, one call per part, as "Batch runs" describes. Separate the values with spaces. An `id` that holds a space or an apostrophe cannot go in `--ids`. An `id` that starts with `-` makes the call ask the user. A value matches every line whose `id` or line number reads the same, so a re-ask can run an extra line.
+`--ids` runs only the lines it lists. The re-ask writes no file, so it gets no prompt. List at most 100 values in one call. A re-ask of more values runs one call per group of up to 100 values, in the foreground, as "Batch runs" describes. Separate the values with spaces. An `id` that holds a space or an apostrophe cannot go in `--ids`. An `id` that starts with `-` makes the call ask the user. A value matches every line whose `id` or line number reads the same, so a re-ask can run an extra line.
 
 ## Keeping tokens down
 
@@ -103,9 +103,9 @@ A batch judges many items with the same questions. Build the batch file in one t
    ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --batch <scratchpad>/batch.jsonl
    ```
 
-   Add no `cd` or `&&` before it, no pipe or `> file` after it, and no `--out`. Each of those can make the call ask the user. Read the result lines from its output. When Claude Code saves a large output to a file, read that file with a plain `jq`, with no redirect. To run only some lines, add `--ids`, as "Model choice" shows.
+   Add no `cd` or `&&` before it, no pipe or `> file` after it, and no `--out`. Each of those can make the call ask the user. Read the result lines from its output. When Claude Code saves a large output to a file, read that file with a plain `jq`, with no redirect. To run only some lines, add `--ids` to pick them by `id`, as "Model choice" shows, or `--lines` to pick them by line number.
 
-Run every batch call in the foreground, with the Bash tool's `timeout` set to 600000, its maximum. This is not `clef.py --timeout`, which limits each request. Never run a batch in the background: a `claude -p` session ends without waiting for it, and its answers are lost.
+Run every batch call in the foreground, with the Bash tool's `timeout` set to 600000, its maximum. This is not `clef.py --timeout`, which limits each request. Never run a batch in the background: a `claude -p` session ends without waiting for it, and you lose its answers.
 
 A batch of more than 100 lines runs in parts of up to 100 lines, one call per part:
 
@@ -118,7 +118,7 @@ A batch of more than 100 lines runs in parts of up to 100 lines, one call per pa
 
 3. Read each part's result lines before you run the next part.
 
-`--lines` picks a line by its number, even when the line has an `id`. The same 100-line cap covers a re-ask with `--ids`. If a call moves to the background anyway, wait for its notification before you answer.
+`--lines` picks a line by its number, even when the line has an `id`. A listed blank line runs nothing. If Claude Code moves a call to the background anyway, wait for its notification before you answer.
 
 ## `--guess` and `CLEF_LOG`
 

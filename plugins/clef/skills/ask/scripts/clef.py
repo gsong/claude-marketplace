@@ -178,12 +178,12 @@ def choose_line_numbers(text: str, values: list[str]) -> set[int]:
     bad = [value for value in dict.fromkeys(values) if not re.fullmatch(r"[1-9][0-9]*", value)]
     if bad:
         raise _bad(f"--lines {' '.join(bad)}: not a line number")
-    # The count that `grep -c ''` gives: a last line with no newline counts too.
+    # The count that `grep -c ''` gives for `\n` or `\r\n` endings: a last line with no newline counts too.
     count = text.count("\n") + (1 if text and not text.endswith("\n") else 0)
     numbers = {int(value) for value in values}
-    over = sorted(number for number in numbers if number > count)
+    over = [value for value in dict.fromkeys(values) if int(value) > count]
     if over:
-        raise _bad(f"--lines {' '.join(map(str, over))}: the batch file has {count} lines")
+        raise _bad(f"--lines {' '.join(over)}: the batch file has {count} lines")
     return numbers
 
 
@@ -353,8 +353,8 @@ result line.
 A listed value that matches no line exits 2 before any call.
 
 --lines '1 2 3' runs only the batch lines with these line numbers, whether
-or not they have an `id`. It does not mix with --ids. A value past the last
-line exits 2 before any call.
+or not they have an `id`. It does not mix with --ids. A listed blank line
+runs nothing. A value past the last line exits 2 before any call.
 
 When CLEF_LOG names a file, each answered call appends one JSON line to it.
 
