@@ -7,7 +7,7 @@
 
 Stdin holds a JSON object with `state` and `questions`, in Cloudflare's shape.
 Flags carry the model, images, a state file, the timeout and the caller's guess.
-`--batch` makes one call per line of a JSONL file instead, and `--ids` picks some of those lines.
+`--batch` makes one call per line of a JSONL file instead. `--ids` picks some of those lines.
 When CLEF_LOG names a file, each answered call appends one JSON line to it.
 
 Exit codes: 0 answered, 2 bad request, 3 no answer from the server, 1 any other error.
@@ -104,15 +104,15 @@ def run_batch(args: argparse.Namespace) -> int:
         if getattr(args, flag) not in (None, []):
             name = "--" + flag.replace("_", "-")
             raise _bad(f"--batch and {name} do not mix; give each line its own `{key}`")
-    lines = _read_text(args.batch, "batch file").split("\n")
+    lines = list(_batch_lines(_read_text(args.batch, "batch file")))
     chosen = choose_lines(lines, args.ids.split()) if args.ids is not None else None
     out = _open_out(args.out) if args.out else sys.stdout
     url, source = resolve_url()
     log = _Log.from_env()
     answered = failed = 0
     try:
-        for number, line in enumerate(lines, 1):
-            if not line.strip() or chosen is not None and number not in chosen:
+        for number, line in lines:
+            if chosen is not None and number not in chosen:
                 continue
             ref = {"line": number}
             try:
@@ -143,19 +143,17 @@ def run_batch(args: argparse.Namespace) -> int:
     return EXIT_BAD_REQUEST if failed else EXIT_OK
 
 
-def choose_lines(lines: list[str], ids: list[str]) -> set[int]:
+def choose_lines(lines: list[tuple[int, str]], ids: list[str]) -> set[int]:
     """Return the numbers of the batch lines that --ids names.
 
-    A line matches by its `id`, read as a string, or by its line number when it has no good `id`.
+    A line matches by its `id`, read as a string. A line with no `id`, or a bad one, matches by its line number.
     That is the value its result line reports. A listed value that matches no line is a bad request.
     """
     if not ids:
         raise _bad("--ids lists no ids")
     wanted, chosen, found = set(ids), set(), set()
-    for number, line in enumerate(lines, 1):
-        if not line.strip():
-            continue
-        key = _selector(line, number)
+    for number, line in lines:
+        key = _ids_key(line, number)
         if key in wanted:
             chosen.add(number)
             found.add(key)
@@ -326,7 +324,8 @@ line's `id`, or "line": N. A bad line gets an error line with "exit": 2, and
 the run goes on. Exit 3 or 1 stops the run.
 
 --ids 'A B 7' runs only the batch lines whose `id` is listed, or, for a
-line with no `id`, whose line number is. Other lines get no result line.
+line with no `id` or a bad one, whose line number is. Other lines get no
+result line.
 A listed value that matches no line exits 2 before any call.
 
 When CLEF_LOG names a file, each answered call appends one JSON line to it.
@@ -412,7 +411,14 @@ def _line_ref(item, number):
     return {"id": value}
 
 
-def _selector(line, number):
+def _batch_lines(text):
+    """Yield the number and text of each batch line that is not blank."""
+    for number, line in enumerate(text.split("\n"), 1):
+        if line.strip():
+            yield number, line
+
+
+def _ids_key(line, number):
     """Return the value that --ids matches for a batch line: its `id` as a string, or its line number."""
     try:
         ref = _line_ref(_load_object(line, "line"), number)

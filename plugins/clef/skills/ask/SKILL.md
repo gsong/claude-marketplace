@@ -78,7 +78,7 @@ Batches stay on `clef-flash`. Re-ask only a batch's close lines on `clef`:
    ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --model clef --batch <scratchpad>/batch.jsonl --ids 'T3 T7 12'
    ```
 
-`--ids` runs only the lines it lists, so the re-ask writes no file and gets no prompt. Separate the values with spaces. An `id` that holds a space or an apostrophe cannot go in `--ids`.
+`--ids` runs only the lines it lists. The re-ask writes no file, so it gets no prompt. Separate the values with spaces. An `id` that holds a space or an apostrophe cannot go in `--ids`. An `id` that starts with `-` makes the call ask the user. A value matches every line whose `id` or line number reads the same, so a re-ask can run an extra line.
 
 ## Keeping tokens down
 
@@ -103,7 +103,7 @@ A batch judges many items with the same questions. Build the batch file in one t
    ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --batch <scratchpad>/batch.jsonl
    ```
 
-   Add no `cd` or `&&` before it, no pipe or `> file` after it, and no `--out`. Each of those can make the call ask the user. Read the result lines from its output. When Claude Code saves a large output to a file, read that file with a plain `jq`, with no redirect.
+   Add no `cd` or `&&` before it, no pipe or `> file` after it, and no `--out`. Each of those can make the call ask the user. Read the result lines from its output. When Claude Code saves a large output to a file, read that file with a plain `jq`, with no redirect. To run only some lines, add `--ids`, as "Model choice" shows.
 
 A large batch can run past the Bash tool's 2-minute default. Raise the Bash timeout, or run the batch in the background.
 
