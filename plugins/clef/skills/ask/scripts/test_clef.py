@@ -296,12 +296,28 @@ class TestLocalChecks:
         assert code == 2
         assert "cannot read state file" in _one_line(err)
 
-    @pytest.mark.parametrize("argv", [["--model", "gpt"], ["--timeout", "0"], ["--timeout", "soon"], ["--bogus"]])
+    @pytest.mark.parametrize(
+        "argv",
+        [
+            ["--model", "gpt"],
+            ["--timeout", "0"],
+            ["--timeout", "soon"],
+            ["--timeout", "nan"],
+            ["--timeout", "inf"],
+            ["--timeout", "-inf"],
+            ["--timeout", OVER_LONG_INT],
+            ["--timeout", "86400.5"],
+            ["--bogus"],
+        ],
+    )
     def test_bad_flags(self, stub, run, argv):
         code, _, err = run(_body(), *argv)
         assert code == 2
         _one_line(err)
         assert stub.requests == []
+
+    def test_timeout_limit_inclusive(self, stub, run):
+        assert run(_body(), "--timeout", "86400")[0] == 0
 
     def test_five_images(self, stub, run, tmp_path):
         path = _write(tmp_path, "a.png", PNG)
@@ -438,6 +454,25 @@ class TestServerErrors:
         assert (code, out) == (1, "")
         assert _one_line(err) == f"clef: HTTP 200 from {stub.url}, but the reply is not a JSON object\n"
 
+    @pytest.mark.parametrize(
+        "reply",
+        [{"status": "ok"}, {"error": "model is loading"}, {"answers": None}, {"answers": [1]}],
+    )
+    def test_200_with_no_answers_is_other_error(self, stub, run, log, reply):
+        stub.respond(200, reply)
+        code, out, err = run(_body())
+        assert (code, out) == (1, "")
+        assert _one_line(err) == f"clef: HTTP 200 from {stub.url}, but the reply holds no answers\n"
+        assert log() == []
+
+    @pytest.mark.parametrize("number", ["NaN", "Infinity", "-Infinity", "1e400"])
+    def test_non_finite_number_in_200_is_not_json(self, stub, run, log, number):
+        stub.respond(200, '{"answers": {"blue": {"type": "noul", "noul": ' + number + "}}}")
+        code, out, err = run(_body())
+        assert (code, out) == (1, "")
+        assert _one_line(err) == f"clef: HTTP 200 from {stub.url}, but the reply is not JSON\n"
+        assert log() == []
+
     def test_5xx_is_other_error(self, stub, run):
         stub.respond(500, {"error": "runner crashed"})
         code, out, err = run(_body())
@@ -556,13 +591,6 @@ class TestGuess:
         stub.respond(200, {"answers": {"c": {"type": "noul", "noul": value}}, "usage": {}})
         run(_body(questions={"c": MIXED_QUESTIONS["c"]}), "--guess", '{"c": true}')
         assert log()[0]["agree"] == {"c": agree}
-
-    @pytest.mark.parametrize("score", [math.nan, math.inf])
-    def test_score_not_finite_agrees_with_nothing(self, stub, run, log, score):
-        stub.respond(200, {"answers": {"u": {"type": "score", "score": score}}, "usage": {}})
-        code, _, _ = run(_body(questions={"u": MIXED_QUESTIONS["u"]}), "--guess", '{"u": 1}')
-        assert code == 0
-        assert log()[0]["agree"] == {"u": None}
 
     def test_score_too_large_for_a_float_disagrees(self, stub, run, log):
         stub.respond(200, {"answers": {"u": {"type": "score", "score": 10**400}}, "usage": {}})
@@ -710,6 +738,28 @@ class TestBatch:
         stub.respond(200, {"id": "srv-1", **ANSWER})
         _, out, _ = run("", "--batch", _jsonl(tmp_path, {"id": "mine", **_body()}))
         assert json.loads(out)["id"] == "mine"
+
+    def test_reply_keys_that_name_a_line_never_reach_its_result(self, stub, run, tmp_path):
+        stub.respond(200, {"id": "chatcmpl-9", "line": 99, "error": "x", "exit": 5, **ANSWER})
+        code, out, _ = run("", "--batch", _jsonl(tmp_path, _body(), {"id": "b", **_body()}))
+        assert code == 0
+        assert [json.loads(l) for l in out.splitlines()] == [{"line": 1, **ANSWER}, {"id": "b", **ANSWER}]
+
+    @pytest.mark.parametrize(
+        "reply, message",
+        [
+            ('{"error": "model is loading"}', "the reply holds no answers"),
+            ('{"answers": {"blue": {"type": "noul", "noul": NaN}}}', "the reply is not JSON"),
+        ],
+    )
+    def test_200_with_no_good_answer_stops_with_exit_1(self, stub, run, tmp_path, log, reply, message):
+        stub.respond_each((200, ANSWER), (200, reply))
+        dst = str(tmp_path / "out.jsonl")
+        code, out, err = run("", "--batch", _jsonl(tmp_path, _body(), _body(), _body()), "--out", dst)
+        assert (code, out, err) == (1, "", f"clef: HTTP 200 from {stub.url}, but {message}\n")
+        assert _results(dst) == [{"line": 1, **ANSWER}]
+        assert len(log()) == 1
+        assert len(stub.requests) == 2
 
     def test_4xx_line_writes_its_error_and_goes_on(self, stub, run, tmp_path):
         stub.respond_each((200, ANSWER), (400, {"error": "question too\nlong"}))
@@ -895,6 +945,8 @@ class TestBatch:
         [
             # The file has 3 lines: line 2 is blank.
             ("1 4 9 4", "--lines 4 9: the batch file has 3 lines"),
+            ("10", "--lines 10: the batch file has 3 lines"),
+            pytest.param(OVER_LONG_INT, f"--lines {OVER_LONG_INT}: the batch file has 3 lines", id="over-long"),
             ("0", "--lines 0: not a line number"),
             ("1 x -2 01", "--lines x -2 01: not a line number"),
             ("", "--lines lists no line numbers"),

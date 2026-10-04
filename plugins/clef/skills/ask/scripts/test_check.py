@@ -162,12 +162,6 @@ class TestWrongAnswer:
         assert code == 1
         assert "WRONG  complaint = undecided (0.50), expected true" in out
 
-    def test_noul_nan_is_no_answer(self, stub, run):
-        stub.answers["complaint"] = {"type": "noul", "noul": float("nan")}
-        code, out, _ = run()
-        assert code == 1
-        assert "WRONG  complaint = no answer, expected true" in out
-
     def test_missing_answer(self, stub, run):
         stub.answers["cost"] = None
         code, out, _ = run()
@@ -184,6 +178,14 @@ class TestClefFails:
         assert len(stub.requests) == 1
         assert err.startswith("clef: ")
         assert err.count("\n") == 1
+        assert "answers right" not in out
+
+    def test_noul_nan_stops_with_exit_1(self, stub, run):
+        stub.answers["complaint"] = {"type": "noul", "noul": float("nan")}
+        code, out, err = run()
+        assert code == 1
+        assert len(stub.requests) == 1
+        assert err.endswith("but the reply is not JSON\n")
         assert "answers right" not in out
 
     def test_unreachable_exits_3(self, monkeypatch, run):
