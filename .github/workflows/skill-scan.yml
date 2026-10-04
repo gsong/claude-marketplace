@@ -1,0 +1,52 @@
+name: "Skill scan"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "plugins/**"
+      - "skill-scanner-policy.yaml"
+      - "mise.toml"
+      - ".github/workflows/skill-scan.yml"
+  pull_request:
+    paths:
+      - "plugins/**"
+      - "skill-scanner-policy.yaml"
+      - "mise.toml"
+      - ".github/workflows/skill-scan.yml"
+
+permissions: {}
+
+jobs:
+  skill-scanner:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Upload the SARIF report to code scanning.
+      security-events: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      # Installs only the scanner pinned in mise.toml.
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          install_args: "pipx:cisco-ai-skill-scanner"
+
+      # Fails on high or critical findings that skill-scanner-policy.yaml does not suppress.
+      - run: mise run scan:skills skill-scan.sarif
+
+      # The push to main gives code scanning the baseline that pull requests compare against.
+      - uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        if: ${{ !cancelled() && hashFiles('skill-scan.sarif') != '' }}
+        with:
+          sarif_file: skill-scan.sarif
+          category: skill-scanner
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: skill-scan
+          path: skill-scan.sarif
+          if-no-files-found: ignore

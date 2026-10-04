@@ -125,6 +125,29 @@ Keep text an audience reads in your voice: a drafting pipeline, a send-time lint
 
 **Requires:** jq, perl, and uv. See the [plugin README](plugins/writing/README.md#requirements).
 
+## Security scanning
+
+CI scans every skill with [Cisco skill-scanner](https://github.com/cisco-ai-defense/skill-scanner) and fails on a high or critical finding. The scan runs offline with rules only, so it needs no account and sends nothing out. It runs on pull requests and pushes to `main` that touch `plugins/`, the policy, `mise.toml`, or the workflow. The report goes to GitHub code scanning, where medium and low findings show as alerts.
+
+Run the same scan locally:
+
+```
+mise run scan:skills
+```
+
+Pass a path to also write a SARIF report. The scan reads a copy of the files git would commit, so ignored files such as `__pycache__` stay out.
+
+To triage a finding:
+
+- A real risk: fix the skill.
+- A false positive: add a suppression to `skill-scanner-policy.yaml`. Scope it by `rule_id`, `skills`, and `paths`, and give a reason.
+- A rule that can never apply here: add it to `disabled_rules`.
+
+The scan has limits:
+
+- It reads skill directories only, so plugin hooks and scripts outside `skills/` go unscanned.
+- Rules alone catch 7.7% of malicious skills by Cisco's own count. It is a tripwire, not a review.
+
 ## License
 
 MIT

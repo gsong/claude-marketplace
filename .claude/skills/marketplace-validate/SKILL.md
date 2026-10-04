@@ -48,6 +48,10 @@ Each plugin has a `### {PLUGIN_NAME}` section with a blurb, an install block, an
 11. **Hooks line**: present exactly when `plugins/{PLUGIN_NAME}/hooks/hooks.json` exists, and it names every event in that file. **Fix:** rewrite the line from `hooks.json` and the hooks section of the plugin README.
 12. **Requires line**: it names the same tools and plugins as the requirements section of the plugin README (`Prerequisites` or `Requirements`). When the plugin README has no such section, use the skills' `compatibility` fields. A plugin with neither has no Requires line. The line lists names only and links to the plugin README section for details. **Fix:** rewrite the line from the plugin README.
 
+### Security scan
+
+13. **Skill scan**: run `mise run scan:skills`. Skip this check when mise or the scanner is not installed, and say so in the report. Report each high or critical finding with its rule, skill, and file. **Fix: ask.** The user decides whether to fix the skill or add a suppression with a reason to `skill-scanner-policy.yaml`.
+
 Done when every check above has a verdict for every plugin.
 
 ## Phase 4 — Report
@@ -77,6 +81,11 @@ Root README
 [ ] Skills line: writing — lists /writing:foo, which has no skill directory
 [✓] Every plugin has a section
 ...
+
+Security Scan
+─────────────
+[ ] Critical DATA_EXFIL_SOCKET_CONNECT: clef/ask — scripts/clef.py:318
+[✓] No high or critical findings
 
 Summary: X issues found across Y plugins
 ```
