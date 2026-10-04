@@ -123,7 +123,7 @@ A batch of more than 100 lines runs in parts of up to 100 lines, one call per pa
 ## `--guess` and `CLEF_LOG`
 
 - `--guess` records your own answers beside Clef's in the log. It changes nothing in the request.
-- `CLEF_LOG`, when it names a file, gets one JSON line per answered call.
+- `CLEF_LOG`, when it names a file, gets one JSON line per call, answered or failed. A batch line is one call. A failed call's line holds `error` and `exit`.
 
 Neither is required.
 
