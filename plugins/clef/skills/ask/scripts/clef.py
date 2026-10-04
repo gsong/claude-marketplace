@@ -33,6 +33,7 @@ from typing import TypeGuard
 MODELS = ("clef", "clef-flash")
 DEFAULT_MODEL = "clef-flash"
 DEFAULT_TIMEOUT = 120.0
+MAX_TIMEOUT = 86400.0  # one day
 
 DOCKER_HOST = "host.docker.internal"
 DOCKER_URL = f"http://{DOCKER_HOST}:11434"
@@ -60,6 +61,8 @@ FLAG_FOR_KEY = {
 LINE_KEYS = {"state", "questions", "id", "images", "guess"}
 # Flags that --batch refuses, and the line key that carries each instead.
 LINE_KEY_FOR_FLAG = {"image": "images", "state_file": "state", "guess": "guess"}
+# Keys that a batch result line sets itself. A reply's own value for one never reaches the line.
+RESULT_KEYS = {"id", "line", "error", "exit"}
 
 EXIT_OK, EXIT_ERROR, EXIT_BAD_REQUEST, EXIT_NO_ANSWER = 0, 1, 2, 3
 
@@ -137,7 +140,7 @@ def run_batch(args: argparse.Namespace) -> int:
                 _emit(out, {**ref, "error": f"clef: {e}", "exit": e.code})
                 continue
             answered += 1
-            _emit(out, {**reply, **ref})
+            _emit(out, {**{k: v for k, v in reply.items() if k not in RESULT_KEYS}, **ref})
             log.write(_log_record(request, item.get("images", []), guess, reply, latency))
     finally:
         if out is not sys.stdout:
@@ -183,11 +186,14 @@ def choose_line_numbers(text: str, values: list[str]) -> set[int]:
         raise _bad(f"--lines {' '.join(bad)}: not a line number")
     # The count that `grep -c ''` gives for `\n` or `\r\n` endings: a last line with no newline counts too.
     count = text.count("\n") + (1 if text and not text.endswith("\n") else 0)
-    numbers = {int(value) for value in values}
-    over = [value for value in dict.fromkeys(values) if int(value) > count]
+    # A value with more digits than the count is past the last line. Checking that first keeps
+    # int() off a value over Python's integer digit limit.
+    over = [
+        value for value in dict.fromkeys(values) if len(value) > len(str(count)) or int(value) > count
+    ]
     if over:
         raise _bad(f"--lines {' '.join(over)}: the batch file has {count} lines")
-    return numbers
+    return {int(value) for value in values}
 
 
 def build_request(args: argparse.Namespace, stdin_text: str) -> dict:
@@ -265,7 +271,9 @@ def resolve_url() -> tuple[str, str]:
 def send(url: str, source: str, request: dict, timeout: float) -> tuple[str, dict]:
     """POST the request and return the server's reply text, unchanged, and its JSON.
 
-    A reply that is not a JSON object is an error, so a proxy's HTML page never reads as an answer.
+    A reply that is not a JSON object with an `answers` object is an error,
+    so a proxy's HTML page or a 200 error body never reads as an answer.
+    A reply holding NaN or Infinity is not JSON, so nothing printed or logged holds one.
     """
     req = urllib.request.Request(
         url + ENDPOINT,
@@ -290,11 +298,13 @@ def send(url: str, source: str, request: dict, timeout: float) -> tuple[str, dic
         raise _no_answer(url, source, f"unreachable: {reason}") from e
     try:
         text = raw.decode("utf-8")
-        reply = json.loads(text)
-    except ValueError as e:  # UnicodeDecodeError, JSONDecodeError, or an integer over Python's digit limit
+        reply = json.loads(text, parse_constant=_refuse_constant, parse_float=_finite_float)
+    except ValueError as e:  # UnicodeDecodeError, JSONDecodeError, a non-finite number, or an over-long integer
         raise ClefError(f"HTTP 200 from {url}, but the reply is not JSON", EXIT_ERROR) from e
     if not isinstance(reply, dict):
         raise ClefError(f"HTTP 200 from {url}, but the reply is not a JSON object", EXIT_ERROR)
+    if not isinstance(reply.get("answers"), dict):
+        raise ClefError(f"HTTP 200 from {url}, but the reply holds no answers", EXIT_ERROR)
     return text, reply
 
 
@@ -382,7 +392,7 @@ def _parse_args(argv):
     parser.add_argument("--state-file", metavar="PATH", help="read the state from this file")
     parser.add_argument(
         "--timeout", type=_positive_float, default=DEFAULT_TIMEOUT, metavar="N",
-        help="seconds to wait for each reply (default: 120)",
+        help="seconds to wait for each reply (default: 120, at most 86400)",
     )
     parser.add_argument("--guess", metavar="JSON", help='your own answers, for the log: {"<question id>": <answer>}')
     parser.add_argument("--batch", metavar="IN.jsonl", help="make one call per line of this file")
@@ -403,8 +413,14 @@ def _positive_float(text):
         value = float(text)
     except ValueError:
         raise argparse.ArgumentTypeError(f"not a number: {text}") from None
+    # float() takes "nan", which fails every comparison below.
+    if math.isnan(value):
+        raise argparse.ArgumentTypeError(f"not a number: {text}")
     if value <= 0:
         raise argparse.ArgumentTypeError(f"must be above 0: {text}")
+    # A socket refuses a timeout much past 1e9 seconds, and Infinity, at send time.
+    if value > MAX_TIMEOUT:
+        raise argparse.ArgumentTypeError(f"must be at most {MAX_TIMEOUT:g}: {text}")
     return value
 
 
@@ -491,6 +507,18 @@ def _timed_send(url, source, request, timeout):
     start = time.monotonic()
     text, reply = send(url, source, request, timeout)
     return text, reply, time.monotonic() - start
+
+
+def _refuse_constant(name):
+    raise ValueError(f"{name} is not a JSON number")
+
+
+def _finite_float(text):
+    """Parse a reply's float. `1e400` parses to Infinity, which json.dumps writes back as invalid JSON."""
+    value = float(text)
+    if not math.isfinite(value):
+        raise ValueError(f"{text} is out of a float's range")
+    return value
 
 
 def _open_out(path):
