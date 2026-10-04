@@ -50,7 +50,7 @@ Each plugin has a `### {PLUGIN_NAME}` section with a blurb, an install block, an
 
 ### Security scan
 
-13. **Skill scan**: run `mise run scan:skills` once for the whole repo. Skip this check when mise or the scanner is not installed, and say so in the report. Report each high or critical finding with its rule, skill, and file. **Fix: ask.** The user decides whether to fix the skill or add a suppression with a reason to `skill-scanner-policy.yaml`.
+13. **Skill scan**: run `mise run scan:skills` once for the whole repo. The task installs the scanner on first run. Skip this check when mise is not installed or the scanner install fails, and say so in the report. Report each high or critical finding with its rule, skill, and file. **Fix: ask.** The user decides whether to fix the skill or add a suppression with a reason to `skill-scanner-policy.yaml`.
 
 Done when checks 1–12 have a verdict for every plugin and check 13 has a verdict for the repo.
 
