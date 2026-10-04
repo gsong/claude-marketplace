@@ -80,6 +80,8 @@ for (; $i <= $#lines; $i++) {
     $lines[$i] = '' if $fenced;
     # A thematic break is punctuation, not a sentence.
     $lines[$i] = '' if !$fenced and $lines[$i] =~ /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/;
+    # So is a table's separator row, such as | --- | :-: |.
+    $lines[$i] = '' if !$fenced and $lines[$i] =~ /^\s*\|?(?:\s*:?-+:?\s*\|)+(?:\s*:?-+:?\s*)?$/;
 }
 
 # --- scan --------------------------------------------------------------

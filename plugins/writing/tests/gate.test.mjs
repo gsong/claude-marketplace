@@ -339,6 +339,20 @@ test("front matter: a block closed with ... does not blank the draft", () => {
   assert.match(out ?? "", /line 4: "utilize"/);
 });
 
+// A table's separator row is punctuation, like a thematic break. Its dashes
+// are not a double hyphen, but the cells around it are still prose.
+test("table: the separator row is not checked, its cells are", () => {
+  const body = [
+    "| Model | Limit |",
+    "| ----- | :---: |",
+    "|-------|-------|",
+    "| clef -- big | 10 |",
+  ].join("\n");
+  const out = onWrite(draft("technical", body), SHIPPED_RULES) ?? "";
+  assert.doesNotMatch(out, /line [23]: double hyphen/);
+  assert.match(out, /line 4: double hyphen/);
+});
+
 // The technical profile is the one that names flags and code most often. A
 // semicolon inside `a = 1; b = 2` is code, not a run-on sentence.
 test("inline code: a span in backticks is not checked", () => {
