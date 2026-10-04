@@ -847,7 +847,7 @@ class TestBatch:
             "",
             _body(state="Line four"),
         )
-        code, out, err = run("", "--batch", src, "--lines", "4 3 1")
+        code, out, err = run("", "--batch", src, "--lines", "4 3 1 4")
         assert code == 0
         assert [r[1]["state"] for r in stub.requests] == ["A", "Line four"]
         assert [json.loads(l) for l in out.splitlines()] == [{"id": "a", **ANSWER}, {"line": 4, **ANSWER}]
