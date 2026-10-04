@@ -106,15 +106,15 @@ def run_one(args: argparse.Namespace, log: "_Log") -> int:
     record = log.start()
     body = _load_object(sys.stdin.read(), "stdin")
     _note_input(record, args.model, body, args.image)
+    record["guess"] = guess = _parse_guess(args.guess)
     body = read_body(args, body)
     _note_input(record, args.model, body, args.image)  # again, for a --state-file state
     request = build_request(args.model, body, args.image)
-    record["guess"] = guess = _parse_guess(args.guess)
     check_guess(guess, request["questions"])
     url, source = resolve_url()
     text, reply, latency = _timed_send(url, source, request, args.timeout)
-    sys.stdout.write(text)
     _note_reply(record, request, guess, reply, latency)
+    sys.stdout.write(text)
     log.finish()
     return EXIT_OK
 
@@ -165,8 +165,8 @@ def run_batch(args: argparse.Namespace, log: "_Log") -> int:
                 log.finish(f"clef: {e}", e.code)
                 continue
             answered += 1
-            _emit(out, {**{k: v for k, v in reply.items() if k not in RESULT_KEYS}, **ref})
             _note_reply(record, request, guess, reply, latency)
+            _emit(out, {**{k: v for k, v in reply.items() if k not in RESULT_KEYS}, **ref})
             log.finish()
     finally:
         if out is not sys.stdout:
