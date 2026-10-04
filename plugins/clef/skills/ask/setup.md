@@ -138,4 +138,3 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 - **Unreachable from a container only:** the Mac passes step 5 of [Install and start](#install-and-start), but the container fails its check in [Container sessions](#container-sessions). Use Docker Desktop, which resolves `host.docker.internal` by default. With another Docker runtime, add `--add-host=host.docker.internal:host-gateway` to `docker run`.
 - **Model missing (HTTP 404):** rerun steps 3 and 4 of [Install and start](#install-and-start).
 - **Timeout:** check `ollama ps` and `/opt/homebrew/var/log/ollama.log`.
-- **Broken reply:** the error line says `broken reply`. Another program may hold the port, or Ollama may have stopped mid-reply. Run `lsof -nP -iTCP:11434 -sTCP:LISTEN` to see which program holds the port. If it is Ollama, check `/opt/homebrew/var/log/ollama.log`.
