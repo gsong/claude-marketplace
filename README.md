@@ -53,12 +53,13 @@ Ask Clef, a local decision model, yes/no, pick-one, or rating questions and get 
 OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi-round consensus discussions via the codex plugin.
 
 ```
+/plugin marketplace add openai/codex-plugin-cc
 /plugin install codex-tools@gsong-marketplace
 ```
 
 **Skills:** `/codex-tools:review`, `/codex-tools:run`, `/codex-tools:discuss`
 
-**Requires:** Codex CLI and the codex plugin; `review` also needs gh, uv, and the gh-tools directory. See the [plugin README](plugins/codex-tools/README.md#prerequisites).
+**Requires:** Codex CLI and the codex plugin (installs with codex-tools); `review` also needs gh, uv, and the gh-tools directory. See the [plugin README](plugins/codex-tools/README.md#prerequisites).
 
 ### gh-tools
 
