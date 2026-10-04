@@ -78,7 +78,7 @@ Batches stay on `clef-flash`. Re-ask only a batch's close lines on `clef`:
    ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --model clef --batch <scratchpad>/batch.jsonl --ids 'T3 T7 12'
    ```
 
-`--ids` runs only the lines it lists. The re-ask writes no file, so it gets no prompt. Separate the values with spaces. An `id` that holds a space or an apostrophe cannot go in `--ids`. An `id` that starts with `-` makes the call ask the user. A value matches every line whose `id` or line number reads the same, so a re-ask can run an extra line.
+`--ids` runs only the lines it lists. The re-ask writes no file, so it gets no prompt. A re-ask of more than 100 values runs in parts of up to 100, one call per part, as "Batch runs" describes. Separate the values with spaces. An `id` that holds a space or an apostrophe cannot go in `--ids`. An `id` that starts with `-` makes the call ask the user. A value matches every line whose `id` or line number reads the same, so a re-ask can run an extra line.
 
 ## Keeping tokens down
 
@@ -105,7 +105,20 @@ A batch judges many items with the same questions. Build the batch file in one t
 
    Add no `cd` or `&&` before it, no pipe or `> file` after it, and no `--out`. Each of those can make the call ask the user. Read the result lines from its output. When Claude Code saves a large output to a file, read that file with a plain `jq`, with no redirect. To run only some lines, add `--ids`, as "Model choice" shows.
 
-A large batch can run past the Bash tool's 2-minute default. Raise the Bash timeout, or run the batch in the background.
+Run every batch call in the foreground, with the Bash tool's `timeout` set to 600000, its maximum. This is not `clef.py --timeout`, which limits each request. Never run a batch in the background: a `claude -p` session ends without waiting for it, and its answers are lost.
+
+A batch of more than 100 lines runs in parts of up to 100 lines, one call per part:
+
+1. Count the file's lines with `grep -c '' <scratchpad>/batch.jsonl`.
+2. Run the same batch file once per part, with that part's line numbers in `--lines`. `--lines` takes no ranges, so write out each number. The second part lists 101 to 200:
+
+   ```sh
+   ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --batch <scratchpad>/batch.jsonl --lines '101 102 103 … 200'
+   ```
+
+3. Read each part's result lines before you run the next part.
+
+`--lines` picks a line by its number, even when the line has an `id`. The same 100-line cap covers a re-ask with `--ids`. If a call moves to the background anyway, wait for its notification before you answer.
 
 ## `--guess` and `CLEF_LOG`
 
