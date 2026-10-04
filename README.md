@@ -127,7 +127,7 @@ Keep text an audience reads in your voice: a drafting pipeline, a send-time lint
 
 ## Security scanning
 
-CI scans every skill with [Cisco skill-scanner](https://github.com/cisco-ai-defense/skill-scanner) and fails on a high or critical finding. The scan runs offline with rules only, so it needs no account and sends nothing out. It runs on pull requests and pushes to `main` that touch `plugins/`, the policy, `mise.toml`, or the workflow. The report goes to GitHub code scanning, where medium and low findings show as alerts.
+CI scans every skill in `plugins/` and `.claude/skills/` with [Cisco skill-scanner](https://github.com/cisco-ai-defense/skill-scanner). It fails on a high or critical finding. The scan runs offline with rules only, so it needs no account and sends nothing out. It runs on every pull request and push to `main`, and a failed scan blocks the merge. The report goes to GitHub code scanning, where medium and low findings show as alerts.
 
 Run the same scan locally:
 
@@ -135,7 +135,7 @@ Run the same scan locally:
 mise run scan:skills
 ```
 
-Pass a path to also write a SARIF report. The scan reads a copy of the files that git tracks or does not ignore, so ignored files such as `__pycache__` stay out.
+Pass a path to also write a SARIF report. The scan reads a copy of the files that git tracks or does not ignore, so ignored files such as `__pycache__` stay out. A local run also reads untracked files, which CI does not have, so it can report findings that CI does not.
 
 To triage a finding:
 
