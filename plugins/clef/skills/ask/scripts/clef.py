@@ -136,6 +136,7 @@ def run_batch(args: argparse.Namespace, log: "_Log") -> int:
     A run starts no line that could end past BATCH_TIME_LIMIT, counting the request timeout, but always starts one.
     A run that stops there exits 0 too, and its stop note gives a --lines value for the lines left.
     """
+    start = time.monotonic()
     for flag, key in LINE_KEY_FOR_FLAG.items():
         if getattr(args, flag) not in (None, []):
             name = "--" + flag.replace("_", "-")
@@ -152,7 +153,6 @@ def run_batch(args: argparse.Namespace, log: "_Log") -> int:
     url, source = resolve_url()
     answered = failed = 0
     left = []
-    start = time.monotonic()
     try:
         for done, index in enumerate(todo):
             if done and time.monotonic() - start + args.timeout > BATCH_TIME_LIMIT:
@@ -236,10 +236,10 @@ def choose_line_numbers(text: str, values: list[str]) -> set[int]:
     # A number with more digits than the count is past the last line. Checking that first keeps
     # int() off a number over Python's integer digit limit.
     spans = [(value, *_span(value)) for value in unique]
-    over = [value for value, _, last in spans if _past(last, count)]
+    over = [value for value, _, last in spans if _greater(last, count)]
     if over:
         raise _bad(f"--lines {' '.join(over)}: the batch file has {count} lines")
-    backward = [value for value, first, last in spans if _past(first, int(last))]
+    backward = [value for value, first, last in spans if _greater(first, int(last))]
     if backward:
         raise _bad(f"--lines {' '.join(backward)}: a range must not end before it starts")
     return {number for _, first, last in spans for number in range(int(first), int(last) + 1)}
@@ -445,7 +445,7 @@ class _Parser(argparse.ArgumentParser):
         raise ClefError(message, EXIT_BAD_REQUEST)
 
 
-_EPILOG = """\
+_EPILOG = f"""\
 A guess is true or false for a noul question, an option id for choice,
 or a level index for score. It changes nothing in the request.
 
@@ -470,7 +470,7 @@ included. It does not mix with --ids, which takes no ranges. A listed blank
 line runs nothing. A value past the last line, or a range that ends before it
 starts, exits 2 before any call.
 
-A batch run starts no line that could end more than 570 s after the run
+A batch run starts no line that could end more than {BATCH_TIME_LIMIT:g} s after the run
 began, counting --timeout, so a run stays inside the Bash tool's 600 s limit.
 It always starts one line. A run that stops at the limit exits 0, and its
 summary becomes the stop note:
@@ -577,7 +577,7 @@ def _span(value):
     return first, last or first
 
 
-def _past(number, limit):
+def _greater(number, limit):
     """Return whether a number, given as text, is greater than `limit`. A longer number is, and skips int()."""
     return len(number) > len(str(limit)) or int(number) > limit
 
