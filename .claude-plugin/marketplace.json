@@ -6,6 +6,7 @@
   "metadata": {
     "description": "George Song's Claude Code plugins for git, GitHub, documentation, session memory, local decision models, Codex integration, repo maintenance, writing, and utilities"
   },
+  "allowCrossMarketplaceDependenciesOn": ["openai-codex"],
   "plugins": [
     {
       "name": "ai-docs",

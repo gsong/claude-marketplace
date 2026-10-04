@@ -8,5 +8,6 @@
   "homepage": "https://github.com/gsong/claude-marketplace",
   "repository": "https://github.com/gsong/claude-marketplace",
   "license": "MIT",
-  "keywords": ["codex", "openai", "review", "delegation"]
+  "keywords": ["codex", "openai", "review", "delegation"],
+  "dependencies": ["codex@openai-codex"]
 }
