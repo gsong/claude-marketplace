@@ -66,7 +66,23 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
    -v "<path>:<path>"
    ```
 
-2. Install uv and jq in the container, and put both on the container's `PATH`. The uv installer works in a Linux container:
+   Claude Code in the container looks for plugins in its own config folder, which is `~/.claude` under the container's home by default. The container's home is often not the Mac's home, so Claude Code finds no plugins. Point the config folder at the Mac path:
+
+   ```sh
+   -e CLAUDE_CONFIG_DIR="$HOME/.claude"
+   ```
+
+   Claude Code in the container then keeps its settings and login in that folder. Only the `plugins` folder inside it comes from the Mac.
+
+2. Enable the plugin in the container:
+
+   ```sh
+   claude plugin enable clef@gsong-marketplace
+   ```
+
+   The Mac's `settings.json` records which plugins are enabled, and the container does not mount it. So the container starts with `clef` disabled. The command writes the container's own `settings.json` and changes nothing on the Mac. A container that keeps its config folder between runs needs this step once. A fresh container needs it at each start.
+
+3. Install uv and jq in the container, and put both on the container's `PATH`. The uv installer works in a Linux container:
 
    ```sh
    curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -78,7 +94,7 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
    apt-get update && apt-get install -y jq
    ```
 
-3. Check the route from inside the container:
+4. Check the route from inside the container:
 
    ```sh
    curl host.docker.internal:11434/api/version
@@ -86,7 +102,7 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 
    Docker Desktop resolves `host.docker.internal` by default.
 
-4. If you set `CLEF_LOG` to keep a decision log, set it in the container too. Point it at a file in a folder that exists in the container and that the container can write to. `clef.py` never creates that folder. If the folder is missing, the script warns once, answers anyway and logs nothing.
+5. If you set `CLEF_LOG` to keep a decision log, set it in the container too. Point it at a file in a folder that exists in the container and that the container can write to. `clef.py` never creates that folder. If the folder is missing, the script warns once, answers anyway and logs nothing.
 
 ## Warnings
 
