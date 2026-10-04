@@ -28,6 +28,7 @@ _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 
 main = _mod.main
+PLUGIN_JSON = Path(__file__).resolve().parents[3] / ".claude-plugin" / "plugin.json"
 resolve_url = _mod.resolve_url
 
 # ---------------------------------------------------------------------------
@@ -111,8 +112,9 @@ class Stub:
 
 @pytest.fixture(autouse=True)
 def no_log(monkeypatch):
-    """Keep a developer's own CLEF_LOG out of the tests."""
+    """Keep a developer's own CLEF_LOG and Claude Code session out of the tests."""
     monkeypatch.delenv("CLEF_LOG", raising=False)
+    monkeypatch.delenv("CLAUDE_CODE_SESSION_ID", raising=False)
 
 
 @pytest.fixture
@@ -465,7 +467,8 @@ class TestServerErrors:
         code, out, err = run(_body())
         assert (code, out) == (1, "")
         assert _one_line(err) == f"clef: HTTP 200 from {stub.url}, but the reply holds no answers\n"
-        assert log() == []
+        [record] = log()
+        assert (record["error"], record["exit"], record["answers"]) == (err.rstrip("\n"), 1, None)
 
     @pytest.mark.parametrize("number", ["NaN", "Infinity", "-Infinity", "1e400"])
     def test_non_finite_number_in_200_is_not_json(self, stub, run, log, number):
@@ -473,7 +476,8 @@ class TestServerErrors:
         code, out, err = run(_body())
         assert (code, out) == (1, "")
         assert _one_line(err) == f"clef: HTTP 200 from {stub.url}, but the reply is not JSON\n"
-        assert log() == []
+        [record] = log()
+        assert (record["error"], record["exit"], record["answers"]) == (err.rstrip("\n"), 1, None)
 
     def test_5xx_is_other_error(self, stub, run):
         stub.respond(500, {"error": "runner crashed"})
@@ -518,10 +522,12 @@ class TestDecisionLog:
         assert (code, out, err) == (0, json.dumps(ANSWER), "")
         [record] = log()
         assert set(record) == {
-            "time", "cwd", "model", "state", "state_chars", "images", "questions",
-            "answers", "guess", "agree", "usage", "latency_s",
+            "time", "cwd", "session", "version", "model", "state", "state_chars", "images", "questions",
+            "answers", "guess", "agree", "usage", "latency_s", "error", "exit",
         }
         datetime.fromisoformat(record["time"])
+        assert (record["session"], record["error"], record["exit"]) == (None, None, None)
+        assert record["version"] == json.loads(PLUGIN_JSON.read_text())["version"]
         assert record["cwd"] == os.getcwd()
         assert record["model"] == "clef"
         assert (record["state"], record["state_chars"]) == ("The sky is blue.", 16)
@@ -545,10 +551,113 @@ class TestDecisionLog:
         assert len(log()) == 2
         assert Path(os.environ["CLEF_LOG"]).stat().st_mode & 0o777 == 0o600
 
-    def test_failed_call_not_logged(self, stub, run, log):
+    def test_session_from_claude_code(self, stub, run, log, monkeypatch):
+        monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "73be7f1c")
+        run(_body())
+        assert log()[0]["session"] == "73be7f1c"
+
+    @pytest.mark.parametrize("text", [None, "not json", "[1]", '{"version": 2}'])
+    def test_version_null_when_plugin_json_has_none(self, stub, run, log, monkeypatch, tmp_path, text):
+        path = tmp_path / "plugin.json"
+        if text is not None:
+            path.write_text(text)
+        monkeypatch.setattr(_mod, "PLUGIN_JSON", path)
+        assert run(_body())[0] == 0
+        assert log()[0]["version"] is None
+
+    def test_4xx_logged_with_its_error(self, stub, run, log):
         stub.respond(400, {"error": "bad"})
-        assert run(_body())[0] == 2
-        assert log() == []
+        code, out, err = run(_body(), "--guess", '{"blue": true}')
+        assert (code, out) == (2, "")
+        [record] = log()
+        assert (record["error"], record["exit"]) == (_one_line(err).rstrip("\n"), 2)
+        assert (record["state"], record["questions"], record["guess"]) == ("The sky is blue.", _body()["questions"], {"blue": True})
+        assert [record[k] for k in ("answers", "agree", "usage", "latency_s")] == [None] * 4
+
+    def test_timeout_logged_with_state_and_questions(self, stub, run, log):
+        stub.respond(200, ANSWER, delay=1.0)
+        code, _, err = run(_body(), "--timeout", "0.2")
+        assert code == 3
+        [record] = log()
+        assert (record["error"], record["exit"]) == (_one_line(err).rstrip("\n"), 3)
+        assert (record["state"], record["questions"]) == ("The sky is blue.", _body()["questions"])
+
+    def test_local_check_logged_with_its_input(self, stub, run, log, tmp_path):
+        path = _write(tmp_path, "a.png", PNG)
+        state = _write(tmp_path, "state.txt", b"From a file.")
+        code, _, err = run({"questions": {"blue": {"type": "noul"}}}, "--image", path, "--state-file", state)
+        assert code == 2
+        [record] = log()
+        assert (record["error"], record["exit"]) == (_one_line(err).rstrip("\n"), 2)
+        assert (record["model"], record["state"], record["state_chars"]) == ("clef-flash", "From a file.", 12)
+        assert (record["images"], record["questions"]) == ([path], {"blue": {"type": "noul"}})
+        assert stub.requests == []
+
+    @pytest.mark.parametrize(
+        "stdin, argv",
+        [
+            ({**_body(), "model": "clef"}, []),
+            (_body(), ["--state-file", "missing.txt"]),
+        ],
+    )
+    def test_stdin_logged_before_its_keys_are_checked(self, stub, run, log, stdin, argv):
+        assert run(stdin, *argv)[0] == 2
+        [record] = log()
+        assert (record["state"], record["questions"], record["exit"]) == ("The sky is blue.", _body()["questions"], 2)
+
+    def test_deleted_working_folder_keeps_the_exit_code(self, stub, run, log, monkeypatch):
+        def gone():
+            raise FileNotFoundError(2, "No such file or directory")
+
+        monkeypatch.setattr(_mod.os, "getcwd", gone)
+        stub.respond(400, {"error": "bad"})
+        code, _, err = run(_body())
+        assert (code, err) == (2, "clef: HTTP 400: bad\n")
+        assert log()[0]["cwd"] is None
+
+    def test_bad_guess_logged(self, stub, run, log):
+        assert run(_body(), "--guess", '{"blue": "yes"}')[0] == 2
+        assert log()[0]["guess"] == {"blue": "yes"}
+
+    @pytest.mark.parametrize(
+        "stdin, argv",
+        [("not json", []), (_body(), ["--timeout", "nan"]), (_body(), ["--out", "x.jsonl"])],
+    )
+    def test_failure_before_input_logs_only_what_it_has(self, stub, run, log, stdin, argv):
+        code, _, err = run(stdin, *argv)
+        assert code == 2
+        [record] = log()
+        built = {k for k, v in record.items() if v is not None}
+        assert built == {"time", "cwd", "version", "error", "exit"}
+        assert record["error"] == _one_line(err).rstrip("\n")
+
+    def test_other_error_logged_with_exit_1(self, stub, run, log, monkeypatch):
+        def broken():
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(_mod, "resolve_url", broken)
+        code, _, err = run(_body())
+        assert (code, err) == (1, "clef: RuntimeError: boom\n")
+        [record] = log()
+        assert (record["error"], record["exit"], record["state"]) == ("clef: RuntimeError: boom", 1, "The sky is blue.")
+
+    @pytest.mark.parametrize("status, code", [(200, 0), (400, 2)])
+    def test_log_that_is_a_folder_warns_and_keeps_the_exit_code(self, stub, run, monkeypatch, tmp_path, status, code):
+        monkeypatch.setenv("CLEF_LOG", str(tmp_path))
+        stub.respond(status, ANSWER if status == 200 else {"error": "bad"})
+        result, _, err = run(_body())
+        assert result == code
+        assert err.count("clef: warning:") == 1
+        assert f"cannot write CLEF_LOG {tmp_path}" in err
+
+    def test_failed_call_with_missing_folder_warns_and_keeps_its_exit(self, stub, run, monkeypatch, tmp_path):
+        monkeypatch.setenv("CLEF_LOG", str(tmp_path / "missing" / "clef.jsonl"))
+        stub.respond(400, {"error": "bad"})
+        code, out, err = run(_body())
+        assert (code, out) == (2, "")
+        first, warning = err.splitlines()
+        assert first == "clef: HTTP 400: bad"
+        assert warning.startswith("clef: warning:")
 
     def test_lone_surrogate_logs_and_keeps_exit_0(self, stub, run, log):
         code, out, err = run('{"state": "a\\ud800", "questions": {"blue": {"type": "noul", "instructions": "x"}}}')
@@ -765,7 +874,8 @@ class TestBatch:
         code, out, err = run("", "--batch", _jsonl(tmp_path, _body(), _body(), _body()), "--out", dst)
         assert (code, out, err) == (1, "", f"clef: HTTP 200 from {stub.url}, but {message}\n")
         assert _results(dst) == [{"line": 1, **ANSWER}]
-        assert len(log()) == 1
+        good, bad = log()
+        assert (good["exit"], bad["exit"], bad["error"]) == (None, 1, err.rstrip("\n"))
         assert len(stub.requests) == 2
 
     def test_4xx_line_writes_its_error_and_goes_on(self, stub, run, tmp_path):
@@ -831,9 +941,64 @@ class TestBatch:
             _body(questions={}),
         ]
         assert run("", "--batch", _jsonl(tmp_path, *lines))[0] == 0
-        first, second = log()
+        first, second, third = log()
         assert (first["guess"], first["agree"], first["images"]) == ({"t": "shipping"}, {"t": True}, [png])
         assert (second["guess"], second["agree"], second["images"]) == ({"u": 0}, {"u": False}, [])
+        assert (third["questions"], third["exit"], third["answers"]) == ({}, 2, None)
+
+    def test_bad_line_logged_with_its_input_and_error(self, stub, run, tmp_path, log):
+        stub.respond_each((200, ANSWER), (400, {"error": "too long"}))
+        lines = ["not json", {**_body(), "id": "b"}, {**_body(), "id": "c", "images": "a.png"}]
+        dst = str(tmp_path / "out.jsonl")
+        assert run("", "--batch", _jsonl(tmp_path, _body(), *lines), "--out", dst)[0] == 0
+        answered, not_json, refused, bad_images = log()
+        assert answered["exit"] is None
+        assert {k for k, v in not_json.items() if v is not None} == {"time", "cwd", "version", "error", "exit"}
+        assert (refused["error"], refused["exit"], refused["state"]) == ("clef: HTTP 400: too long", 2, "The sky is blue.")
+        assert (bad_images["images"], bad_images["exit"]) == ("a.png", 2)
+        assert [r["error"] for r in log()[1:]] == [r["error"] for r in _results(dst)[1:]]
+
+    @pytest.mark.parametrize("status, code", [(500, 1), (404, 3)])
+    def test_server_failure_that_stops_a_batch_logs_its_line(self, stub, run, tmp_path, log, status, code):
+        stub.respond_each((200, ANSWER), (status, {"error": "down"}))
+        lines = [_body(), _body(state="Second."), _body(state="Third.")]
+        exit_code, _, err = run("", "--batch", _jsonl(tmp_path, *lines), "--out", str(tmp_path / "out.jsonl"))
+        assert exit_code == code
+        good, stopped = log()
+        assert good["exit"] is None
+        assert (stopped["state"], stopped["error"], stopped["exit"]) == ("Second.", _one_line(err).rstrip("\n"), code)
+
+    def test_unreachable_server_that_stops_a_batch_logs_its_line(self, run, tmp_path, log, monkeypatch):
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+        monkeypatch.setenv("CLEF_URL", f"http://127.0.0.1:{port}")
+        monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "73be7f1c")
+        code, _, err = run("", "--batch", _jsonl(tmp_path, _body(), _body()))
+        assert code == 3
+        [record] = log()
+        assert (record["exit"], record["error"], record["session"]) == (3, _one_line(err).rstrip("\n"), "73be7f1c")
+
+    @pytest.mark.parametrize("argv", [["--guess", "{}"], ["--out", "{tmp}"]])
+    def test_other_batch_refusals_log_once(self, stub, run, tmp_path, log, argv):
+        argv = [a.replace("{tmp}", str(tmp_path)) for a in argv]
+        assert run("", "--batch", _jsonl(tmp_path, _body()), *argv)[0] == 2
+        [record] = log()
+        assert (record["exit"], record["state"]) == (2, None)
+
+    def test_batch_refused_before_any_line_logs_once(self, stub, run, tmp_path, log):
+        code, _, err = run("", "--batch", _jsonl(tmp_path, _body()), "--ids", "zz")
+        assert code == 2
+        [record] = log()
+        assert (record["error"], record["exit"], record["state"]) == (_one_line(err).rstrip("\n"), 2, None)
+
+    def test_failed_lines_with_missing_log_folder_warn_once(self, stub, run, tmp_path, monkeypatch):
+        monkeypatch.setenv("CLEF_LOG", str(tmp_path / "missing" / "clef.jsonl"))
+        stub.respond(500, {"error": "down"})
+        code, _, err = run("", "--batch", _jsonl(tmp_path, "not json", _body(questions={}), _body()))
+        assert code == 1
+        assert err.count("clef: warning:") == 1
+        assert err.splitlines()[-1] == "clef: HTTP 500: down"
 
     def test_missing_log_folder_warns_once(self, stub, run, tmp_path, monkeypatch):
         monkeypatch.setenv("CLEF_LOG", str(tmp_path / "missing" / "clef.jsonl"))

@@ -8,7 +8,8 @@
 Stdin holds a JSON object with `state` and `questions`, in Cloudflare's shape.
 Flags carry the model, images, a state file, the timeout and the caller's guess.
 `--batch` makes one call per line of a JSONL file instead. `--ids` or `--lines` picks some of those lines.
-When CLEF_LOG names a file, each answered call appends one JSON line to it.
+When CLEF_LOG names a file, each call appends one JSON line to it, answered or failed.
+A --batch line is one call.
 
 Exit codes: 0 answered, 2 bad request, 3 no answer from the server, 1 any other error.
 A --batch run that reaches its last line exits 0, even when some lines failed.
@@ -40,6 +41,7 @@ DOCKER_URL = f"http://{DOCKER_HOST}:11434"
 LOOPBACK_URL = "http://127.0.0.1:11434"
 ENDPOINT = "/v1/systemone"
 SETUP_FIXES = f"{Path(__file__).resolve().parent.parent / 'setup.md'}#fixes-for-exit-3"
+PLUGIN_JSON = Path(__file__).resolve().parents[3] / ".claude-plugin" / "plugin.json"
 
 MIN_QUESTIONS, MAX_QUESTIONS = 1, 64
 QUESTION_ID = re.compile(r"[A-Za-z0-9_.-]{1,100}")
@@ -63,6 +65,11 @@ LINE_KEYS = {"state", "questions", "id", "images", "guess"}
 LINE_KEY_FOR_FLAG = {"image": "images", "state_file": "state", "guess": "guess"}
 # Keys that a batch result line sets itself. A reply's own value for one never reaches the line.
 RESULT_KEYS = {"id", "line", "error", "exit"}
+# Every CLEF_LOG record holds each key. A field the call never built is null.
+RECORD_KEYS = (
+    "time", "cwd", "session", "version", "model", "state", "state_chars", "images", "questions",
+    "answers", "guess", "agree", "usage", "latency_s", "error", "exit",
+)
 
 EXIT_OK, EXIT_ERROR, EXIT_BAD_REQUEST, EXIT_NO_ANSWER = 0, 1, 2, 3
 
@@ -76,31 +83,46 @@ class ClefError(Exception):
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the call or batch. A failure prints one stderr line and logs the call it stopped."""
+    log = _Log.from_env()
+    log.start()
     try:
         args = _parse_args(argv)
-        return run_batch(args) if args.batch is not None else run_one(args)
+        return run_batch(args, log) if args.batch is not None else run_one(args, log)
     except ClefError as e:
-        print(f"clef: {e}", file=sys.stderr)
-        return e.code
+        message, code = f"clef: {e}", e.code
     except Exception as e:  # noqa: BLE001 - one line on stderr for any other error
-        print(f"clef: {type(e).__name__}: {e}", file=sys.stderr)
-        return EXIT_ERROR
+        message, code = f"clef: {type(e).__name__}: {e}", EXIT_ERROR
+    print(message, file=sys.stderr)
+    log.finish(message, code)
+    return code
 
 
-def run_one(args: argparse.Namespace) -> int:
-    """Ask one set of questions from stdin, print the server's reply unchanged, and log it."""
-    request = build_request(args, sys.stdin.read())
-    guess = check_guess(_parse_guess(args.guess), request["questions"])
+def run_one(args: argparse.Namespace, log: "_Log") -> int:
+    """Ask one set of questions from stdin, print the server's reply unchanged, and log it.
+
+    Each step notes what it read in the log's record, so a failure logs it too.
+    """
+    record = log.start()
+    body = _load_object(sys.stdin.read(), "stdin")
+    _note_input(record, args.model, body, args.image)
+    body = read_body(args, body)
+    _note_input(record, args.model, body, args.image)  # again, for a --state-file state
+    request = build_request(args.model, body, args.image)
+    record["guess"] = guess = _parse_guess(args.guess)
+    check_guess(guess, request["questions"])
     url, source = resolve_url()
     text, reply, latency = _timed_send(url, source, request, args.timeout)
     sys.stdout.write(text)
-    _Log.from_env().write(_log_record(request, args.image, guess, reply, latency))
+    _note_reply(record, request, guess, reply, latency)
+    log.finish()
     return EXIT_OK
 
 
-def run_batch(args: argparse.Namespace) -> int:
+def run_batch(args: argparse.Namespace, log: "_Log") -> int:
     """Make one call per line of the --batch file and write one result line for each.
 
+    Each line is one call with its own log record.
     A bad line, from a local check or a 4xx, gets an error line and the run goes on.
     Any other failure stops the run with that failure's exit code.
     A run that reaches its last line exits 0, even with bad lines.
@@ -119,29 +141,33 @@ def run_batch(args: argparse.Namespace) -> int:
         chosen = choose_line_numbers(text, args.lines.split())
     out = _open_out(args.out) if args.out else sys.stdout
     url, source = resolve_url()
-    log = _Log.from_env()
     answered = failed = 0
     try:
         for number, line in lines:
             if chosen is not None and number not in chosen:
                 continue
             ref = {"line": number}
+            record = log.start()
             try:
                 item = _load_object(line, "line")
+                _note_input(record, args.model, item, item.get("images", []))
+                record["guess"] = guess = item.get("guess", {})
                 ref = _line_ref(item, number)
                 _check_line(item)
                 request = _make_request(args.model, item, item.get("images", []))
-                guess = check_guess(item.get("guess", {}), request["questions"])
+                check_guess(guess, request["questions"])
                 _, reply, latency = _timed_send(url, source, request, args.timeout)
             except ClefError as e:
                 if e.code != EXIT_BAD_REQUEST:
                     raise
                 failed += 1
                 _emit(out, {**ref, "error": f"clef: {e}", "exit": e.code})
+                log.finish(f"clef: {e}", e.code)
                 continue
             answered += 1
             _emit(out, {**{k: v for k, v in reply.items() if k not in RESULT_KEYS}, **ref})
-            log.write(_log_record(request, item.get("images", []), guess, reply, latency))
+            _note_reply(record, request, guess, reply, latency)
+            log.finish()
     finally:
         if out is not sys.stdout:
             out.close()
@@ -196,18 +222,23 @@ def choose_line_numbers(text: str, values: list[str]) -> set[int]:
     return {int(value) for value in values}
 
 
-def build_request(args: argparse.Namespace, stdin_text: str) -> dict:
-    """Return the request body from stdin and flags, after Cloudflare's checks."""
-    body = _parse_stdin(stdin_text)
+def read_body(args: argparse.Namespace, body: dict) -> dict:
+    """Check the stdin object's keys. Return it with the --state-file text as its `state` when that flag is given."""
+    _check_stdin_keys(body)
     if args.state_file is not None:
         if "state" in body:
             raise _bad("give the state on stdin or with --state-file, not both")
         body["state"] = _read_text(args.state_file, "state file")
+    return body
+
+
+def build_request(model: str, body: dict, image_paths: list[str]) -> dict:
+    """Return the request body from read_body's object and the flags, after Cloudflare's checks."""
     if "state" not in body:
         raise _bad("no state: put `state` on stdin or use --state-file")
     if "questions" not in body:
         raise _bad("no questions: put `questions` on stdin")
-    return _make_request(args.model, body, args.image)
+    return _make_request(model, body, image_paths)
 
 
 def check_questions(questions: object) -> None:
@@ -314,19 +345,43 @@ def send(url: str, source: str, request: dict, timeout: float) -> tuple[str, dic
 
 
 class _Log:
-    """Appends one JSON line per answered call to the CLEF_LOG file, and warns once if it cannot."""
+    """Appends one JSON line per call to the CLEF_LOG file, and warns once if it cannot.
+
+    `record` is the call in progress. Each step of the call fills in its fields,
+    so a failed call logs every field it built before the failure.
+    """
 
     def __init__(self, path):
-        self.path, self.warned = path, False
+        self.path, self.warned, self.record = path, False, None
+        self._session = os.environ.get("CLAUDE_CODE_SESSION_ID", "").strip() or None
+        self._version = _plugin_version() if path is not None else None
 
     @classmethod
     def from_env(cls):
         path = os.environ.get("CLEF_LOG", "").strip()
         return cls(os.path.expanduser(path) if path else None)
 
-    def write(self, record):
-        if self.path is None:
+    def start(self):
+        """Begin a new call's record, with every field null, and return it."""
+        self.record = dict.fromkeys(RECORD_KEYS)
+        return self.record
+
+    def finish(self, error=None, code=None):
+        """Log the call in progress once, with a failure's stderr line and exit code."""
+        record, self.record = self.record, None
+        if record is None or self.path is None:
             return
+        self.write({
+            **record,
+            "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "cwd": _cwd(),
+            "session": self._session,
+            "version": self._version,
+            "error": error,
+            "exit": code,
+        })
+
+    def write(self, record):
         # ASCII escapes, so a lone surrogate from a JSON escape cannot fail the encode.
         line = (json.dumps(record) + "\n").encode("ascii")
         try:
@@ -374,7 +429,11 @@ A listed value that matches no line exits 2 before any call.
 or not they have an `id`. It does not mix with --ids. A listed blank line
 runs nothing. A value past the last line exits 2 before any call.
 
-When CLEF_LOG names a file, each answered call appends one JSON line to it.
+When CLEF_LOG names a file, each call appends one JSON line to it, answered
+or failed. A --batch line is one call. A failed call's line holds its stderr
+line in `error` and its exit code in `exit`, and null for each field it never
+built. Each line also holds `session`, from CLAUDE_CODE_SESSION_ID, and the
+plugin's `version`.
 
 Exit codes: 0 answered, 2 bad request, 3 no answer from the server, 1 any other error.
 """
@@ -424,15 +483,13 @@ def _timeout_seconds(text):
     return value
 
 
-def _parse_stdin(text):
-    body = _load_object(text, "stdin")
+def _check_stdin_keys(body):
     for key in body:
         if key in STDIN_KEYS:
             continue
         if key in FLAG_FOR_KEY:
             raise _bad(f"stdin key `{key}` is not allowed; use {FLAG_FOR_KEY[key]}")
         raise _bad(f"stdin key `{key}` is not allowed; stdin takes only `state` and `questions`")
-    return body
 
 
 def _parse_guess(text):
@@ -540,22 +597,47 @@ def _emit(out, record):
     out.flush()
 
 
-def _log_record(request, image_paths, guess, reply, latency):
-    state, answers = request["state"], reply.get("answers")
-    return {
-        "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "cwd": os.getcwd(),
-        "model": request["model"],
-        "state": state,
-        "state_chars": len(state) if isinstance(state, str) else len(json.dumps(state, ensure_ascii=False)),
-        "images": list(image_paths),
-        "questions": request["questions"],
-        "answers": answers,
-        "guess": guess,
-        "agree": _agreement(guess, request["questions"], answers),
-        "usage": reply.get("usage"),
-        "latency_s": round(latency, 3),
-    }
+def _note_input(record, model, body, image_paths):
+    """Note a call's input in its log record, before any check of it. A missing key stays null."""
+    state = body.get("state")
+    record.update(
+        model=model,
+        state=state,
+        state_chars=None if state is None else _state_chars(state),
+        images=list(image_paths) if isinstance(image_paths, list) else image_paths,
+        questions=body.get("questions"),
+    )
+
+
+def _note_reply(record, request, guess, reply, latency):
+    answers = reply.get("answers")
+    record.update(
+        answers=answers,
+        agree=_agreement(guess, request["questions"], answers),
+        usage=reply.get("usage"),
+        latency_s=round(latency, 3),
+    )
+
+
+def _state_chars(state):
+    return len(state) if isinstance(state, str) else len(json.dumps(state, ensure_ascii=False))
+
+
+def _cwd():
+    """Return the working folder, or None when it was deleted, so logging cannot fail the run."""
+    try:
+        return os.getcwd()
+    except OSError:
+        return None
+
+
+def _plugin_version():
+    """Return the plugin's version from plugin.json, or None when it cannot be read."""
+    try:
+        version = json.loads(PLUGIN_JSON.read_text(encoding="utf-8")).get("version")
+    except (OSError, ValueError, AttributeError):  # unreadable, not JSON, or not an object
+        return None
+    return version if isinstance(version, str) else None
 
 
 def _agreement(guess, questions, answers):
