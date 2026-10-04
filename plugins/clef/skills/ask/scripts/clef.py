@@ -73,6 +73,10 @@ RECORD_KEYS = (
 
 EXIT_OK, EXIT_ERROR, EXIT_BAD_REQUEST, EXIT_NO_ANSWER = 0, 1, 2, 3
 
+# The server is always local or on the Docker host, so no request goes through a proxy.
+# An empty ProxyHandler drops the proxies that urllib reads from the environment and from macOS.
+_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
 
 class ClefError(Exception):
     """A failure that ends the run with one stderr line and an exit code."""
@@ -93,6 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         message, code = f"clef: {e}", e.code
     except Exception as e:  # noqa: BLE001 - one line on stderr for any other error
         message, code = f"clef: {type(e).__name__}: {e}", EXIT_ERROR
+    message = _one_line(message)
     print(message, file=sys.stderr)
     log.finish(message, code)
     return code
@@ -162,8 +167,9 @@ def run_batch(args: argparse.Namespace, log: "_Log") -> int:
                 if e.code != EXIT_BAD_REQUEST:
                     raise
                 failed += 1
-                _emit(out, {**ref, "error": f"clef: {e}", "exit": e.code})
-                log.finish(f"clef: {e}", e.code)
+                message = _one_line(f"clef: {e}")
+                _emit(out, {**ref, "error": message, "exit": e.code})
+                log.finish(message, e.code)
                 continue
             answered += 1
             _note_reply(record, request, guess, reply, latency)
@@ -302,6 +308,7 @@ def resolve_url() -> tuple[str, str]:
 def send(url: str, source: str, request: dict, timeout: float) -> tuple[str, dict]:
     """POST the request and return the server's reply text, unchanged, and its JSON.
 
+    A reply cut short, or bytes that are not HTTP, is no answer, like a refused connection.
     A reply that is not a JSON object with an `answers` object is an error,
     so a proxy's HTML page or a 200 error body never reads as an answer.
     A reply holding NaN or Infinity is not JSON, as _load_json reads it.
@@ -313,7 +320,7 @@ def send(url: str, source: str, request: dict, timeout: float) -> tuple[str, dic
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with _OPENER.open(req, timeout=timeout) as resp:
             raw = resp.read()
     except urllib.error.HTTPError as e:
         message = f"HTTP {e.code}: {_error_text(_read_error_body(e))}"
@@ -327,6 +334,10 @@ def send(url: str, source: str, request: dict, timeout: float) -> tuple[str, dic
         if isinstance(reason, TimeoutError):
             raise _no_answer(url, source, f"no reply within {timeout:g}s") from e
         raise _no_answer(url, source, f"unreachable: {reason}") from e
+    except http.client.IncompleteRead as e:
+        raise _no_answer(url, source, f"broken reply: it stopped after {len(e.partial)} bytes") from e
+    except http.client.HTTPException as e:  # BadStatusLine included
+        raise _no_answer(url, source, f"broken reply: {type(e).__name__}: {_one_line(str(e))}") from e
     try:
         text = raw.decode("utf-8")
         reply = _load_json(text)
@@ -742,7 +753,12 @@ def _error_text(raw):
         error = error.get("message")
     if not isinstance(error, str) or not error.strip():
         error = text.strip() or "no error text"
-    return " ".join(error.split())
+    return _one_line(error)
+
+
+def _one_line(text):
+    """Collapse each run of whitespace to one space, so an exception's text cannot span stderr lines."""
+    return " ".join(text.split())
 
 
 def _bad(message):

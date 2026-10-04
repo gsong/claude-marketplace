@@ -13,6 +13,7 @@ import json
 import math
 import os
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -162,6 +163,23 @@ def _one_line(err):
     assert err.startswith("clef: ")
     assert err.count("\n") == 1
     return err
+
+
+def _serve_raw(payload):
+    """Answer one connection on a free local port with `payload`, then close it. Return the URL."""
+    server = socket.socket()
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+
+    def answer():
+        with server:
+            conn, _ = server.accept()
+            with conn:
+                conn.recv(65536)
+                conn.sendall(payload)
+
+    threading.Thread(target=answer, daemon=True).start()
+    return f"http://127.0.0.1:{server.getsockname()[1]}"
 
 
 def _resolves(monkeypatch, docker):
@@ -435,12 +453,46 @@ class TestServerErrors:
         assert code == 3
         assert f"no answer from {stub.url} (URL from CLEF_URL): unreachable" in _one_line(err)
 
+    def test_reply_cut_short_is_no_answer(self, stub, run, log):
+        stub.respond(200, ANSWER, extra_length=489)
+        code, out, err = run(_body())
+        assert (code, out) == (3, "")
+        line = _one_line(err)
+        assert f"no answer from {stub.url} (URL from CLEF_URL): broken reply: it stopped after 128 bytes. See " in line
+        assert "setup.md#fixes-for-exit-3" in line
+        [record] = log()
+        assert (record["error"], record["exit"]) == (line.rstrip("\n"), 3)
+
+    def test_non_http_bytes_are_no_answer(self, run, monkeypatch):
+        url = _serve_raw(b"SSH-2.0-OpenSSH_9.6\r\n")
+        monkeypatch.setenv("CLEF_URL", url)
+        code, out, err = run(_body())
+        assert (code, out) == (3, "")
+        line = _one_line(err)
+        assert f"no answer from {url} (URL from CLEF_URL): broken reply: BadStatusLine: SSH-2.0-OpenSSH_9.6. See " in line
+        assert "setup.md#fixes-for-exit-3" in line
+
+    def test_proxy_setting_is_ignored(self, stub):
+        # A new process, because urllib reads the proxy settings once, when it builds its opener.
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            dead = f"http://127.0.0.1:{s.getsockname()[1]}"
+        env = {k: v for k, v in os.environ.items() if k.lower() not in ("no_proxy", "clef_log")}
+        env.update(http_proxy=dead, HTTP_PROXY=dead)
+        result = subprocess.run(
+            [sys.executable, str(Path(_mod.__file__))], input=json.dumps(_body()),
+            capture_output=True, text=True, env=env, timeout=30, check=False,
+        )
+        assert (result.returncode, result.stderr) == (0, "")
+        assert json.loads(result.stdout) == ANSWER
+        assert len(stub.requests) == 1
+
     def test_connect_timeout_is_no_answer(self, run, monkeypatch):
         def connect_timeout(*args, **kwargs):
             raise _mod.urllib.error.URLError(TimeoutError("timed out"))
 
         monkeypatch.setenv("CLEF_URL", "http://10.255.255.1:11434")
-        monkeypatch.setattr(_mod.urllib.request, "urlopen", connect_timeout)
+        monkeypatch.setattr(_mod._OPENER, "open", connect_timeout)
         code, _, err = run(_body(), "--timeout", "5")
         assert code == 3
         assert "no reply within 5s" in _one_line(err)
@@ -639,11 +691,21 @@ class TestDecisionLog:
         def broken(*args, **kwargs):
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(_mod.urllib.request, "urlopen", broken)
+        monkeypatch.setattr(_mod._OPENER, "open", broken)
         code, _, err = run(_body())
         assert (code, err) == (1, "clef: RuntimeError: boom\n")
         [record] = log()
         assert (record["error"], record["exit"], record["state"]) == ("clef: RuntimeError: boom", 1, "The sky is blue.")
+
+    def test_other_error_text_spans_one_line(self, stub, run, log, monkeypatch):
+        def broken(*args, **kwargs):
+            raise RuntimeError("boom\r\n  again")
+
+        monkeypatch.setattr(_mod._OPENER, "open", broken)
+        code, _, err = run(_body())
+        assert (code, _one_line(err)) == (1, "clef: RuntimeError: boom again\n")
+        [record] = log()
+        assert record["error"] == "clef: RuntimeError: boom again"
 
     def test_answer_that_cannot_be_printed_is_logged_with_its_answers(self, stub, run, log, monkeypatch):
         class ClosedPipe(io.StringIO):
