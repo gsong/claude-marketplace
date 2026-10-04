@@ -22,7 +22,7 @@ _spec.loader.exec_module(_mod)
 
 main = _mod.main
 CASES = _mod.CASES
-MEDIA = Path(__file__).parent / "media"
+MEDIA = _mod.MEDIA
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -102,6 +102,7 @@ def run(capsys):
 
 
 CALLS = len(CASES) * 2
+ANSWERS = sum(len(case["questions"]) for case in CASES) * 2
 
 # ---------------------------------------------------------------------------
 # Tests
@@ -112,7 +113,7 @@ class TestAllRight:
     def test_exits_0(self, stub, run):
         code, out, err = run()
         assert (code, err) == (0, "")
-        assert out.endswith("12 of 12 answers right\n")
+        assert out.endswith(f"{ANSWERS} of {ANSWERS} answers right\n")
         assert "WRONG" not in out
 
     def test_asks_each_case_on_both_models(self, stub, run):
@@ -147,7 +148,7 @@ class TestWrongAnswer:
         assert code == 1
         assert out.count("WRONG  intent = cancel (0.80), expected pause") == 2
         assert len(stub.requests) == CALLS
-        assert out.endswith("10 of 12 answers right\n")
+        assert out.endswith(f"{ANSWERS - 2} of {ANSWERS} answers right\n")
 
     def test_noul_false(self, stub, run):
         stub.answers["complaint"] = {"type": "noul", "noul": 0.2}
@@ -160,6 +161,12 @@ class TestWrongAnswer:
         code, out, _ = run()
         assert code == 1
         assert "WRONG  complaint = undecided (0.50), expected true" in out
+
+    def test_noul_nan_is_no_answer(self, stub, run):
+        stub.answers["complaint"] = {"type": "noul", "noul": float("nan")}
+        code, out, _ = run()
+        assert code == 1
+        assert "WRONG  complaint = no answer, expected true" in out
 
     def test_missing_answer(self, stub, run):
         stub.answers["cost"] = None
