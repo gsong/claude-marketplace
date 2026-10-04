@@ -59,9 +59,9 @@ The reply keys `answers` by question id. Each answer holds its value under a key
 }
 ```
 
-- `noul`: the probability of true. A `noul` that is missing, not a number, or exactly 0.5 is no answer. Re-ask it on `clef`, or decide yourself.
+- `noul`: the probability of true. A `noul` that is missing, not a finite number, or exactly 0.5 is no answer. Re-ask it on `clef` as "Model choice" describes, or decide yourself.
 - `choice`: the option id, with `probabilities`, one per option id.
-- `score`: the expected level, a decimal where 0 is the first criterion. `probabilities` is keyed by level as a string (`"0"`, `"1"`, …). The level is the top `probabilities` key, `"2"` above.
+- `score`: the expected level, a decimal where 0 is the first criterion. `probabilities` is keyed by level as a string (`"0"`, `"1"`, …). The most likely level is the top `probabilities` key, `"2"` in the example.
 
 `confidence` runs low even for a clear answer. Judge an answer by its `probabilities`.
 
@@ -89,7 +89,7 @@ These limits keep a warm call under about 30 s. The script checks no length.
 
 ## Model choice
 
-Use `clef-flash` when both models fit. If a key answer in a single call is close, you may re-ask that item on `clef` when its state fits `clef`'s limit. `clef`'s answer wins. If it is still close, decide yourself. An answer is close when its top probability is under 0.65. For a `noul`, that is a value between 0.35 and 0.65. For a `choice` or `score`, it is the highest `probabilities` value.
+Use `clef-flash` when both models fit. If a key answer is close, you may re-ask that item on `clef` when its state fits `clef`'s limit. This holds for a single call and for a batch line. `clef`'s answer wins. If it is still close, decide yourself. An answer is close when its top probability is under 0.65. For a `noul`, that is a value between 0.35 and 0.65. For a `choice` or `score`, it is the highest `probabilities` value.
 
 Batches stay on `clef-flash`. Re-ask only a batch's close lines on `clef`:
 
@@ -100,7 +100,7 @@ Batches stay on `clef-flash`. Re-ask only a batch's close lines on `clef`:
    ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --model clef --batch <scratchpad>/batch.jsonl --ids 'T3 T7 12'
    ```
 
-`--ids` runs only the lines it lists. The re-ask writes no file, so it gets no prompt. It is a batch run, so the time limit and stop note in "Batch runs" apply to it too. Separate the values with spaces. A line with an `id` matches only by its `id`. A line with no `id` matches by its line number. For an `id` with a space or an apostrophe, use `--lines` with its line number. An `id` that starts with `-` makes the call ask the user.
+`--ids` runs only the lines it lists. The re-ask writes no file, so it gets no prompt. It is a batch run, so the time limit and stop note in "Batch runs" apply to it too. Separate the values with spaces. A line with an `id` matches only by its `id`. A line with no `id`, or a bad one, matches by its line number. A value that is one line's `id` and another line's number runs both lines. For an `id` with a space or an apostrophe, use `--lines` with its line number. An `id` that starts with `-` makes the call ask the user.
 
 ## Keeping tokens down
 
@@ -125,7 +125,7 @@ A batch judges many items with the same questions. Build the batch file in one t
    ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --batch <scratchpad>/batch.jsonl
    ```
 
-   Add no `cd` or `&&` before it, no pipe or `> file` after it, and no `--out`. Each of those can make the call ask the user. Read the result lines from its output. A result line is the reply plus the line's `id`, or `"line": N` for a line with no `id`. A failed line is `{"id": "T3", "error": "clef: …", "exit": 2}`. Exit 0 does not mean every line succeeded. Find the failed lines as "Exit codes" describes. When Claude Code saves a large output to a file, read that file with a plain `jq`, with no redirect. To run only some lines, add `--ids` to pick them by `id`, as "Model choice" shows, or `--lines` to pick them by line number.
+   Add no `cd` or `&&` before it, no pipe or `> file` after it, and no `--out`. Each of those can make the call ask the user. Read the result lines from its output. A result line is the reply plus the line's `id`, or `"line": N` for a line with no `id` or a bad one. A failed line names its line the same way, as in `{"id": "T3", "error": "clef: …", "exit": 2}`. Exit 0 does not mean every line succeeded. Find the failed lines as "Exit codes" describes. When Claude Code saves a large output to a file, read that file with a plain `jq`, with no redirect. To run only some lines, add `--ids` to pick them by `id`, as "Model choice" shows, or `--lines` to pick them by line number.
 
 Run the whole batch file in one call, in the foreground, with the Bash tool's `timeout` set to 600000, its maximum. This is not `clef.py --timeout`, which limits each request. Never run a batch in the background: a `claude -p` session ends without waiting for it, and you lose its answers.
 
@@ -159,7 +159,7 @@ Neither is required.
 
 - **Batch output:** a batch that reaches its last line exits 0, even when some lines failed. Find the failed lines by their `error` key. The stderr line `clef: N answered, M failed` gives the counts. A batch stopped at the time limit exits 0 too, and prints the stop note that "Batch runs" describes. Exit 3 or 1 stops a batch. Each answer line printed before the stop holds a good answer. A batch exits 2 only when the script refuses it before any line runs. It then prints no result lines.
 - **Exit 2, or `"exit": 2` in a batch error line:** fix the request. If the server refused an over-long state, decide yourself. Stepping down to `clef-flash` does not help, because both models have the same window.
-- **Exit 1:** the server failed. Tell the user the stderr line once, then decide yourself. After exit 1 in a batch, rerun the lines that have no result line, with `--lines`.
+- **Exit 1:** the server failed, or the script hit an unexpected error. Tell the user the stderr line once. In a single call, decide yourself. A batch runs its lines in file order and stops at exit 1, so the lines with no result line are the ones after the last result line. Rerun them once with `--lines`. If that run exits 1 too, decide the rest yourself.
 - **Exit 3:** tell the user once, with the stderr line and the fix from "Fixes for exit 3" in `${CLAUDE_PLUGIN_ROOT}/skills/ask/setup.md`. Then decide yourself for the rest of the session. Call Clef again only if the user says the server is back. Never start the server.
 
 ## Ollama
