@@ -36,7 +36,13 @@ printf '%s' '{"state": "Oh fantastic, the app logged me out for the fifth time t
   ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --model clef-flash
 ```
 
-Each `answers.<id>` in the reply holds the answer. `noul` is the probability of true. `choice` is the option id, with a `confidence`. `score` is the expected level, where 0 is the first criterion, with a `confidence`.
+Each `answers.<id>` in the reply holds the answer:
+
+- `noul`: the probability of true.
+- `choice`: the option id, with `probabilities`, one per option id.
+- `score`: the expected level, where 0 is the first criterion, with `probabilities` keyed by level as a string (`"0"`, `"1"`, …).
+
+`choice` and `score` also carry a `confidence`. It is one minus the entropy of `probabilities`, divided by the log of their count. It runs low even for a clear answer: a top option of two at 0.85 gets about 0.4. Judge an answer by its `probabilities`.
 
 ## When not to use Clef
 
@@ -62,7 +68,7 @@ These limits keep a warm call under about 30 s. The script checks no length.
 
 ## Model choice
 
-Use `clef-flash` when both models fit. If a key answer in a single call is close, you may re-ask that item on `clef`. Close means a `noul` between 0.35 and 0.65, or a `choice` or `score` confidence under 0.6. Batches stay on `clef-flash`; re-ask only the close lines.
+Use `clef-flash` when both models fit. If a key answer in a single call is close, you may re-ask that item on `clef`. An answer is close when its top probability is under 0.65. For a `noul`, that is a value between 0.35 and 0.65. For a `choice` or `score`, it is the highest `probabilities` value. Batches stay on `clef-flash`; re-ask only the close lines.
 
 ## Keeping tokens down
 
