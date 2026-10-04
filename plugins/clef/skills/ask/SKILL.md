@@ -1,0 +1,89 @@
+---
+name: ask
+description: >-
+  Ask Clef, a local decision model, a yes/no (noul),
+  pick-one (choice) or rated (score) question about a text or JSON
+  state and up to 4 images; each answer comes with a probability.
+  Use for any decision that fits one of those question types when
+  its facts fit in the state: classifying, triaging, checking a
+  condition, choosing among options, rating against a rubric. Also
+  use when the user names Clef, or to judge many items with the
+  same questions in one batch run. Do not use when the answer is
+  free text, a computed number or an extracted list, or when the
+  judgment needs files, tools or history the state does not hold.
+allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py *)
+---
+
+# Ask Clef
+
+Call the script by its path, `${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py`, never through `uv run`, in one of two shapes, so it runs with no Bash prompt:
+
+- `printf '%s' '<json>' | clef.py [flags]`. Keep the state's text exactly as given, and write each apostrophe in it as `'\''`.
+- `clef.py [flags] < request.json`.
+
+Give each flag value as a plain word or in single quotes. Any other shape asks the user first, and so does `--out`. `clef.py --help` lists every flag.
+
+Stdin holds `state` (text or JSON) and `questions`. Images go in `--image PATH`, up to 4.
+
+```sh
+printf '%s' '{"state": "Oh fantastic, the app logged me out for the fifth time today.",
+ "questions": {
+   "complaint": {"type": "noul", "instructions": "Is this a complaint?"},
+   "team": {"type": "choice", "instructions": "Which team handles it?",
+     "criteria": {"auth": "Login and accounts", "billing": "Payments"}},
+   "urgency": {"type": "score", "instructions": "How urgent is it?",
+     "criteria": ["Can wait", "This week", "Today"]}}}' |
+  ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --model clef-flash
+```
+
+Each `answers.<id>` in the reply holds the answer. `noul` is the probability of true. `choice` is the option id, with a `confidence`. `score` is the expected level, where 0 is the first criterion, with a `confidence`.
+
+## When not to use Clef
+
+- No question type fits: the answer is free text, a computed number or an extracted list.
+- The judgment needs files, tools or history that the state does not hold.
+- Clef's answer alone would trigger a hard-to-undo act, such as delete, send or deploy. Show the user the answers and your threshold first.
+
+Otherwise, Clef's answer is the decision.
+
+## Size guide
+
+These limits keep a warm call under about 30 s. The script checks no length.
+
+| Model        | State limit       |
+| ------------ | ----------------- |
+| `clef`       | 10,000 characters |
+| `clef-flash` | 24,000 characters |
+
+- Each image counts as 1,000 characters. Count with `wc -c`.
+- Over `clef`'s limit but within `clef-flash`'s: use `clef-flash`.
+- Over both: decide yourself, without Clef.
+- The reply's `usage.input_tokens` lets you check afterward.
+
+## Model choice
+
+Use `clef-flash` when both models fit. If a key answer in a single call is close, you may re-ask that item on `clef`. Close means a `noul` between 0.35 and 0.65, or a `choice` or `score` confidence under 0.6. Batches stay on `clef-flash`; re-ask only the close lines.
+
+## Keeping tokens down
+
+Clef saves your tokens only when the facts stay out of your context. Prefer `--state-file`, a batch, or images you have not viewed.
+
+## Batch runs
+
+Use `--batch IN.jsonl` to judge many items with the same questions. A large batch can run past the Bash tool's 2-minute default. Raise the Bash timeout, or run the batch in the background.
+
+## `--guess` and `CLEF_LOG`
+
+- `--guess` records your own answers beside Clef's in the log. It changes nothing in the request.
+- `CLEF_LOG`, when it names a file, gets one JSON line per answered call.
+
+Neither is required.
+
+## Exit codes
+
+- **Exit 2:** fix the request. In a batch, only the lines with an `error` failed; the other lines hold answers. If the server refused an over-long state, decide yourself. Stepping down to `clef-flash` does not help, because both models have the same window.
+- **Exit 3:** tell the user once, with the stderr line and the fix from "Fixes for exit 3" in `${CLAUDE_PLUGIN_ROOT}/skills/ask/setup.md`. Then decide yourself for the rest of the session. Call Clef again only if the user says the server is back. Never start the server.
+
+## Ollama
+
+Reach Ollama only through the script. Never call Ollama's API or run `ollama` commands, except setup steps the user asks for.
