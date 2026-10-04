@@ -85,7 +85,7 @@ class ClefError(Exception):
 def main(argv: list[str] | None = None) -> int:
     """Run the call or batch. A failure prints one stderr line and logs the call it stopped."""
     log = _Log.from_env()
-    log.start()
+    log.start()  # A record for the flags, so a bad flag is logged. Each call then starts its own.
     try:
         args = _parse_args(argv)
         return run_batch(args, log) if args.batch is not None else run_one(args, log)
@@ -108,7 +108,8 @@ def run_one(args: argparse.Namespace, log: "_Log") -> int:
     _note_input(record, args.model, body, args.image)
     record["guess"] = guess = _parse_guess(args.guess)
     body = read_body(args, body)
-    _note_input(record, args.model, body, args.image)  # again, for a --state-file state
+    # A --state-file state joins the body only now, so note the input a second time.
+    _note_input(record, args.model, body, args.image)
     request = build_request(args.model, body, args.image)
     check_guess(guess, request["questions"])
     url, source = resolve_url()
@@ -233,7 +234,7 @@ def read_body(args: argparse.Namespace, body: dict) -> dict:
 
 
 def build_request(model: str, body: dict, image_paths: list[str]) -> dict:
-    """Return the request body from read_body's object and the flags, after Cloudflare's checks."""
+    """Return the request body from the checked stdin object and the flags, after Cloudflare's checks."""
     if "state" not in body:
         raise _bad("no state: put `state` on stdin or use --state-file")
     if "questions" not in body:
@@ -251,8 +252,8 @@ def check_questions(questions: object) -> None:
         _check_question(qid, question)
 
 
-def check_guess(guess: object, questions: dict) -> dict:
-    """Check the caller's own answers against the questions they name, and return them."""
+def check_guess(guess: object, questions: dict) -> None:
+    """Check the caller's own answers against the questions they name."""
     if not isinstance(guess, dict):
         raise _bad("guess must be an object of question id to answer")
     for qid, value in guess.items():
@@ -266,7 +267,6 @@ def check_guess(guess: object, questions: dict) -> dict:
             raise _bad(f"guess {qid}: give one of the question's option ids")
         if kind == "score" and not (_is_int(value) and 0 <= value < len(criteria)):
             raise _bad(f"guess {qid}: give a level index from 0 to {len(criteria) - 1}")
-    return guess
 
 
 def encode_images(paths: list[str]) -> list[str]:
@@ -391,9 +391,9 @@ class _Log:
             finally:
                 os.close(fd)
         except FileNotFoundError:
-            self._warn(f"the CLEF_LOG folder {Path(self.path).parent} is missing, so this run is not logged")
+            self._warn(f"the CLEF_LOG folder {Path(self.path).parent} is missing, so no call is logged")
         except OSError as e:
-            self._warn(f"cannot write CLEF_LOG {self.path} ({e.strerror}), so this run is not logged")
+            self._warn(f"cannot write CLEF_LOG {self.path} ({e.strerror}), so no call is logged")
 
     def _warn(self, message):
         if not self.warned:
