@@ -1,5 +1,7 @@
 # gsong-marketplace
 
+[![Tests](https://github.com/gsong/claude-marketplace/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/gsong/claude-marketplace/actions/workflows/test.yml?query=branch%3Amain)
+
 George Song's Claude Code plugin marketplace.
 
 ## Installation
