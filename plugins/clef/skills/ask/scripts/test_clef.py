@@ -472,8 +472,14 @@ class TestServerErrors:
         assert f"no answer from {url} (URL from CLEF_URL): broken reply: BadStatusLine: SSH-2.0-OpenSSH_9.6. See " in line
         assert "setup.md#fixes-for-exit-3" in line
 
+    def test_invalid_url_is_no_answer(self, run, monkeypatch):
+        monkeypatch.setenv("CLEF_URL", "http://127.0.0.1:12ab")
+        code, out, err = run(_body())
+        assert (code, out) == (3, "")
+        assert "no answer from http://127.0.0.1:12ab (URL from CLEF_URL): invalid URL: " in _one_line(err)
+
     def test_proxy_setting_is_ignored(self, stub):
-        # A new process, because urllib reads the proxy settings once, when it builds its opener.
+        # The test runs clef.py in a new process. urllib reads the proxy settings once, when it builds its first opener.
         with socket.socket() as s:
             s.bind(("127.0.0.1", 0))
             dead = f"http://127.0.0.1:{s.getsockname()[1]}"
@@ -492,7 +498,7 @@ class TestServerErrors:
             raise _mod.urllib.error.URLError(TimeoutError("timed out"))
 
         monkeypatch.setenv("CLEF_URL", "http://10.255.255.1:11434")
-        monkeypatch.setattr(_mod._OPENER, "open", connect_timeout)
+        monkeypatch.setattr(_mod.urllib.request.OpenerDirector, "open", connect_timeout)
         code, _, err = run(_body(), "--timeout", "5")
         assert code == 3
         assert "no reply within 5s" in _one_line(err)
@@ -691,7 +697,7 @@ class TestDecisionLog:
         def broken(*args, **kwargs):
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(_mod._OPENER, "open", broken)
+        monkeypatch.setattr(_mod.urllib.request.OpenerDirector, "open", broken)
         code, _, err = run(_body())
         assert (code, err) == (1, "clef: RuntimeError: boom\n")
         [record] = log()
@@ -701,7 +707,7 @@ class TestDecisionLog:
         def broken(*args, **kwargs):
             raise RuntimeError("boom\r\n  again")
 
-        monkeypatch.setattr(_mod._OPENER, "open", broken)
+        monkeypatch.setattr(_mod.urllib.request.OpenerDirector, "open", broken)
         code, _, err = run(_body())
         assert (code, _one_line(err)) == (1, "clef: RuntimeError: boom again\n")
         [record] = log()
