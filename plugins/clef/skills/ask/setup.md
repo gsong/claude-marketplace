@@ -10,13 +10,18 @@ These steps set up Ollama on an Apple Silicon Mac to serve Clef and Clef-flash. 
    brew install ollama
    ```
 
-2. Start the server:
+   Ollama.app at 0.35.1 or later also works. Run only one of the two, because both use port 11434.
+
+2. Start the server, then check its version:
 
    ```sh
    brew services start ollama
+   ollama --version
    ```
 
-   The service starts at login. It also restarts if it exits. You run this step once.
+   The service starts at login. It also restarts if it exits. You start it once. With Ollama.app, open the app in place of the `brew services` command.
+
+   `ollama --version` prints `ollama version is <version>`. Clef needs 0.35.1 or later. To upgrade, run `brew upgrade ollama`, then `brew services restart ollama`. A warning that it could not connect means the server is not running.
 
 3. Pull the two tested builds:
 
@@ -32,23 +37,56 @@ These steps set up Ollama on an Apple Silicon Mac to serve Clef and Clef-flash. 
    ollama cp clef-flash:9b clef-flash
    ```
 
-5. Check that the server is up:
-
-   ```sh
-   curl 127.0.0.1:11434/api/version
-   ```
-
-   Then run `scripts/check.py`, which asks both models six questions. It exits 0 when every answer is correct, and 1 when an answer is wrong. It stops at the first error from `clef.py` and exits with that error's code: 2, 3 or 1. An exit 1 from an error prints a `clef:` line on stderr and no count of right answers. For exit 3, see [Fixes for exit 3](#fixes-for-exit-3). The script sits in the `scripts` directory beside this guide. After a plugin install, that is `~/.claude/plugins/cache/gsong-marketplace/clef/<version>/skills/ask/scripts/check.py`. Replace `<version>` with the installed plugin version. For a marketplace added from a local folder, the script is in that folder at `plugins/clef/skills/ask/scripts/check.py`.
-
 To stop the server, run `brew services stop ollama`.
 
-## Install uv
+## Install uv and jq
 
-```sh
-brew install uv
+1. Install uv:
+
+   ```sh
+   brew install uv
+   ```
+
+   The first line of `clef.py` and of `scripts/check.py` starts the script with uv. Every session that uses Clef needs uv on its `PATH`. A container session needs its own uv inside the container.
+
+2. On macOS 14 and earlier, install jq:
+
+   ```sh
+   brew install jq
+   ```
+
+   The plugin's hook uses jq. Without jq, each Clef call asks before it runs. macOS 15 and later ship jq.
+
+## Install the plugin
+
+Install the plugin at user level, as [Installation](../../README.md#installation) in the README describes:
+
+```
+/plugin marketplace add gsong/claude-marketplace
+/plugin install clef@gsong-marketplace
 ```
 
-The first line of `clef.py` starts the script with uv. Every session that uses Clef needs uv on its `PATH`. A container session needs its own uv inside the container.
+## Check the setup
+
+1. Find `check.py`. It sits in the `scripts` directory beside this guide. After a plugin install, its path is:
+
+   ```
+   ~/.claude/plugins/cache/gsong-marketplace/clef/<version>/skills/ask/scripts/check.py
+   ```
+
+   To find `<version>`, list the installed versions and take the newest:
+
+   ```sh
+   ls ~/.claude/plugins/cache/gsong-marketplace/clef/
+   ```
+
+   For a marketplace added from a local folder, the script is in that folder at `plugins/clef/skills/ask/scripts/check.py`.
+
+2. Run `check.py`. It asks both models six questions, and its exit code gives the result:
+
+   - **0:** every answer is correct.
+   - **1, after a line such as `11 of 12 answers right`:** an answer is wrong. The output marks it `WRONG`.
+   - **2, 3, or 1 with a `clef:` line on stderr and no count:** an error from `clef.py` stopped the run. The check exits with that error's code. For exit 3, see [Fixes for exit 3](#fixes-for-exit-3).
 
 ## Container sessions
 
@@ -119,7 +157,6 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 - Update a model only by rerunning steps 3 and 4 of [Install and start](#install-and-start). Never run `ollama pull clef` or `ollama pull clef-flash`. Each of these pulls overwrites the copy with the library's `latest` build.
 - Keep Ollama on its default address, `127.0.0.1:11434`. Never set `OLLAMA_HOST=0.0.0.0`. That setting opens Ollama's full API to the local network.
 - Any process or container on the Mac can call Ollama's full API, including pull and delete. If `clef` or `clef-flash` goes missing or gives wrong answers, rerun steps 3 and 4 of [Install and start](#install-and-start).
-- Ollama.app at 0.35.1 or later also works. Run only one of the two, because both use port 11434.
 
 ## Defaults to keep
 
@@ -134,7 +171,8 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
 `clef.py` exits with code 3 when it cannot get an answer from the server. Its error line names the server URL and where that URL came from. Each cause has one fix:
 
 - **Wrong `CLEF_URL`:** the error line names `CLEF_URL` as the source. Correct the variable, or unset it so that the script picks the URL.
-- **Unreachable:** run `brew services start ollama`, then the `curl` check from step 5 of [Install and start](#install-and-start).
-- **Unreachable from a container only:** the Mac passes step 5 of [Install and start](#install-and-start), but the container fails its check in [Container sessions](#container-sessions). Use Docker Desktop, which resolves `host.docker.internal` by default. With another Docker runtime, add `--add-host=host.docker.internal:host-gateway` to `docker run`.
-- **Model missing (HTTP 404):** rerun steps 3 and 4 of [Install and start](#install-and-start).
-- **Timeout:** check `ollama ps` and `/opt/homebrew/var/log/ollama.log`.
+- **Unreachable:** run `brew services start ollama`, then the version check from step 2 of [Install and start](#install-and-start).
+- **Unreachable from a container only:** the Mac passes the version check in step 2 of [Install and start](#install-and-start), but the container fails its check in [Container sessions](#container-sessions). Use Docker Desktop, which resolves `host.docker.internal` by default. With another Docker runtime, add `--add-host=host.docker.internal:host-gateway` to `docker run`.
+- **Model missing:** the error line holds `HTTP 404: model "<name>" not found`. Rerun steps 3 and 4 of [Install and start](#install-and-start).
+- **Ollama too old:** the error line holds `HTTP 404: 404 page not found`. Upgrade Ollama, as step 2 of [Install and start](#install-and-start) describes.
+- **Timeout:** the error line holds `no reply within <N>s`. A first call waits for the model to load, which can pass the limit. Retry once. A long state can also pass the limit on every try. For that, pass `clef.py` a larger limit, such as `--timeout 300`. If neither works, check `ollama ps` and `/opt/homebrew/var/log/ollama.log`.

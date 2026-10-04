@@ -24,8 +24,8 @@ The hook approves these calls. A skill's `allowed-tools` rule should do this. Bu
 - Homebrew's Ollama, 0.35.1 or later. Ollama.app at the same version also works, but run only one of the two. See [Install and start](skills/ask/setup.md#install-and-start).
 - About 27 GB of disk for the two models, `clef:27b` and `clef-flash:9b`. See [Install and start](skills/ask/setup.md#install-and-start).
 - Memory: both models loaded together take about 36 GB. With less free memory, Ollama unloads one model to load the other. A swap costs a few seconds and never changes an answer. See [Defaults to keep](skills/ask/setup.md#defaults-to-keep).
-- [uv](https://docs.astral.sh/uv/), to run the script. See [Install uv](skills/ask/setup.md#install-uv).
-- jq, for the hook. macOS 15 and later ship it. Without jq, each Clef call asks before it runs.
+- [uv](https://docs.astral.sh/uv/), to run the script. See [Install uv and jq](skills/ask/setup.md#install-uv-and-jq).
+- jq, for the hook. macOS 15 and later ship it. Without jq, each Clef call asks before it runs. See [Install uv and jq](skills/ask/setup.md#install-uv-and-jq).
 - For container sessions:
   - The container mounts `~/.claude/plugins` at its Mac path. A marketplace added from a local folder needs that folder mounted at its Mac path too.
   - The container sets `CLAUDE_CONFIG_DIR` to the Mac path of `~/.claude`. The container's user owns that folder.
