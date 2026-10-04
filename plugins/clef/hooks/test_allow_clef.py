@@ -52,6 +52,8 @@ def run_hook(stdin: str, root: str | None):
         f"{CLEF} --batch items.jsonl --timeout 300",
         f"{CLEF} --model clef --batch /tmp/scratch/batch.jsonl --ids 'T3 T7 12'",
         f"{CLEF} --batch items.jsonl --ids=T3",
+        f"{CLEF} --batch /tmp/scratch/batch.jsonl --lines '{' '.join(map(str, range(101, 201)))}'",
+        f"{CLEF} --model clef --batch items.jsonl --lines=7",
         f"{CLEF} --guess '{{\"c\": true}}' < req.json",
         f"printf '%s' '{JSON}' | {CLEF}",
         f"printf '%s' '{JSON}' | {CLEF} --model clef --guess '{{\"c\": true}}'",
@@ -76,6 +78,7 @@ def test_allows_a_plain_clef_call(command):
         f"{CLEF} --guess '--out=/Users/me/.zshrc'",
         f"{CLEF} --batch items.jsonl --ids '--out=/Users/me/.zshrc'",
         f"{CLEF} --batch items.jsonl --ids \"$(whoami)\"",
+        f"{CLEF} --batch items.jsonl --lines '--out=/Users/me/.zshrc'",
         f"{CLEF} --unknown-flag x",
         # A second command, by any separator.
         f"{CLEF} < req.json; rm -rf ~",
