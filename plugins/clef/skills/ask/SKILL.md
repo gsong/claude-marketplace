@@ -75,12 +75,12 @@ Otherwise, Clef's answer is the decision.
 
 ## Size guide
 
-The last column gives the time of one call on a state at that limit, with the model already loaded. Use it to plan, for example how many batch lines fit in one run. The script checks no length.
+The last column gives the time of one call on a state at that model's state limit. Each time assumes Ollama has already loaded the model. Use these times to plan, for example how many batch lines fit in one run. The script checks no length.
 
-| Model        | State limit       | Call time at the limit |
-| ------------ | ----------------- | ---------------------- |
-| `clef`       | 10,000 characters | about 50 s             |
-| `clef-flash` | 24,000 characters | about 40 s             |
+| Model        | State limit       | Call time  |
+| ------------ | ----------------- | ---------- |
+| `clef`       | 10,000 characters | about 50 s |
+| `clef-flash` | 24,000 characters | about 40 s |
 
 - Each image counts as 1,000 characters. Count characters with `wc -m`, not bytes with `wc -c`.
 - Over `clef`'s limit but within `clef-flash`'s: use `clef-flash`.
