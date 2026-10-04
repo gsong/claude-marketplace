@@ -135,7 +135,7 @@ Run the same scan locally:
 mise run scan:skills
 ```
 
-Pass a path to also write a SARIF report. The scan reads a copy of the files git would commit, so ignored files such as `__pycache__` stay out.
+Pass a path to also write a SARIF report. The scan reads a copy of the files that git tracks or does not ignore, so ignored files such as `__pycache__` stay out.
 
 To triage a finding:
 
@@ -146,7 +146,7 @@ To triage a finding:
 The scan has limits:
 
 - It reads skill directories only, so plugin hooks and scripts outside `skills/` go unscanned.
-- Rules alone catch 7.7% of malicious skills by Cisco's own count. It is a tripwire, not a review.
+- Rules alone catch 7.7% of malicious skills by Cisco's own count. The scan finds known patterns only, and it does not replace a review.
 
 ## License
 
