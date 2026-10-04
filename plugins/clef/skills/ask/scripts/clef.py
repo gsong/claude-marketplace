@@ -100,8 +100,8 @@ def run_batch(args: argparse.Namespace) -> int:
 
     A bad line, from a local check or a 4xx, gets an error line and the run goes on.
     Any other failure stops the run with that failure's exit code.
-    A run that reaches its last line exits 0, even with failed lines. Claude Code shows a
-    failed command's output only as an excerpt, so a nonzero exit would hide answer lines.
+    A run that reaches its last line exits 0, even with bad lines.
+    Claude Code shows a failed command's output only as an excerpt. A nonzero exit would hide answer lines.
     """
     for flag, key in LINE_KEY_FOR_FLAG.items():
         if getattr(args, flag) not in (None, []):
@@ -353,7 +353,7 @@ the run goes on. Exit 3 or 1 stops the run.
 A batch run that reaches its last line exits 0, even when some lines failed.
 Find the failed lines by their `error` key. The stderr summary, or the --out
 line, gives the counts: "N answered, M failed". A batch refused before any
-call exits 2 and prints no result lines.
+line runs exits 2 and prints no result lines.
 
 --ids 'A B 7' runs only the batch lines whose `id` is listed, or, for a
 line with no `id` or a bad one, whose line number is. Other lines get no
