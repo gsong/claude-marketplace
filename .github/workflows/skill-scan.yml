@@ -49,6 +49,6 @@ jobs:
           if-no-files-found: ignore
 
       # The ruleset requires this job, so the hook scan runs here to block the merge too.
-      # It fails when a plugin hook uses the network or runs downloaded code.
+      # It fails when a plugin hook uses the network or fetches code or packages.
       - if: ${{ !cancelled() }}
         run: mise run scan:hooks
