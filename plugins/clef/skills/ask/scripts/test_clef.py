@@ -17,6 +17,7 @@ import subprocess
 import sys
 import threading
 import time
+import types
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -70,12 +71,15 @@ class Stub:
         self.extra_length, self.drop = 0, False
         self.queue = []
         self.requests = []
+        self.on_post = None
         stub = self
 
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self):
                 length = int(self.headers["Content-Length"])
                 stub.requests.append((self.path, json.loads(self.rfile.read(length))))
+                if stub.on_post:
+                    stub.on_post()
                 time.sleep(stub.delay)
                 if stub.drop:
                     return
@@ -137,6 +141,19 @@ def stub(monkeypatch):
     yield s
     s.server.shutdown()
     s.server.server_close()
+
+
+@pytest.fixture
+def clock(monkeypatch, stub):
+    """Give clef.py a clock that moves only when the stub gets a request, by `seconds` each time."""
+    c = types.SimpleNamespace(now=0.0, seconds=100.0)
+
+    def tick():
+        c.now += c.seconds
+
+    stub.on_post = tick
+    monkeypatch.setattr(_mod, "time", types.SimpleNamespace(monotonic=lambda: c.now))
+    return c
 
 
 @pytest.fixture
@@ -1190,6 +1207,12 @@ class TestBatch:
         assert good == {"line": 2, **ANSWER}
         assert [r[1]["state"] for r in stub.requests] == ["Two"]
 
+    def test_lines_takes_ranges_mixed_with_numbers(self, stub, run, tmp_path):
+        src = _jsonl(tmp_path, _body(state="1"), "", _body(state="3"), _body(state="4"), _body(state="5"))
+        code, _, err = run("", "--batch", src, "--lines", "1-2 5 3-3")
+        assert (code, err) == (0, "clef: 3 answered, 0 failed\n")
+        assert [r[1]["state"] for r in stub.requests] == ["1", "3", "5"]
+
     def test_lines_counts_a_last_line_with_no_newline(self, stub, run, tmp_path):
         src = _write(tmp_path, "batch.jsonl", (json.dumps(_body()) + "\n" + json.dumps(_body(state="Two"))).encode())
         code, out, _ = run("", "--batch", src, "--lines", "2")
@@ -1203,8 +1226,15 @@ class TestBatch:
             ("1 4 9 4", "--lines 4 9: the batch file has 3 lines"),
             ("10", "--lines 10: the batch file has 3 lines"),
             pytest.param(OVER_LONG_INT, f"--lines {OVER_LONG_INT}: the batch file has 3 lines", id="over-long"),
-            ("0", "--lines 0: not a line number"),
-            ("1 x -2 01", "--lines x -2 01: not a line number"),
+            ("1-4", "--lines 1-4: the batch file has 3 lines"),
+            ("3-1 2-1 1-1", "--lines 3-1 2-1: a range must not end before it starts"),
+            pytest.param(
+                f"{OVER_LONG_INT}-2", f"--lines {OVER_LONG_INT}-2: a range must not end before it starts",
+                id="over-long-start",
+            ),
+            ("0", "--lines 0: not a line number or range"),
+            ("1 x -2 01", "--lines x -2 01: not a line number or range"),
+            ("0-2 1- 1-2-3 1--2 1-02", "--lines 0-2 1- 1-2-3 1--2 1-02: not a line number or range"),
             ("", "--lines lists no line numbers"),
             ("  ", "--lines lists no line numbers"),
         ],
@@ -1216,6 +1246,53 @@ class TestBatch:
         assert (code, out, err) == (2, "", f"clef: {message}\n")
         assert stub.requests == []
         assert not dst.exists()
+
+    @pytest.mark.parametrize("timeout, runs", [("120", 5), ("300", 3), ("1000", 1)])
+    def test_time_limit_counts_the_request_timeout(self, stub, clock, run, tmp_path, timeout, runs):
+        # Each call takes 100 s. No line starts once 570 s could pass, counting --timeout, but one always starts.
+        src = _jsonl(tmp_path, *(_body(state=str(n)) for n in range(1, 9)))
+        code, out, err = run("", "--batch", src, "--timeout", timeout)
+        assert code == 0
+        assert len(out.splitlines()) == len(stub.requests) == runs
+        left = f"{runs + 1}-8"
+        assert _one_line(err) == (
+            f"clef: stopped at the time limit: {runs} answered, 0 failed, {8 - runs} left; rerun with --lines '{left}'\n"
+        )
+
+    def test_rerun_with_the_stop_notes_value_runs_the_lines_left(self, stub, clock, run, tmp_path):
+        # Line 3 fails before any call, so it takes no time. Line 8 is blank, so the range spans it.
+        lines = [_body(state=str(n)) for n in range(1, 10)]
+        lines[2], lines[7] = _body(questions={}), ""
+        src = _jsonl(tmp_path, *lines)
+        code, out, err = run("", "--batch", src)
+        assert code == 0
+        assert [json.loads(l)["line"] for l in out.splitlines()] == [1, 2, 3, 4, 5, 6]
+        assert err == "clef: stopped at the time limit: 5 answered, 1 failed, 2 left; rerun with --lines '7-9'\n"
+
+        stub.requests.clear()
+        clock.now = 0.0
+        code, out, err = run("", "--batch", src, "--lines", "7-9")
+        assert (code, err) == (0, "clef: 2 answered, 0 failed\n")
+        assert [r[1]["state"] for r in stub.requests] == ["7", "9"]
+
+    def test_batch_inside_the_time_limit_prints_no_stop_note(self, stub, clock, run, tmp_path):
+        clock.seconds = 1.0
+        code, out, err = run("", "--batch", _jsonl(tmp_path, *[_body()] * 20))
+        assert (code, len(out.splitlines()), err) == (0, 20, "clef: 20 answered, 0 failed\n")
+
+    def test_stop_note_after_ids_gives_line_numbers(self, stub, clock, run, tmp_path):
+        # Line 3 is not chosen, so lines 2 and 4 do not join one range.
+        src = _jsonl(tmp_path, *({"id": i, **_body()} for i in "abcd"))
+        code, out, err = run("", "--batch", src, "--ids", "d b a", "--timeout", "1000")
+        assert (code, json.loads(out)) == (0, {"id": "a", **ANSWER})
+        assert err == "clef: stopped at the time limit: 1 answered, 0 failed, 2 left; rerun with --lines '2 4'\n"
+
+    def test_stop_note_with_out_goes_where_the_summary_goes(self, stub, clock, run, tmp_path):
+        dst = str(tmp_path / "out.jsonl")
+        code, out, err = run("", "--batch", _jsonl(tmp_path, _body(), _body()), "--out", dst, "--timeout", "1000")
+        assert (code, err) == (0, "")
+        assert out == f"stopped at the time limit: 1 answered, 0 failed, 1 left -> {dst}; rerun with --lines '2'\n"
+        assert _results(dst) == [{"line": 1, **ANSWER}]
 
     def test_lines_needs_batch(self, stub, run):
         code, _, err = run(_body(), "--lines", "1")
