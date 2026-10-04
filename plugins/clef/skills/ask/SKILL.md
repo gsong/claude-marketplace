@@ -110,7 +110,7 @@ Clef saves your tokens only when the facts stay out of your context. Prefer `--s
 
 A batch judges many items with the same questions. Build the batch file in one tool call. Then run `clef.py` alone in a second call, so the run gets no prompt.
 
-1. **Build the batch file.** Each line holds `state` and `questions`, and may hold `id`, `images` (up to 4 paths) and `guess`. A line's `guess` takes the same JSON object as `--guess`, as "`--guess` and `CLEF_LOG`" describes. A batch takes no `--image`, `--state-file` or `--guess`. Write the file with one `jq` command, absolute paths and no `cd`. Put it in your scratchpad folder when your system prompt names one:
+1. **Build the batch file.** Each line holds `state` and `questions`, and may hold `id`, `images` (up to 4 paths) and `guess`. A line's `guess` is the same JSON object that "`--guess` and `CLEF_LOG`" describes. A batch takes no `--image`, `--state-file` or `--guess`. Write the file with one `jq` command, absolute paths and no `cd`. Put it in your scratchpad folder when your system prompt names one:
 
    ```sh
    jq -c '{state: .text, questions: {"complaint": {"type": "noul", "instructions": "Is this a complaint?"}}}
@@ -150,13 +150,20 @@ Keep the same `--model` on each rerun. The stop note gives line numbers, even af
 
 ## `--guess` and `CLEF_LOG`
 
-- `--guess` records your own answers beside Clef's in the log. It changes nothing in the request. Its value is a JSON object keyed by question id. Give `true` or `false` for a `noul` question, an option id for a `choice`, and a level index for a `score`, where 0 is the first criterion. For the first example's questions:
+- `--guess` records your own answers beside Clef's in the log. It changes nothing in the request. Its value is a JSON object keyed by question id. Each answer depends on the question type:
+
+  - `noul`: `true` or `false`.
+  - `choice`: an option id.
+  - `score`: a level index, where 0 is the first criterion.
+
+  For the first example's questions:
 
   ```sh
   --guess '{"complaint": true, "team": "auth", "urgency": 2}'
   ```
 
-  Keep the single quotes, so the call gets no prompt. You may leave out any question. A guess that names no such question, or gives the wrong kind of answer, is exit 2.
+  Keep the single quotes, so the call gets no prompt. You may leave out any question. A guess that names no such question, or gives an answer its question does not allow, is exit 2. In a batch, only that line fails.
+
 - `CLEF_LOG`, when it names a file, gets one JSON line per call, answered or failed. A batch line is one call. A failed call's line holds `error` and `exit`.
 
 Neither is required.
