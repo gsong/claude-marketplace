@@ -7,6 +7,7 @@
 
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -14,6 +15,7 @@ from pathlib import Path
 import pytest
 
 HOOK = Path(__file__).parent / "allow-clef.sh"
+CLEF_SOURCE = Path(__file__).parent.parent / "skills/ask/scripts/clef.py"
 ROOT = "/opt/plugins/clef"
 CLEF = f"{ROOT}/skills/ask/scripts/clef.py"
 JSON = '{"state": "I was charged twice.", "questions": {"c": {"type": "noul", "instructions": "Complaint?"}}}'
@@ -79,6 +81,9 @@ def test_allows_a_plain_clef_call(command):
         f"{CLEF} < req.json &",
         f"{CLEF} < req.json | sh",
         f"{CLEF} < req.json > out.txt",
+        # bash opens a network connection for these.
+        f"{CLEF} < /dev/tcp/example.com/80",
+        f"{CLEF} --model clef </dev/udp/example.com/53",
         f"printf '%s' 'a'; rm x; echo 'b' | {CLEF}",
         f"printf '%s' '{JSON}' | {CLEF} | sh",
         f"printf '%s' \"$(cat ~/.ssh/id_rsa)\" | {CLEF}",
@@ -114,6 +119,17 @@ def test_matches_the_root_literally():
     root = "/opt/plug.ins/clef"
     assert decide(f"{root}/skills/ask/scripts/clef.py < req.json", root=root) == "allow"
     assert decide("/opt/plugXins/clef/skills/ask/scripts/clef.py < req.json", root=root) is None
+
+
+@pytest.mark.parametrize("root", ["/Users/x/My Plugins/clef", "/opt/$HOME/clef", "/opt/a;b/clef"])
+def test_stays_silent_when_the_root_would_not_run_as_written(root):
+    assert decide(f"{root}/skills/ask/scripts/clef.py < req.json", root=root) is None
+
+
+def test_whitelists_every_clef_flag_except_out():
+    clef_flags = set(re.findall(r'add_argument\(\s*"(--[a-z-]+)"', CLEF_SOURCE.read_text()))
+    hook_flags = {f"--{f}" for f in re.search(r"--\(([a-z|-]+)\)", HOOK.read_text()).group(1).split("|")}
+    assert hook_flags == clef_flags - {"--out"}
 
 
 def test_stays_silent_on_a_payload_that_is_not_json():
