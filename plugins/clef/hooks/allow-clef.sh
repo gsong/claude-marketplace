@@ -13,10 +13,15 @@
 #
 # Flags come from a whitelist of clef.py's own. `--out` writes a file, so it is
 # left out, and so is any shortened flag. A flag value is a plain word or
-# single-quoted text. A redirect may not read from /dev/: bash opens a network
-# connection for /dev/tcp/HOST/PORT. Every other command, and every failure,
-# exits 0 with no output, which leaves Claude Code's normal prompt.
+# single-quoted text. Neither a redirect nor a path flag may name a file under
+# /dev/ or /proc/. bash opens a network connection for a redirect from
+# /dev/tcp/HOST/PORT, and clef.py can read a device forever or block on it.
+# Every other command, and every failure, exits 0 with no output, which leaves
+# Claude Code's normal prompt.
 set -uo pipefail
+# Character classes match ASCII only. In a UTF-8 locale, [[:space:]] matches a
+# no-break space, which bash does not split words on.
+LC_ALL=C
 
 payload=$(cat)
 # Most Bash calls never mention clef.py. They leave here before jq runs.
@@ -25,7 +30,9 @@ payload=$(cat)
 # character would not run as the path it names.
 [[ ${CLAUDE_PLUGIN_ROOT:-} =~ ^[-A-Za-z0-9_.@+/]+$ ]] || exit 0
 command -v jq >/dev/null || exit 0
-cmd=$(jq -r '.tool_input.command // empty' <<<"$payload" 2>/dev/null) || exit 0
+# $(…) drops a NUL, so a command that holds one yields nothing.
+cmd=$(jq -r 'select(.tool_name == "Bash") | .tool_input.command | strings
+  | select(explode | all(. != 0))' <<<"$payload" 2>/dev/null) || exit 0
 
 script="$CLAUDE_PLUGIN_ROOT/skills/ask/scripts/clef.py"
 apos="'"
@@ -38,17 +45,18 @@ text="${apos}([^${apos}]|${apos}\\\\${apos}${apos})*${apos}"
 redirect="( +< *($word))?"
 pipe_in="^printf +${apos}%s${apos} +${text}[[:blank:]]*\\|[[:space:]]*"
 end='$'
+# A redirect or path flag whose file is under /dev/ or /proc/, also by way of
+# //, /./ or ../ at its start. This may match inside quoted text too, which only
+# costs a prompt.
+device="(<|--(image|state-file|batch)=?) *${apos}?(/|(\\./)*\\.\\./)[./]*(dev|proc)/"
 
 approve() {
   printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"clef:ask call of clef.py"}}'
 }
 
 # A quoted "$script" matches literally; the unquoted parts are regexes.
-if [[ $cmd =~ ^"$script"$flags$redirect$end ]]; then
-  # The last group is the redirect's file, or empty.
-  target=${BASH_REMATCH[${#BASH_REMATCH[@]} - 1]}
-  [[ $target == /dev/* ]] || approve
-elif [[ $cmd =~ $pipe_in"$script"$flags$end ]]; then
+[[ ${cmd#*"$script"} =~ $device ]] && exit 0
+if [[ $cmd =~ ^"$script"$flags$redirect$end || $cmd =~ $pipe_in"$script"$flags$end ]]; then
   approve
 fi
 exit 0

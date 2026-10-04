@@ -21,9 +21,9 @@ CLEF = f"{ROOT}/skills/ask/scripts/clef.py"
 JSON = '{"state": "I was charged twice.", "questions": {"c": {"type": "noul", "instructions": "Complaint?"}}}'
 
 
-def decide(command, root: str | None = ROOT):
-    """Run the hook on one Bash command. Return its decision, or None when it stays silent."""
-    payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+def decide(command, root: str | None = ROOT, tool_name="Bash"):
+    """Run the hook on one tool call. Return its decision, or None when it stays silent."""
+    payload = json.dumps({"tool_name": tool_name, "tool_input": {"command": command}})
     result = run_hook(payload, root)
     assert result.returncode == 0, result.stderr
     if not result.stdout.strip():
@@ -34,6 +34,8 @@ def decide(command, root: str | None = ROOT):
 def run_hook(stdin: str, root: str | None):
     """Run the hook with this stdin, and with CLAUDE_PLUGIN_ROOT set to root, or unset."""
     env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PLUGIN_ROOT"}
+    # Claude Code users run a UTF-8 locale, where [[:space:]] can match a Unicode space.
+    env["LC_ALL"] = "C.UTF-8"
     if root is not None:
         env["CLAUDE_PLUGIN_ROOT"] = root
     return subprocess.run([str(HOOK)], input=stdin, capture_output=True, text=True, env=env, check=False)
@@ -63,6 +65,8 @@ def run_hook(stdin: str, root: str | None):
         f"printf '%s' '{JSON}' |\n  {CLEF} --model clef-flash",
         f"printf '%s' '{{\"state\": \"line one,\n line two\", \"questions\": {{}}}}' | {CLEF}",
         f"printf '%s' '{{\"state\": \"I don'\\''t know\", \"questions\": {{}}}}' | {CLEF}",
+        f"printf '%s' '{{\"state\": \"Caf\u00e9 \u2014 na\u00efve\", \"questions\": {{}}}}' | {CLEF}",
+        f"{CLEF} --image /tmp/dev/a.png --state-file ./proc/state.txt < req.json",
     ],
 )
 def test_allows_a_plain_clef_call(command):
@@ -94,10 +98,23 @@ def test_allows_a_plain_clef_call(command):
         # bash opens a network connection for these.
         f"{CLEF} < /dev/tcp/example.com/80",
         f"{CLEF} --model clef </dev/udp/example.com/53",
+        # A device or /proc/ file can make clef.py read forever or block.
+        f"{CLEF} --image /dev/zero < req.json",
+        f"{CLEF} --state-file /dev/tty < req.json",
+        f"{CLEF} --batch=/dev/stdin",
+        f"{CLEF} --image=/proc/self/fd/0 < req.json",
+        f"{CLEF} --state-file '/dev/fd/0' < req.json",
+        f"{CLEF} --image //dev/zero < req.json",
+        f"{CLEF} --batch ../../dev/stdin",
+        f"{CLEF} --image /./dev/zero --image ./../proc/self/fd/0 < req.json",
+        f"{CLEF} < /proc/self/fd/0",
         f"printf '%s' 'a'; rm x; echo 'b' | {CLEF}",
         f"printf '%s' '{JSON}' | {CLEF} | sh",
         f"printf '%s' \"$(cat ~/.ssh/id_rsa)\" | {CLEF}",
         f"printf '%s' '{JSON}' '{JSON}' | {CLEF}",
+        # bash splits words on ASCII whitespace only, so it cannot run these.
+        f"printf '%s' '{JSON}' |\u00a0{CLEF}",
+        f"printf '%s' '{JSON}'\u00a0| {CLEF}",
         f"cat req.json | {CLEF}",
         f"echo '{JSON}' | {CLEF}",
         # Shell expansion outside single quotes.
@@ -119,6 +136,16 @@ def test_allows_a_plain_clef_call(command):
 )
 def test_leaves_anything_else_to_the_prompt(command):
     assert decide(command) is None
+
+
+@pytest.mark.parametrize("tool_name", ["Monitor", "", None])
+def test_stays_silent_for_another_tool(tool_name):
+    assert decide(f"{CLEF} < req.json", tool_name=tool_name) is None
+
+
+def test_stays_silent_on_a_command_with_a_nul():
+    # $(…) drops a NUL, so the hook would check a command that differs from the one Bash runs.
+    assert decide(f"{CLEF} --model clef\0 < req.json") is None
 
 
 def test_stays_silent_without_a_plugin_root():
