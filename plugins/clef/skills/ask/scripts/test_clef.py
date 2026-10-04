@@ -670,13 +670,20 @@ class TestBatch:
     def test_bad_line_writes_its_error_and_goes_on(self, stub, run, tmp_path, line, ref, message):
         dst = str(tmp_path / "out.jsonl")
         code, out, err = run("", "--batch", _jsonl(tmp_path, line, _body()), "--out", dst)
-        assert (code, out, err) == (2, f"1 answered, 1 failed -> {dst}\n", "")
+        assert (code, out, err) == (0, f"1 answered, 1 failed -> {dst}\n", "")
         bad, good = _results(dst)
         assert set(bad) == {*ref, "error", "exit"}
         assert {k: bad[k] for k in ref} == ref
         assert bad["error"].startswith("clef: ") and message in bad["error"]
         assert bad["exit"] == 2
         assert good == {"line": 2, **ANSWER}
+        assert len(stub.requests) == 1
+
+    def test_every_line_failed_still_exits_0(self, stub, run, tmp_path):
+        stub.respond(400, {"error": "question too long"})
+        code, out, err = run("", "--batch", _jsonl(tmp_path, "not json", _body(questions={}), _body()))
+        assert (code, err) == (0, "clef: 0 answered, 3 failed\n")
+        assert [json.loads(l)["exit"] for l in out.splitlines()] == [2, 2, 2]
         assert len(stub.requests) == 1
 
     def test_huge_integer_id_is_carried(self, stub, run, tmp_path):
@@ -687,7 +694,7 @@ class TestBatch:
     def test_lone_surrogate_line_writes_its_error_and_goes_on(self, stub, run, tmp_path):
         bad = '{"id": "a\\udc80", "\\udc80x": 1, "state": "s", "questions": {"q": {"type": "noul", "instructions": "x"}}}'
         code, out, _ = run("", "--batch", _jsonl(tmp_path, bad, _body()))
-        assert code == 2
+        assert code == 0
         first, second = [json.loads(l) for l in out.splitlines()]
         assert (first["id"], first["exit"]) == ("a\udc80", 2)
         assert second == {"line": 2, **ANSWER}
@@ -701,14 +708,14 @@ class TestBatch:
         stub.respond_each((200, ANSWER), (400, {"error": "question too\nlong"}))
         dst = str(tmp_path / "out.jsonl")
         code, out, _ = run("", "--batch", _jsonl(tmp_path, _body(), {"id": "b", **_body()}, _body()), "--out", dst)
-        assert (code, out) == (2, f"2 answered, 1 failed -> {dst}\n")
+        assert (code, out) == (0, f"2 answered, 1 failed -> {dst}\n")
         assert _results(dst)[1] == {"id": "b", "error": "clef: HTTP 400: question too long", "exit": 2}
 
     def test_4xx_body_with_over_long_integer_writes_its_error_and_goes_on(self, stub, run, tmp_path):
         stub.respond_each((400, '{"n": ' + OVER_LONG_INT + "}"), (200, ANSWER))
         dst = str(tmp_path / "out.jsonl")
         code, out, _ = run("", "--batch", _jsonl(tmp_path, {"id": "a", **_body()}, _body()), "--out", dst)
-        assert (code, out) == (2, f"1 answered, 1 failed -> {dst}\n")
+        assert (code, out) == (0, f"1 answered, 1 failed -> {dst}\n")
         bad, good = _results(dst)
         assert (bad["id"], bad["exit"]) == ("a", 2)
         assert bad["error"].startswith('clef: HTTP 400: {"n": 111')
@@ -751,7 +758,7 @@ class TestBatch:
             {**_body(questions=MIXED_QUESTIONS), "guess": {"u": 0}},
             _body(questions={}),
         ]
-        assert run("", "--batch", _jsonl(tmp_path, *lines))[0] == 2
+        assert run("", "--batch", _jsonl(tmp_path, *lines))[0] == 0
         first, second = log()
         assert (first["guess"], first["agree"], first["images"]) == ({"t": "shipping"}, {"t": True}, [png])
         assert (second["guess"], second["agree"], second["images"]) == ({"u": 0}, {"u": False}, [])
@@ -810,7 +817,7 @@ class TestBatch:
 
     def test_ids_names_a_bad_line_by_its_line_number(self, stub, run, tmp_path):
         code, out, _ = run("", "--batch", _jsonl(tmp_path, _body(), {**_body(), "id": True}), "--ids", "2")
-        assert code == 2
+        assert code == 0
         assert json.loads(out)["line"] == 2
         assert stub.requests == []
 

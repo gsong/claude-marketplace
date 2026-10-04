@@ -103,7 +103,7 @@ A batch judges many items with the same questions. Build the batch file in one t
    ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --batch <scratchpad>/batch.jsonl
    ```
 
-   Add no `cd` or `&&` before it, no pipe or `> file` after it, and no `--out`. Each of those can make the call ask the user. Read the result lines from its output. When Claude Code saves a large output to a file, read that file with a plain `jq`, with no redirect. To run only some lines, add `--ids` to pick them by `id`, as "Model choice" shows, or `--lines` to pick them by line number.
+   Add no `cd` or `&&` before it, no pipe or `> file` after it, and no `--out`. Each of those can make the call ask the user. Read the result lines from its output, and find any failed lines as "Exit codes" describes. When Claude Code saves a large output to a file, read that file with a plain `jq`, with no redirect. To run only some lines, add `--ids` to pick them by `id`, as "Model choice" shows, or `--lines` to pick them by line number.
 
 Run every batch call in the foreground, with the Bash tool's `timeout` set to 600000, its maximum. This is not `clef.py --timeout`, which limits each request. Never run a batch in the background: a `claude -p` session ends without waiting for it, and you lose its answers.
 
@@ -129,8 +129,8 @@ Neither is required.
 
 ## Exit codes
 
-- **Batch output:** each answer line printed before the run stopped holds a good answer. With exit 2, only the lines with an `error` failed. If exit 2 printed no lines, the batch request itself is wrong.
-- **Exit 2:** fix the request. If the server refused an over-long state, decide yourself. Stepping down to `clef-flash` does not help, because both models have the same window.
+- **Batch output:** a batch that reaches its last line exits 0, even when some lines failed. Find the failed lines by their `error` key. The stderr line `clef: N answered, M failed` gives the counts. Exit 3 or 1 stops a batch, and each answer line printed before the stop holds a good answer. A batch exits 2 only when the script refuses it before any line runs. It then prints no result lines.
+- **Exit 2, or `"exit": 2` in a batch error line:** fix the request. If the server refused an over-long state, decide yourself. Stepping down to `clef-flash` does not help, because both models have the same window.
 - **Exit 3:** tell the user once, with the stderr line and the fix from "Fixes for exit 3" in `${CLAUDE_PLUGIN_ROOT}/skills/ask/setup.md`. Then decide yourself for the rest of the session. Call Clef again only if the user says the server is back. Never start the server.
 
 ## Ollama
