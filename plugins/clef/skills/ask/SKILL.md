@@ -67,7 +67,18 @@ These limits keep a warm call under about 30 s. The script checks no length.
 
 ## Model choice
 
-Use `clef-flash` when both models fit. If a key answer in a single call is close, you may re-ask that item on `clef`. An answer is close when its top probability is under 0.65. For a `noul`, that is a value between 0.35 and 0.65. For a `choice` or `score`, it is the highest `probabilities` value. Batches stay on `clef-flash`; re-ask only the close lines.
+Use `clef-flash` when both models fit. If a key answer in a single call is close, you may re-ask that item on `clef`. An answer is close when its top probability is under 0.65. For a `noul`, that is a value between 0.35 and 0.65. For a `choice` or `score`, it is the highest `probabilities` value.
+
+Batches stay on `clef-flash`. Re-ask only a batch's close lines on `clef`:
+
+1. From the `clef-flash` run, collect the `id` or `line` value of each close result line.
+2. Run the same batch file on `clef`, and list those values in `--ids`:
+
+   ```sh
+   ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --model clef --batch <scratchpad>/batch.jsonl --ids 'T3 T7 12'
+   ```
+
+`--ids` runs only the lines it lists, so the re-ask writes no file and gets no prompt. Separate the values with spaces. An `id` that holds a space or an apostrophe cannot go in `--ids`.
 
 ## Keeping tokens down
 

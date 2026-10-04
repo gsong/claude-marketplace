@@ -785,6 +785,60 @@ class TestBatch:
         assert "--out needs --batch" in _one_line(err)
         assert stub.requests == []
 
+    def test_ids_runs_only_the_lines_named(self, stub, run, tmp_path):
+        src = _jsonl(
+            tmp_path,
+            {"id": "a", **_body(state="A")},
+            {"id": 7, **_body(state="Seven")},
+            _body(state="Line three"),
+            {"id": "b", **_body(state="B")},
+        )
+        code, out, err = run("", "--batch", src, "--ids", "b 7 3", "--model", "clef")
+        assert code == 0
+        assert [r[1]["state"] for r in stub.requests] == ["Seven", "Line three", "B"]
+        assert [json.loads(l) for l in out.splitlines()] == [
+            {"id": 7, **ANSWER},
+            {"line": 3, **ANSWER},
+            {"id": "b", **ANSWER},
+        ]
+        assert _one_line(err) == "clef: 3 answered, 0 failed\n"
+
+    def test_ids_skips_bad_lines_not_named(self, stub, run, tmp_path):
+        code, out, err = run("", "--batch", _jsonl(tmp_path, "not json", {"id": "a", **_body()}), "--ids", "a")
+        assert (code, err) == (0, "clef: 1 answered, 0 failed\n")
+        assert json.loads(out) == {"id": "a", **ANSWER}
+
+    def test_ids_names_a_bad_line_by_its_line_number(self, stub, run, tmp_path):
+        code, out, _ = run("", "--batch", _jsonl(tmp_path, _body(), {**_body(), "id": True}), "--ids", "2")
+        assert code == 2
+        assert json.loads(out)["line"] == 2
+        assert stub.requests == []
+
+    @pytest.mark.parametrize(
+        "ids, message",
+        [
+            # Line 1 has the id "a", line 2 is blank and line 3 has no id.
+            ("a zz 9 zz", "--ids zz 9: no batch line has that id or line number"),
+            ("1", "--ids 1: no batch line has that id or line number"),
+            ("2", "--ids 2: no batch line has that id or line number"),
+            ("", "--ids lists no ids"),
+            ("  ", "--ids lists no ids"),
+        ],
+    )
+    def test_ids_that_match_no_line_exit_2_before_any_call(self, stub, run, tmp_path, ids, message):
+        dst = tmp_path / "out.jsonl"
+        src = _jsonl(tmp_path, {"id": "a", **_body()}, "", _body())
+        code, out, err = run("", "--batch", src, "--ids", ids, "--out", str(dst))
+        assert (code, out, err) == (2, "", f"clef: {message}\n")
+        assert stub.requests == []
+        assert not dst.exists()
+
+    def test_ids_needs_batch(self, stub, run):
+        code, _, err = run(_body(), "--ids", "a")
+        assert code == 2
+        assert "--ids needs --batch" in _one_line(err)
+        assert stub.requests == []
+
     def test_missing_batch_file(self, stub, run, tmp_path):
         dst = tmp_path / "out.jsonl"
         code, _, err = run("", "--batch", str(tmp_path / "missing.jsonl"), "--out", str(dst))
