@@ -38,7 +38,7 @@ These steps set up Ollama on an Apple Silicon Mac to serve Clef and Clef-flash. 
    curl 127.0.0.1:11434/api/version
    ```
 
-   Then run `scripts/check.py`, which asks both models six questions. It exits 0 when every answer is correct. The script sits in the `scripts` directory beside this guide. After a plugin install, that is `~/.claude/plugins/cache/gsong-marketplace/clef/<version>/skills/ask/scripts/check.py`. Replace `<version>` with the installed plugin version.
+   Then run `scripts/check.py`, which asks both models six questions. It exits 0 when every answer is correct. The script sits in the `scripts` directory beside this guide. After a plugin install, that is `~/.claude/plugins/cache/gsong-marketplace/clef/<version>/skills/ask/scripts/check.py`. Replace `<version>` with the installed plugin version. For a marketplace added from a local folder, the script is in that folder at `plugins/clef/skills/ask/scripts/check.py`.
 
 To stop the server, run `brew services stop ollama`.
 
@@ -60,10 +60,22 @@ A Claude session in a Docker container on the Mac reaches Ollama through `host.d
    -v "$HOME/.claude/plugins:$HOME/.claude/plugins"
    ```
 
-2. Install uv in the container, and put it on the container's `PATH`. The uv installer works in a Linux container:
+   Claude Code reads a marketplace added from a local folder, such as a clone of this repo, from that folder. `claude plugin marketplace list` shows such a marketplace as `Source: Folder (<path>)`. Mount that folder at the same path too:
+
+   ```sh
+   -v "<path>:<path>"
+   ```
+
+2. Install uv and jq in the container, and put both on the container's `PATH`. The uv installer works in a Linux container:
 
    ```sh
    curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+   Claude Code runs the hook inside the container. Without jq there, each Clef call asks before it runs. On a Debian or Ubuntu image, run this as root or with `sudo`:
+
+   ```sh
+   apt-get update && apt-get install -y jq
    ```
 
 3. Check the route from inside the container:
