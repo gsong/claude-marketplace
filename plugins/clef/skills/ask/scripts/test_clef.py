@@ -686,6 +686,13 @@ class TestBatch:
         assert [json.loads(l)["exit"] for l in out.splitlines()] == [2, 2, 2]
         assert len(stub.requests) == 1
 
+    def test_every_line_failed_to_out_still_exits_0(self, stub, run, tmp_path):
+        stub.respond(400, {"error": "question too long"})
+        dst = str(tmp_path / "out.jsonl")
+        code, out, err = run("", "--batch", _jsonl(tmp_path, "not json", _body()), "--out", dst)
+        assert (code, out, err) == (0, f"0 answered, 2 failed -> {dst}\n", "")
+        assert [r["exit"] for r in _results(dst)] == [2, 2]
+
     def test_huge_integer_id_is_carried(self, stub, run, tmp_path):
         code, out, _ = run("", "--batch", _jsonl(tmp_path, {**_body(), "id": 10**400}))
         assert code == 0
@@ -749,6 +756,14 @@ class TestBatch:
         code, out, err = run("", "--batch", _jsonl(tmp_path, _body(), _body(), _body()), "--out", dst)
         assert (code, out, err) == (1, "", "clef: HTTP 500: runner crashed\n")
         assert _results(dst) == [{"line": 1, **ANSWER}]
+
+    def test_5xx_after_a_bad_line_stops_with_exit_1(self, stub, run, tmp_path):
+        stub.respond(500, {"error": "runner crashed"})
+        dst = str(tmp_path / "out.jsonl")
+        code, out, err = run("", "--batch", _jsonl(tmp_path, _body(questions={}), _body(), _body()), "--out", dst)
+        assert (code, out, err) == (1, "", "clef: HTTP 500: runner crashed\n")
+        assert [r["exit"] for r in _results(dst)] == [2]
+        assert len(stub.requests) == 1
 
     def test_each_answered_line_logged_with_its_guess(self, stub, run, tmp_path, log):
         stub.respond(200, MIXED_ANSWER)
@@ -860,6 +875,15 @@ class TestBatch:
         assert [json.loads(l) for l in out.splitlines()] == [{"id": "a", **ANSWER}, {"line": 4, **ANSWER}]
         assert _one_line(err) == "clef: 2 answered, 0 failed\n"
 
+    def test_lines_runs_a_bad_line_and_exits_0(self, stub, run, tmp_path):
+        src = _jsonl(tmp_path, _body(questions={}), _body(state="Two"), _body(state="Three"))
+        code, out, err = run("", "--batch", src, "--lines", "1 2")
+        assert (code, err) == (0, "clef: 1 answered, 1 failed\n")
+        bad, good = [json.loads(l) for l in out.splitlines()]
+        assert (bad["line"], bad["exit"]) == (1, 2)
+        assert good == {"line": 2, **ANSWER}
+        assert [r[1]["state"] for r in stub.requests] == ["Two"]
+
     def test_lines_counts_a_last_line_with_no_newline(self, stub, run, tmp_path):
         src = _write(tmp_path, "batch.jsonl", (json.dumps(_body()) + "\n" + json.dumps(_body(state="Two"))).encode())
         code, out, _ = run("", "--batch", src, "--lines", "2")
@@ -899,8 +923,8 @@ class TestBatch:
 
     def test_missing_batch_file(self, stub, run, tmp_path):
         dst = tmp_path / "out.jsonl"
-        code, _, err = run("", "--batch", str(tmp_path / "missing.jsonl"), "--out", str(dst))
-        assert code == 2
+        code, out, err = run("", "--batch", str(tmp_path / "missing.jsonl"), "--out", str(dst))
+        assert (code, out) == (2, "")
         assert "cannot read batch file" in _one_line(err)
         assert not dst.exists()
 
