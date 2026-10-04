@@ -81,7 +81,8 @@ Neither is required.
 
 ## Exit codes
 
-- **Exit 2:** fix the request. In a batch, only the lines with an `error` failed; the other lines hold answers. If the server refused an over-long state, decide yourself. Stepping down to `clef-flash` does not help, because both models have the same window.
+- **Batch output:** each answer line printed before the run stopped holds a good answer. With exit 2, only the lines with an `error` failed. If exit 2 printed no lines, the batch request itself is wrong.
+- **Exit 2:** fix the request. If the server refused an over-long state, decide yourself. Stepping down to `clef-flash` does not help, because both models have the same window.
 - **Exit 3:** tell the user once, with the stderr line and the fix from "Fixes for exit 3" in `${CLAUDE_PLUGIN_ROOT}/skills/ask/setup.md`. Then decide yourself for the rest of the session. Call Clef again only if the user says the server is back. Never start the server.
 
 ## Ollama
