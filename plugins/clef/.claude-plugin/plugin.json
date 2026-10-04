@@ -1,7 +1,7 @@
 {
   "name": "clef",
   "description": "Ask Clef, a local decision model, yes/no, pick-one, or rating questions and get a probability with each answer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "George Song"
   },
