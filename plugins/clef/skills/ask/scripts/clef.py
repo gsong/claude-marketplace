@@ -273,7 +273,7 @@ def send(url: str, source: str, request: dict, timeout: float) -> tuple[str, dic
 
     A reply that is not a JSON object with an `answers` object is an error,
     so a proxy's HTML page or a 200 error body never reads as an answer.
-    A reply holding NaN or Infinity is not JSON, so nothing printed or logged holds one.
+    A reply holding NaN or Infinity is not JSON, as _load_json reads it.
     """
     req = urllib.request.Request(
         url + ENDPOINT,
@@ -298,7 +298,7 @@ def send(url: str, source: str, request: dict, timeout: float) -> tuple[str, dic
         raise _no_answer(url, source, f"unreachable: {reason}") from e
     try:
         text = raw.decode("utf-8")
-        reply = json.loads(text, parse_constant=_refuse_constant, parse_float=_finite_float)
+        reply = _load_json(text)
     except ValueError as e:  # UnicodeDecodeError, JSONDecodeError, a non-finite number, or an over-long integer
         raise ClefError(f"HTTP 200 from {url}, but the reply is not JSON", EXIT_ERROR) from e
     if not isinstance(reply, dict):
@@ -391,7 +391,7 @@ def _parse_args(argv):
     parser.add_argument("--image", action="append", default=[], metavar="PATH", help="repeat for up to 4 images")
     parser.add_argument("--state-file", metavar="PATH", help="read the state from this file")
     parser.add_argument(
-        "--timeout", type=_positive_float, default=DEFAULT_TIMEOUT, metavar="N",
+        "--timeout", type=_timeout_seconds, default=DEFAULT_TIMEOUT, metavar="N",
         help="seconds to wait for each reply (default: 120, at most 86400)",
     )
     parser.add_argument("--guess", metavar="JSON", help='your own answers, for the log: {"<question id>": <answer>}')
@@ -408,7 +408,7 @@ def _parse_args(argv):
     return args
 
 
-def _positive_float(text):
+def _timeout_seconds(text):
     try:
         value = float(text)
     except ValueError:
@@ -439,16 +439,16 @@ def _parse_guess(text):
     if text is None:
         return {}
     try:
-        return json.loads(text)
-    except ValueError as e:  # JSONDecodeError, or an integer over Python's digit limit
+        return _load_json(text)
+    except ValueError as e:  # JSONDecodeError, a non-finite number, or an integer over Python's digit limit
         raise _bad(f"--guess is not JSON: {e}") from e
 
 
 def _load_object(text, where):
     """Parse stdin or a batch line, which must be a JSON object."""
     try:
-        value = json.loads(text)
-    except ValueError as e:  # JSONDecodeError, or an integer over Python's digit limit
+        value = _load_json(text)
+    except ValueError as e:  # JSONDecodeError, a non-finite number, or an integer over Python's digit limit
         raise _bad(f"{where} is not JSON: {e}") from e
     if not isinstance(value, dict):
         raise _bad(f"{where} must be a JSON object with `state` and `questions`")
@@ -460,8 +460,7 @@ def _line_ref(item, number):
     if "id" not in item:
         return {"line": number}
     value = item["id"]
-    # json.loads takes NaN and Infinity, but a result line holding one is not valid JSON.
-    if not (isinstance(value, str) or _is_int(value) or isinstance(value, float) and math.isfinite(value)):
+    if not (isinstance(value, (str, float)) or _is_int(value)):
         raise _bad("`id` must be a string or number")
     return {"id": value}
 
@@ -509,12 +508,20 @@ def _timed_send(url, source, request, timeout):
     return text, reply, time.monotonic() - start
 
 
+def _load_json(text):
+    """Parse JSON, refusing NaN and Infinity, so nothing clef.py prints, logs or sends holds one.
+
+    json.loads takes them, and json.dumps writes them back out as invalid JSON.
+    """
+    return json.loads(text, parse_constant=_refuse_constant, parse_float=_finite_float)
+
+
 def _refuse_constant(name):
     raise ValueError(f"{name} is not a JSON number")
 
 
 def _finite_float(text):
-    """Parse a reply's float. `1e400` parses to Infinity, which json.dumps writes back as invalid JSON."""
+    """Parse a float. `1e400` parses to Infinity, so it is refused too."""
     value = float(text)
     if not math.isfinite(value):
         raise ValueError(f"{text} is out of a float's range")

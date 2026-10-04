@@ -247,6 +247,8 @@ class TestLocalChecks:
             ("not json", "stdin is not JSON"),
             ("[1, 2]", "stdin must be a JSON object"),
             (OVER_LONG_INT, "stdin is not JSON"),
+            (json.dumps(_body(state={"x": math.nan})), "stdin is not JSON: NaN is not a JSON number"),
+            ('{"state": "x", "questions": {}, "n": 1e400}', "stdin is not JSON"),
             (_body(model="clef"), "use --model"),
             (_body(images=["x"]), "use --image"),
             (_body(timeout=5), "use --timeout"),
@@ -608,6 +610,7 @@ class TestGuess:
         [
             ("yes", "--guess is not JSON"),
             ('{"c": ' + OVER_LONG_INT + "}", "--guess is not JSON"),
+            ('{"u": NaN}', "--guess is not JSON"),
             ("[true]", "guess must be an object"),
             ('{"nope": true}', "guess nope: no such question"),
             ('{"c": 1}', "guess c: give true or false"),
@@ -683,8 +686,10 @@ class TestBatch:
             ("[1]", {"line": 1}, "line must be a JSON object"),
             ({**_body(), "id": True}, {"line": 1}, "`id` must be a string or number"),
             ({**_body(), "id": [1]}, {"line": 1}, "`id` must be a string or number"),
-            (json.dumps({**_body(), "id": math.nan}), {"line": 1}, "`id` must be a string or number"),
-            (json.dumps({**_body(), "id": math.inf}), {"line": 1}, "`id` must be a string or number"),
+            (json.dumps({**_body(), "id": math.nan}), {"line": 1}, "line is not JSON: NaN is not a JSON number"),
+            (json.dumps({**_body(), "id": math.inf}), {"line": 1}, "line is not JSON: Infinity is not a JSON number"),
+            (json.dumps(_body(state={"x": -math.inf})), {"line": 1}, "line is not JSON"),
+            ('{"id": 1e400}', {"line": 1}, "line is not JSON"),
             ('{"id": ' + OVER_LONG_INT + "}", {"line": 1}, "line is not JSON"),
             ({**_body(), "id": "x", "model": "clef"}, {"id": "x"}, "line key `model` is not allowed"),
             ({"id": "x", "questions": {"q": _noul()}}, {"id": "x"}, "line has no `state`"),
@@ -749,6 +754,8 @@ class TestBatch:
         "reply, message",
         [
             ('{"error": "model is loading"}', "the reply holds no answers"),
+            ('{"answers": null}', "the reply holds no answers"),
+            ('{"answers": [1]}', "the reply holds no answers"),
             ('{"answers": {"blue": {"type": "noul", "noul": NaN}}}', "the reply is not JSON"),
         ],
     )
