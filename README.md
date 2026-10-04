@@ -42,9 +42,11 @@ Ask Clef, a local decision model, yes/no, pick-one, or rating questions and get 
 /plugin install clef@gsong-marketplace
 ```
 
-**Skills:** none yet
+**Skills:** `/clef:ask`
 
-**Requires:** an Apple Silicon Mac, Ollama, and uv. See the [plugin README](plugins/clef/README.md#prerequisites).
+**Hooks:** `PreToolUse` approves the skill's calls of `clef.py`
+
+**Requires:** an Apple Silicon Mac, Ollama, uv, and jq. See the [plugin README](plugins/clef/README.md#prerequisites).
 
 ### codex-tools
 

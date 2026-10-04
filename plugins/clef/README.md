@@ -6,7 +6,17 @@ Clef and Clef-flash are Cloudflare's decision models. Ollama serves both on an A
 
 ## Skills
 
-None yet. The plugin is a scaffold until its first skill lands.
+| Skill      | Invoked by                                                                     | Description                                                                                                  |
+| ---------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `clef:ask` | a decision to classify, triage, check, choose or rate; "ask Clef"; `/clef:ask` | Ask Clef yes/no, pick-one or rating questions about a text or JSON state and images, one call or a batch run |
+
+## Hooks
+
+| Event        | Behavior                                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `PreToolUse` | Approves a plain Bash call of the plugin's `clef.py`, so `clef:ask` runs it with no prompt. Silent on any other command. |
+
+The skill's `allowed-tools` rule should approve these calls by itself. Claude Code 2.1.289 drops that rule in most turns, so the hook does the work until that is fixed: see [#62](https://github.com/gsong/claude-marketplace/issues/62). The hook approves two shapes, a call with a file on stdin and a `printf '%s' '<json>' |` pipe, with flags from a whitelist. `--out` writes a file, so it keeps the prompt. The hook does not limit which files `clef.py` reads, and the script sends what it reads to `CLEF_URL`. Point `CLEF_URL` only at a server you trust. `hooks/test_allow_clef.py` lists what passes and what does not.
 
 ## Prerequisites
 
@@ -15,6 +25,7 @@ None yet. The plugin is a scaffold until its first skill lands.
 - About 27 GB of disk for the two models, `clef:27b` and `clef-flash:9b`. See [Install and start](skills/ask/setup.md#install-and-start).
 - Memory: both models loaded together take about 36 GB. With less free memory, Ollama unloads one model to load the other. A swap costs a few seconds and never changes an answer. See [Defaults to keep](skills/ask/setup.md#defaults-to-keep).
 - [uv](https://docs.astral.sh/uv/), to run the script. See [Install uv](skills/ask/setup.md#install-uv).
+- jq, for the hook. macOS 15 and later ship it. Without jq, each Clef call asks before it runs.
 - For container sessions: the container mounts `~/.claude/plugins` at its Mac path and can resolve `host.docker.internal`. Docker Desktop resolves it by default. See [Container sessions](skills/ask/setup.md#container-sessions).
 
 ## Installation
