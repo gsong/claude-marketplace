@@ -7,7 +7,7 @@
 
 Stdin holds a JSON object with `state` and `questions`, in Cloudflare's shape.
 Flags carry the model, images, a state file, the timeout and the caller's guess.
-`--batch` makes one call per line of a JSONL file instead.
+`--batch` makes one call per line of a JSONL file instead, and `--ids` picks some of those lines.
 When CLEF_LOG names a file, each answered call appends one JSON line to it.
 
 Exit codes: 0 answered, 2 bad request, 3 no answer from the server, 1 any other error.
@@ -105,13 +105,14 @@ def run_batch(args: argparse.Namespace) -> int:
             name = "--" + flag.replace("_", "-")
             raise _bad(f"--batch and {name} do not mix; give each line its own `{key}`")
     lines = _read_text(args.batch, "batch file").split("\n")
+    chosen = choose_lines(lines, args.ids.split()) if args.ids is not None else None
     out = _open_out(args.out) if args.out else sys.stdout
     url, source = resolve_url()
     log = _Log.from_env()
     answered = failed = 0
     try:
         for number, line in enumerate(lines, 1):
-            if not line.strip():
+            if not line.strip() or chosen is not None and number not in chosen:
                 continue
             ref = {"line": number}
             try:
@@ -140,6 +141,28 @@ def run_batch(args: argparse.Namespace) -> int:
     else:
         print(f"clef: {summary}", file=sys.stderr)
     return EXIT_BAD_REQUEST if failed else EXIT_OK
+
+
+def choose_lines(lines: list[str], ids: list[str]) -> set[int]:
+    """Return the numbers of the batch lines that --ids names.
+
+    A line matches by its `id`, read as a string, or by its line number when it has no good `id`.
+    That is the value its result line reports. A listed value that matches no line is a bad request.
+    """
+    if not ids:
+        raise _bad("--ids lists no ids")
+    wanted, chosen, found = set(ids), set(), set()
+    for number, line in enumerate(lines, 1):
+        if not line.strip():
+            continue
+        key = _selector(line, number)
+        if key in wanted:
+            chosen.add(number)
+            found.add(key)
+    missing = [value for value in dict.fromkeys(ids) if value not in found]
+    if missing:
+        raise _bad(f"--ids {' '.join(missing)}: no batch line has that id or line number")
+    return chosen
 
 
 def build_request(args: argparse.Namespace, stdin_text: str) -> dict:
@@ -302,6 +325,10 @@ number), `images` (up to 4 paths) and `guess`. Each result line carries the
 line's `id`, or "line": N. A bad line gets an error line with "exit": 2, and
 the run goes on. Exit 3 or 1 stops the run.
 
+--ids 'A B 7' runs only the batch lines whose `id` is listed, or, for a
+line with no `id`, whose line number is. Other lines get no result line.
+A listed value that matches no line exits 2 before any call.
+
 When CLEF_LOG names a file, each answered call appends one JSON line to it.
 
 Exit codes: 0 answered, 2 bad request, 3 no answer from the server, 1 any other error.
@@ -325,9 +352,11 @@ def _parse_args(argv):
     parser.add_argument("--guess", metavar="JSON", help='your own answers, for the log: {"<question id>": <answer>}')
     parser.add_argument("--batch", metavar="IN.jsonl", help="make one call per line of this file")
     parser.add_argument("--out", metavar="OUT.jsonl", help="with --batch, write results here, not to stdout")
+    parser.add_argument("--ids", metavar="'ID ...'", help="with --batch, run only the lines with these ids or line numbers")
     args = parser.parse_args(argv)
-    if args.out is not None and args.batch is None:
-        parser.error("--out needs --batch")
+    for flag in ("out", "ids"):
+        if getattr(args, flag) is not None and args.batch is None:
+            parser.error(f"--{flag} needs --batch")
     return args
 
 
@@ -381,6 +410,15 @@ def _line_ref(item, number):
     if not (isinstance(value, str) or _is_int(value) or isinstance(value, float) and math.isfinite(value)):
         raise _bad("`id` must be a string or number")
     return {"id": value}
+
+
+def _selector(line, number):
+    """Return the value that --ids matches for a batch line: its `id` as a string, or its line number."""
+    try:
+        ref = _line_ref(_load_object(line, "line"), number)
+    except ClefError:
+        ref = {"line": number}
+    return str(ref.get("id", number))
 
 
 def _check_line(item):

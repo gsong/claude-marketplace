@@ -31,7 +31,7 @@ script="$CLAUDE_PLUGIN_ROOT/skills/ask/scripts/clef.py"
 apos="'"
 word='[A-Za-z0-9_.:/][-A-Za-z0-9_.:/]*'
 value="($word|${apos}[^${apos}-][^${apos}]*${apos})"
-flag="(--(model|image|state-file|timeout|guess|batch)(=$value| +$value)|-h|--help)"
+flag="(--(model|image|state-file|timeout|guess|batch|ids)(=$value| +$value)|-h|--help)"
 flags="( +$flag)*"
 # Single-quoted text, where '\'' stands for an apostrophe.
 text="${apos}([^${apos}]|${apos}\\\\${apos}${apos})*${apos}"
