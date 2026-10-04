@@ -42,6 +42,8 @@ jobs:
 
       - run: uv run --script plugins/clef/skills/ask/scripts/test_clef.py
 
+      - run: uv run --script plugins/clef/skills/ask/scripts/test_check.py
+
       - run: uv run --script plugins/clef/hooks/test_allow_clef.py
 
   writing-hooks:
