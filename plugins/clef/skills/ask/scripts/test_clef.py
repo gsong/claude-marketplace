@@ -619,6 +619,10 @@ class TestDecisionLog:
         assert run(_body(), "--guess", '{"blue": "yes"}')[0] == 2
         assert log()[0]["guess"] == {"blue": "yes"}
 
+    def test_guess_logged_when_the_questions_fail_a_check(self, stub, run, log):
+        assert run(_body(questions={}), "--guess", '{"blue": true}')[0] == 2
+        assert log()[0]["guess"] == {"blue": True}
+
     @pytest.mark.parametrize(
         "stdin, argv",
         [("not json", []), (_body(), ["--timeout", "nan"]), (_body(), ["--out", "x.jsonl"])],
@@ -640,6 +644,17 @@ class TestDecisionLog:
         assert (code, err) == (1, "clef: RuntimeError: boom\n")
         [record] = log()
         assert (record["error"], record["exit"], record["state"]) == ("clef: RuntimeError: boom", 1, "The sky is blue.")
+
+    def test_answer_that_cannot_be_printed_is_logged_with_its_answers(self, stub, run, log, monkeypatch):
+        class ClosedPipe(io.StringIO):
+            def write(self, text):
+                raise BrokenPipeError(32, "Broken pipe")
+
+        stub.respond(200, ANSWER)
+        monkeypatch.setattr(sys, "stdout", ClosedPipe())
+        assert run(_body())[0] == 1
+        [record] = log()
+        assert (record["answers"], record["exit"]) == (ANSWER["answers"], 1)
 
     @pytest.mark.parametrize("status, code", [(200, 0), (400, 2)])
     def test_log_that_is_a_folder_warns_and_keeps_the_exit_code(self, stub, run, monkeypatch, tmp_path, status, code):
