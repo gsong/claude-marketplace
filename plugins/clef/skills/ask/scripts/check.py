@@ -7,13 +7,14 @@
 
 Run it on the Mac after setup and after each `brew upgrade ollama`.
 It runs clef.py once per case and model, so it also checks the script's flags and image encoding.
-A wrong answer is printed and the run goes on. A warm call over 30 s gets a warning, never a failure.
+It prints a wrong answer and goes on. A warm call over 30 s gets a warning, never a failure.
 
-Exit codes: 0 every answer right, 1 a wrong answer, or clef.py's own exit code when clef.py fails.
-clef.py's failure stops the run.
+Exit codes: 0 every answer right, 1 a wrong answer.
+An error from clef.py stops the run. The check then exits with clef.py's code: 2, 3 or 1.
 """
 
 import json
+import math
 import os
 import subprocess
 import sys
@@ -127,7 +128,7 @@ def main() -> int:
                         print(f"    ok     {qid} = {shown}")
                     else:
                         wrong += 1
-                        print(f"    WRONG  {qid} = {shown}, expected {_format(question['expect'])}")
+                        print(f"    WRONG  {qid} = {shown}, expected {_answer_text(question['expect'])}")
     except ClefFailed as e:
         print(e, file=sys.stderr)
         return e.code
@@ -164,11 +165,12 @@ def judge(question: dict, answer: object) -> tuple[bool, str]:
         return False, "no answer"
     if question["type"] == "noul":
         value = answer.get("noul")
-        if not isinstance(value, (int, float)) or isinstance(value, bool):
+        # Same rule as clef.py's _agrees: only an int or a finite float is an answer.
+        if isinstance(value, bool) or not (isinstance(value, int) or isinstance(value, float) and math.isfinite(value)):
             return False, "no answer"
         # 0.5 is neither true nor false, so it never matches.
         verdict = None if value == 0.5 else value > 0.5
-        return verdict == question["expect"], f"{_format(verdict)} ({value:.2f})"
+        return verdict == question["expect"], f"{_answer_text(verdict)} ({value:.2f})"
     choice = answer.get("choice")
     if not isinstance(choice, str):
         return False, "no answer"
@@ -192,7 +194,7 @@ def _timing(seconds, cold):
     return text
 
 
-def _format(value):
+def _answer_text(value):
     if value is None:
         return "undecided"
     return json.dumps(value) if isinstance(value, bool) else str(value)

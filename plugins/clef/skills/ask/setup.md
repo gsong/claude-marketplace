@@ -38,7 +38,7 @@ These steps set up Ollama on an Apple Silicon Mac to serve Clef and Clef-flash. 
    curl 127.0.0.1:11434/api/version
    ```
 
-   Then run `scripts/check.py`, which asks both models six questions. It exits 0 when every answer is correct, and 1 when an answer is wrong. It stops at the first error from `clef.py` and exits with that error's code. For exit 3, see [Fixes for exit 3](#fixes-for-exit-3). The script sits in the `scripts` directory beside this guide. After a plugin install, that is `~/.claude/plugins/cache/gsong-marketplace/clef/<version>/skills/ask/scripts/check.py`. Replace `<version>` with the installed plugin version. For a marketplace added from a local folder, the script is in that folder at `plugins/clef/skills/ask/scripts/check.py`.
+   Then run `scripts/check.py`, which asks both models six questions. It exits 0 when every answer is correct, and 1 when an answer is wrong. It stops at the first error from `clef.py` and exits with that error's code: 2, 3 or 1. An exit 1 from an error prints a `clef:` line on stderr and no count of right answers. For exit 3, see [Fixes for exit 3](#fixes-for-exit-3). The script sits in the `scripts` directory beside this guide. After a plugin install, that is `~/.claude/plugins/cache/gsong-marketplace/clef/<version>/skills/ask/scripts/check.py`. Replace `<version>` with the installed plugin version. For a marketplace added from a local folder, the script is in that folder at `plugins/clef/skills/ask/scripts/check.py`.
 
 To stop the server, run `brew services stop ollama`.
 
