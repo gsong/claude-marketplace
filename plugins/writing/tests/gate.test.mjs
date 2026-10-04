@@ -346,11 +346,15 @@ test("table: the separator row is not checked, its cells are", () => {
     "| Model | Limit |",
     "| ----- | :---: |",
     "|-------|-------|",
+    "--- | :--",
+    "|---",
+    "| --- | --- |  ",
+    "| --- | --- |\r",
     "| clef -- big | 10 |",
   ].join("\n");
   const out = onWrite(draft("technical", body), SHIPPED_RULES) ?? "";
-  assert.doesNotMatch(out, /line [23]: double hyphen/);
-  assert.match(out, /line 4: double hyphen/);
+  assert.doesNotMatch(out, /line [2-7]: double hyphen/);
+  assert.match(out, /line 8: double hyphen/);
 });
 
 // The technical profile is the one that names flags and code most often. A
