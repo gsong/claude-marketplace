@@ -1,6 +1,4 @@
 [tools]
-# Wheels only: building the sdist needs a Go toolchain.
-"pipx:cisco-ai-skill-scanner" = { version = "2.2.0", uvx_args = "--no-build" }
 node = "24.21.0" # prettier installs through npm
 prettier = "3.9.9"
 ruff = "0.16.9"
@@ -36,6 +34,9 @@ run = "zizmor .github/workflows"
 
 [tasks."scan:skills"]
 description = "Scan the plugins for security risks; pass a path to also write SARIF"
+# The tool is declared here, so only this task installs it. uv installs the
+# published wheel. Building from the sdist needs a Go toolchain.
+tools = { "pipx:cisco-ai-skill-scanner" = { version = "2.2.0", uvx_args = "--no-build" } }
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
@@ -43,14 +44,14 @@ set -euo pipefail
 report=()
 if [[ $# -gt 0 ]]; then
   out=$1
-  if [[ $out != /* ]]; then out=$PWD/$out; fi
+  if [[ $out != /* ]]; then out=${MISE_ORIGINAL_CWD:-$PWD}/$out; fi
   report=(--format sarif --output-sarif "$out")
 fi
 policy=$PWD/skill-scanner-policy.yaml
 
-# Scan a copy that holds only the files git would commit. The scanner reads
-# ignored files such as __pycache__, which a CI checkout does not have, and
-# reports their bytecode as critical.
+# Scan a copy that holds only the files git tracks or does not ignore. The
+# scanner reads ignored files such as __pycache__, which a CI checkout does
+# not have, and reports their bytecode as critical.
 copy=$(mktemp -d)
 trap 'rm -rf "$copy"' EXIT
 git ls-files -z --cached --others --exclude-standard plugins |

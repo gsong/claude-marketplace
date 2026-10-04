@@ -29,17 +29,24 @@ jobs:
         with:
           persist-credentials: false
 
-      # Installs only the scanner pinned in mise.toml.
+      # mise installs the scanner through uv, which honors the task's --no-build.
+      - uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
+
+      # The scan:skills task installs the scanner it declares, so skip the global tools.
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
-          install_args: "pipx:cisco-ai-skill-scanner"
+          install: false
 
       # Fails on high or critical findings that skill-scanner-policy.yaml does not suppress.
       - run: mise run scan:skills skill-scan.sarif
 
       # The push to main gives code scanning the baseline that pull requests compare against.
+      # A pull request from a fork gets a read-only token, so it skips the upload.
       - uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
-        if: ${{ !cancelled() && hashFiles('skill-scan.sarif') != '' }}
+        if: >-
+          ${{ !cancelled() && hashFiles('skill-scan.sarif') != ''
+          && (github.event_name == 'push'
+          || github.event.pull_request.head.repo.full_name == github.repository) }}
         with:
           sarif_file: skill-scan.sarif
           category: skill-scanner

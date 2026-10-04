@@ -24,7 +24,7 @@ Spawn **one Agent per plugin** in a single message, so they run in parallel. Use
 
 Done when every plugin in the working list has returned a report.
 
-## Phase 3 — Registry and Root README Validation
+## Phase 3 — Registry, Root README, and Security Scan
 
 Run these checks yourself. Each ends with its **Fix**, as in `plugin-checks.md`.
 
@@ -50,9 +50,9 @@ Each plugin has a `### {PLUGIN_NAME}` section with a blurb, an install block, an
 
 ### Security scan
 
-13. **Skill scan**: run `mise run scan:skills`. Skip this check when mise or the scanner is not installed, and say so in the report. Report each high or critical finding with its rule, skill, and file. **Fix: ask.** The user decides whether to fix the skill or add a suppression with a reason to `skill-scanner-policy.yaml`.
+13. **Skill scan**: run `mise run scan:skills` once for the whole repo. Skip this check when mise or the scanner is not installed, and say so in the report. Report each high or critical finding with its rule, skill, and file. **Fix: ask.** The user decides whether to fix the skill or add a suppression with a reason to `skill-scanner-policy.yaml`.
 
-Done when every check above has a verdict for every plugin.
+Done when checks 1–12 have a verdict for every plugin and check 13 has a verdict for the repo.
 
 ## Phase 4 — Report
 
@@ -84,7 +84,7 @@ Root README
 
 Security Scan
 ─────────────
-[ ] Critical DATA_EXFIL_SOCKET_CONNECT: clef/ask — scripts/clef.py:318
+[ ] High PIPELINE_TAINT_FLOW: example-plugin/example-skill — scripts/install.sh:12
 [✓] No high or critical findings
 
 Summary: X issues found across Y plugins
