@@ -148,7 +148,7 @@ The scan has limits:
 - It reads skill directories only. The hook scan below covers plugin hooks, but a script outside `skills/` that no hook runs goes unscanned.
 - Rules alone catch 7.7% of malicious skills by Cisco's own count. The scan finds known patterns only, and it does not replace a review.
 
-CI also scans the plugin hooks with `scripts/scan-hooks.py`. The hook scan reads `hooks/hooks.json` and any hooks that `plugin.json` declares. It reads each hook command, the scripts that the commands run, and every code file that those scripts name. It skips files under `skills/`, because the skill scan reads them. It runs in the same CI job as the skill scan, so a failed hook scan also blocks the merge.
+CI also scans the plugin hooks with `scripts/scan-hooks.py`. The hook scan reads `hooks/hooks.json` and any hooks that `plugin.json` declares. It reads each hook command, and every code file that a command or a scanned file names. It skips files under `skills/`, because the skill scan reads them. It runs in the same CI job as the skill scan, so a failed hook scan also blocks the merge. The CI log lists each file it scanned.
 
 The hook scan fails when a line does one of these things:
 
@@ -156,6 +156,7 @@ The hook scan fails when a line does one of these things:
 - It pipes text into a shell, or runs a shell on a stream such as `source <(…)`.
 - It opens a connection through `/dev/tcp/` or `/dev/udp/`.
 - It loads a network module, such as Python's `urllib`, Node's `https` or Perl's `LWP`.
+- It fetches code or packages, such as `uvx`, `npx`, `pip install`, `git clone`, or a script header that lists dependencies for uv.
 
 It also fails on an `http` hook, and on a command whose script is missing or sits outside the plugin. A whole-line comment does not count. Run the same scan locally:
 
@@ -163,7 +164,7 @@ It also fails on an `http` hook, and on a command whose script is missing or sit
 mise run scan:hooks
 ```
 
-The hook scan has no suppression file. If a hook needs the network, change the rule in `scripts/scan-hooks.py` and say why in the pull request. The scan matches text only, so a script that builds a command name at run time gets past it.
+The hook scan has no suppression file. If a hook needs the network, change the rule in `scripts/scan-hooks.py` and say why in the pull request. The scan matches text only, so a script that builds a command name at run time gets past it. A hook that runs a script under `skills/` gets past it too, unless the command names that script through `${CLAUDE_PLUGIN_ROOT}`.
 
 ## License
 

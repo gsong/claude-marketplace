@@ -46,7 +46,7 @@ jobs:
 
       - run: uv run --script plugins/clef/hooks/test_allow_clef.py
 
-  scan-hooks:
+  scan-hooks-script:
     runs-on: ubuntu-latest
     permissions:
       contents: read

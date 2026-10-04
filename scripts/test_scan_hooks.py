@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 SCAN = Path(__file__).parent / "scan-hooks.py"
-RUN = '"${CLAUDE_PLUGIN_ROOT}/hooks/run.sh"'
+RUN_COMMAND = '"${CLAUDE_PLUGIN_ROOT}/hooks/run.sh"'
 
 
 def hooks_json(*commands):
@@ -22,7 +22,7 @@ def hooks_json(*commands):
     return json.dumps({"hooks": {"UserPromptSubmit": [{"hooks": hooks}]}})
 
 
-def plugin(root: Path, files: dict[str, str], name="demo"):
+def write_plugin(root: Path, files: dict[str, str], name="demo"):
     """Write a plugin's files under root/plugins/<name>/."""
     for rel, text in files.items():
         path = root / "plugins" / name / rel
@@ -43,15 +43,18 @@ def scan(root: Path):
 
 
 def test_passes_a_hook_with_no_network_use(tmp_path):
-    plugin(tmp_path, {"hooks/hooks.json": hooks_json(RUN), "hooks/run.sh": "echo hi\n"})
+    write_plugin(
+        tmp_path,
+        {"hooks/hooks.json": hooks_json(RUN_COMMAND), "hooks/run.sh": "echo hi\n"},
+    )
     assert scan(tmp_path).returncode == 0
 
 
 def test_fails_a_hook_script_that_calls_curl(tmp_path):
-    plugin(
+    write_plugin(
         tmp_path,
         {
-            "hooks/hooks.json": hooks_json(RUN),
+            "hooks/hooks.json": hooks_json(RUN_COMMAND),
             "hooks/run.sh": "#!/bin/bash\nset -eu\ncurl -s https://example.com\n",
         },
     )
@@ -77,11 +80,24 @@ def test_fails_a_hook_script_that_calls_curl(tmp_path):
         ("run.pl", "use LWP::UserAgent;", "network-module"),
         ("run.pl", "use IO::Socket::INET;", "network-module"),
         ("run.pl", "use HTTP::Tiny;", "network-module"),
+        ("run.sh", "python3 -c 'import urllib.request'", "network-module"),
+        ("run.py", "import sys; import socket", "network-module"),
+        ("run.sh", "perl -MLWP::Simple -e 'getprint $u'", "network-module"),
+        ("run.mjs", "await fetch (url);", "network-module"),
+        ("run.rb", "require 'net/http'", "network-module"),
+        ("run.sh", "uvx some-tool --help", "package-fetch"),
+        ("run.sh", "npx -y some-tool", "package-fetch"),
+        ("run.sh", "pnpm dlx some-tool", "package-fetch"),
+        ("run.sh", "pip install some-tool", "package-fetch"),
+        ("run.sh", "uv run --with some-tool x.py", "package-fetch"),
+        ("run.sh", "git clone https://example.com/x.git", "package-fetch"),
+        ("run.py", '# dependencies = ["some-tool"]', "package-fetch"),
+        ("run.py", "# dependencies = [", "package-fetch"),
     ],
 )
 def test_fails_a_hook_script_with_a_risky_line(tmp_path, script, line, rule):
     command = f'"${{CLAUDE_PLUGIN_ROOT}}/hooks/{script}"'
-    plugin(
+    write_plugin(
         tmp_path,
         {"hooks/hooks.json": hooks_json(command), f"hooks/{script}": f"{line}\n"},
     )
@@ -102,10 +118,17 @@ def test_fails_a_hook_script_with_a_risky_line(tmp_path, script, line, rule):
         "# A redirect from /dev/tcp/HOST/PORT opens a connection.",
         "  # Never curl here.",
         "// fetch(url) would reach the network.",
+        "rows = cursor.fetch(10)",
+        "from http import HTTPStatus",
+        "# dependencies = []",
+        "uv run --script x.py",
     ],
 )
 def test_passes_a_line_that_only_looks_risky(tmp_path, line):
-    plugin(tmp_path, {"hooks/hooks.json": hooks_json(RUN), "hooks/run.sh": f"{line}\n"})
+    write_plugin(
+        tmp_path,
+        {"hooks/hooks.json": hooks_json(RUN_COMMAND), "hooks/run.sh": f"{line}\n"},
+    )
     result = scan(tmp_path)
     assert (result.returncode, result.stdout) == (0, "")
 
@@ -120,10 +143,10 @@ def test_passes_a_line_that_only_looks_risky(tmp_path, line):
     ],
 )
 def test_fails_a_file_the_hook_script_names(tmp_path, mention, path):
-    plugin(
+    write_plugin(
         tmp_path,
         {
-            "hooks/hooks.json": hooks_json(RUN),
+            "hooks/hooks.json": hooks_json(RUN_COMMAND),
             "hooks/run.sh": f"{mention}\n",
             path: "echo ok\ncurl -s https://example.com\n",
         },
@@ -133,11 +156,48 @@ def test_fails_a_file_the_hook_script_names(tmp_path, mention, path):
     assert f"plugins/demo/{path}:2: network-tool:" in result.stdout
 
 
-def test_follows_names_through_several_files(tmp_path):
-    plugin(
+@pytest.mark.parametrize(
+    "command",
+    [
+        '"${CLAUDE_PLUGIN_ROOT}"/hooks/run.sh',
+        "$CLAUDE_PLUGIN_ROOT/hooks/run.sh",
+        'cd "$CLAUDE_PLUGIN_ROOT" && ./hooks/run.sh',
+    ],
+)
+def test_follows_each_way_a_command_names_its_script(tmp_path, command):
+    write_plugin(
         tmp_path,
         {
-            "hooks/hooks.json": hooks_json(RUN),
+            "hooks/hooks.json": hooks_json(command),
+            "hooks/run.sh": "curl https://example.com\n",
+        },
+    )
+    result = scan(tmp_path)
+    assert result.returncode == 1
+    assert "plugins/demo/hooks/run.sh:1: network-tool:" in result.stdout
+
+
+def test_lists_each_file_it_scanned(tmp_path):
+    write_plugin(
+        tmp_path,
+        {
+            "hooks/hooks.json": hooks_json(RUN_COMMAND),
+            "hooks/run.sh": 'source "$here/lib.sh"\n',
+            "hooks/lib.sh": "echo hi\n",
+        },
+    )
+    result = scan(tmp_path)
+    assert (result.returncode, result.stdout) == (0, "")
+    assert "scanned plugins/demo/hooks/hooks.json" in result.stderr
+    assert "scanned plugins/demo/hooks/run.sh" in result.stderr
+    assert "scanned plugins/demo/hooks/lib.sh" in result.stderr
+
+
+def test_follows_names_through_several_files(tmp_path):
+    write_plugin(
+        tmp_path,
+        {
+            "hooks/hooks.json": hooks_json(RUN_COMMAND),
             "hooks/run.sh": 'exec "$here/a.sh"\n',
             "hooks/a.sh": 'exec "$here/run.sh" "$here/b.sh"\n',
             "hooks/b.sh": "wget https://example.com\n",
@@ -149,10 +209,10 @@ def test_follows_names_through_several_files(tmp_path):
 
 
 def test_ignores_a_file_no_hook_names(tmp_path):
-    plugin(
+    write_plugin(
         tmp_path,
         {
-            "hooks/hooks.json": hooks_json(RUN),
+            "hooks/hooks.json": hooks_json(RUN_COMMAND),
             "hooks/run.sh": "echo hi\n",
             "hooks/test_run.py": "import socket\n",
             "bin/other.sh": "curl https://example.com\n",
@@ -162,10 +222,10 @@ def test_ignores_a_file_no_hook_names(tmp_path):
 
 
 def test_leaves_a_named_skill_file_to_the_skill_scan(tmp_path):
-    plugin(
+    write_plugin(
         tmp_path,
         {
-            "hooks/hooks.json": hooks_json(RUN),
+            "hooks/hooks.json": hooks_json(RUN_COMMAND),
             "hooks/run.sh": 'script="$CLAUDE_PLUGIN_ROOT/skills/ask/scripts/ask.py"\n',
             "skills/ask/scripts/ask.py": "import urllib.request\n",
         },
@@ -174,10 +234,10 @@ def test_leaves_a_named_skill_file_to_the_skill_scan(tmp_path):
 
 
 def test_ignores_a_named_file_that_is_not_code(tmp_path):
-    plugin(
+    write_plugin(
         tmp_path,
         {
-            "hooks/hooks.json": hooks_json(RUN),
+            "hooks/hooks.json": hooks_json(RUN_COMMAND),
             "hooks/run.sh": 'rules="$dir/common.md"\n',
             "defaults/common.md": "Never tell the user to curl a URL.\n",
         },
@@ -186,7 +246,7 @@ def test_ignores_a_named_file_that_is_not_code(tmp_path):
 
 
 def test_fails_a_command_whose_script_is_missing(tmp_path):
-    plugin(tmp_path, {"hooks/hooks.json": hooks_json(RUN)})
+    write_plugin(tmp_path, {"hooks/hooks.json": hooks_json(RUN_COMMAND)})
     result = scan(tmp_path)
     assert result.returncode == 1
     assert "plugins/demo/hooks/hooks.json: missing-file: hooks/run.sh" in result.stdout
@@ -194,8 +254,8 @@ def test_fails_a_command_whose_script_is_missing(tmp_path):
 
 def test_fails_a_command_that_reaches_outside_the_plugin(tmp_path):
     command = '"${CLAUDE_PLUGIN_ROOT}/../other/run.sh"'
-    plugin(tmp_path, {"hooks/hooks.json": hooks_json(command)})
-    plugin(tmp_path, {"run.sh": "curl https://example.com\n"}, name="other")
+    write_plugin(tmp_path, {"hooks/hooks.json": hooks_json(command)})
+    write_plugin(tmp_path, {"run.sh": "curl https://example.com\n"}, name="other")
     result = scan(tmp_path)
     assert result.returncode == 1
     assert (
@@ -207,7 +267,7 @@ def test_fails_a_command_that_reaches_outside_the_plugin(tmp_path):
 def test_fails_an_http_hook(tmp_path):
     hook = {"type": "http", "url": "https://example.com/hook"}
     config = {"hooks": {"Stop": [{"hooks": [hook]}]}}
-    plugin(tmp_path, {"hooks/hooks.json": json.dumps(config)})
+    write_plugin(tmp_path, {"hooks/hooks.json": json.dumps(config)})
     result = scan(tmp_path)
     assert result.returncode == 1
     assert (
@@ -221,7 +281,7 @@ def test_fails_a_hook_declared_inline_in_the_manifest(tmp_path):
         "name": "demo",
         "hooks": json.loads(hooks_json("curl https://example.com")),
     }
-    plugin(tmp_path, {".claude-plugin/plugin.json": json.dumps(manifest)})
+    write_plugin(tmp_path, {".claude-plugin/plugin.json": json.dumps(manifest)})
     result = scan(tmp_path)
     assert result.returncode == 1
     assert (
@@ -231,11 +291,11 @@ def test_fails_a_hook_declared_inline_in_the_manifest(tmp_path):
 
 @pytest.mark.parametrize("ref", ["./config/extra.json", ["./config/extra.json"]])
 def test_fails_a_hook_file_the_manifest_names(tmp_path, ref):
-    plugin(
+    write_plugin(
         tmp_path,
         {
             ".claude-plugin/plugin.json": json.dumps({"name": "demo", "hooks": ref}),
-            "config/extra.json": hooks_json(RUN),
+            "config/extra.json": hooks_json(RUN_COMMAND),
             "hooks/run.sh": "nc -l 4444\n",
         },
     )
@@ -245,7 +305,9 @@ def test_fails_a_hook_file_the_manifest_names(tmp_path, ref):
 
 
 def test_fails_an_inline_command_that_calls_wget(tmp_path):
-    plugin(tmp_path, {"hooks/hooks.json": hooks_json("wget -qO- https://example.com")})
+    write_plugin(
+        tmp_path, {"hooks/hooks.json": hooks_json("wget -qO- https://example.com")}
+    )
     result = scan(tmp_path)
     assert result.returncode == 1
     assert "plugins/demo/hooks/hooks.json: network-tool: wget -qO-" in result.stdout
