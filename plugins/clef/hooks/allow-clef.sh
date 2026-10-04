@@ -36,26 +36,28 @@ cmd=$(jq -r 'select(.tool_name == "Bash") | .tool_input.command | strings
 
 script="$CLAUDE_PLUGIN_ROOT/skills/ask/scripts/clef.py"
 apos="'"
+path_flags='image|state-file|batch'
 word='[A-Za-z0-9_.:/][-A-Za-z0-9_.:/]*'
 value="($word|${apos}[^${apos}-][^${apos}]*${apos})"
-flag="(--(model|image|state-file|timeout|guess|batch|ids|lines)(=$value| +$value)|-h|--help)"
+flag="(--(model|$path_flags|timeout|guess|ids|lines)(=$value| +$value)|-h|--help)"
 flags="( +$flag)*"
 # Single-quoted text, where '\'' stands for an apostrophe.
 text="${apos}([^${apos}]|${apos}\\\\${apos}${apos})*${apos}"
 redirect="( +< *($word))?"
 pipe_in="^printf +${apos}%s${apos} +${text}[[:blank:]]*\\|[[:space:]]*"
 end='$'
-# A redirect or path flag whose file is under /dev/ or /proc/, also by way of
-# //, /./ or ../ at its start. This may match inside quoted text too, which only
-# costs a prompt.
-device="(<|--(image|state-file|batch)=?) *${apos}?(/|(\\./)*\\.\\./)[./]*(dev|proc)/"
+# A redirect or path flag whose file is under /dev/ or /proc/. The path may
+# reach there from its start, or by way of any ../ in it, such as /tmp/../dev/.
+# macOS ignores case in paths, so /DEV/ counts too. This may match inside quoted
+# text too, which only costs a prompt.
+device="(<|--($path_flags)=?) *${apos}?(/|[^${apos}]*\\.\\./)[./]*([Dd][Ee][Vv]|[Pp][Rr][Oo][Cc])/"
 
 approve() {
   printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"clef:ask call of clef.py"}}'
 }
 
-# A quoted "$script" matches literally; the unquoted parts are regexes.
 [[ ${cmd#*"$script"} =~ $device ]] && exit 0
+# A quoted "$script" matches literally; the unquoted parts are regexes.
 if [[ $cmd =~ ^"$script"$flags$redirect$end || $cmd =~ $pipe_in"$script"$flags$end ]]; then
   approve
 fi

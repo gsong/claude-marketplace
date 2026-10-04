@@ -21,7 +21,7 @@ CLEF = f"{ROOT}/skills/ask/scripts/clef.py"
 JSON = '{"state": "I was charged twice.", "questions": {"c": {"type": "noul", "instructions": "Complaint?"}}}'
 
 
-def decide(command, root: str | None = ROOT, tool_name="Bash"):
+def decide(command, root: str | None = ROOT, tool_name: str | None = "Bash"):
     """Run the hook on one tool call. Return its decision, or None when it stays silent."""
     payload = json.dumps({"tool_name": tool_name, "tool_input": {"command": command}})
     result = run_hook(payload, root)
@@ -67,6 +67,7 @@ def run_hook(stdin: str, root: str | None):
         f"printf '%s' '{{\"state\": \"I don'\\''t know\", \"questions\": {{}}}}' | {CLEF}",
         f"printf '%s' '{{\"state\": \"Caf\u00e9 \u2014 na\u00efve\", \"questions\": {{}}}}' | {CLEF}",
         f"{CLEF} --image /tmp/dev/a.png --state-file ./proc/state.txt < req.json",
+        f"{CLEF} --image ../devices/a.png --state-file a/../b/dev/state.txt < req.json",
     ],
 )
 def test_allows_a_plain_clef_call(command):
@@ -108,6 +109,12 @@ def test_allows_a_plain_clef_call(command):
         f"{CLEF} --batch ../../dev/stdin",
         f"{CLEF} --image /./dev/zero --image ./../proc/self/fd/0 < req.json",
         f"{CLEF} < /proc/self/fd/0",
+        f"{CLEF} --image /tmp/../dev/zero < req.json",
+        f"{CLEF} --state-file plugins/../../../../dev/tty < req.json",
+        f"{CLEF} --batch '/tmp/a b/../../proc/self/fd/0'",
+        # macOS ignores case in paths, so these name /dev/ files there.
+        f"{CLEF} --image /DEV/zero < req.json",
+        f"{CLEF} --batch=/Dev/stdin",
         f"printf '%s' 'a'; rm x; echo 'b' | {CLEF}",
         f"printf '%s' '{JSON}' | {CLEF} | sh",
         f"printf '%s' \"$(cat ~/.ssh/id_rsa)\" | {CLEF}",
@@ -165,7 +172,10 @@ def test_stays_silent_when_the_root_would_not_run_as_written(root):
 
 def test_whitelists_every_clef_flag_except_out():
     clef_flags = set(re.findall(r'add_argument\(\s*"(--[a-z-]+)"', CLEF_SOURCE.read_text()))
-    hook_flags = {f"--{f}" for f in re.search(r"--\(([a-z|-]+)\)", HOOK.read_text()).group(1).split("|")}
+    hook = HOOK.read_text()
+    path_flags = re.search(r"path_flags='([a-z|-]+)'", hook).group(1)
+    whitelist = re.search(r"--\(([a-z|$_-]+)\)", hook).group(1).replace("$path_flags", path_flags)
+    hook_flags = {f"--{f}" for f in whitelist.split("|")}
     assert hook_flags == clef_flags - {"--out"}
 
 
