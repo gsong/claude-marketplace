@@ -6,7 +6,7 @@ shellcheck = "0.11.0"
 zizmor = "1.30.1"
 
 [tasks.lint]
-description = "Run every lint check that CI runs; CI also runs scan:skills"
+description = "Run every lint check that CI runs; CI also runs scan:skills and scan:hooks"
 depends = ["lint:*"]
 
 [tasks."lint:plugins"]
@@ -38,3 +38,7 @@ description = "Scan the skills for security risks; pass a path to also write SAR
 # published wheel. Building from the sdist needs a Go toolchain.
 tools = { "pipx:cisco-ai-skill-scanner" = { version = "2.2.0", uvx_args = "--no-build" } }
 run = "scripts/scan-skills.sh"
+
+[tasks."scan:hooks"]
+description = "Scan the plugin hooks for network use and shell downloads"
+run = "scripts/scan-hooks.py"

@@ -16,6 +16,6 @@ The evaluation is in PR #103.
 
 ## Consequences
 
-- The scan never reads plugin hooks. #102 tracks that.
+- The scan never reads plugin hooks. A separate repo check, `scripts/scan-hooks.py`, scans them (#102).
 - The scan never reads a script that a skill calls from outside its skill directory. #104 tracks that.
 - Rules find known patterns only. The scan runs no model pass, so it does not replace a review.
