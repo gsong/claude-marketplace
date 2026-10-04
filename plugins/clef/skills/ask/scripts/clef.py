@@ -13,6 +13,7 @@ A --batch line is one call.
 
 Exit codes: 0 answered, 2 bad request, 3 no answer from the server, 1 any other error.
 A --batch run that reaches its last line exits 0, even when some lines failed.
+A --batch run that stops at its time limit exits 0 too, and prints a --lines value for the lines left.
 """
 
 import argparse
@@ -35,6 +36,9 @@ MODELS = ("clef", "clef-flash")
 DEFAULT_MODEL = "clef-flash"
 DEFAULT_TIMEOUT = 120.0
 MAX_TIMEOUT = 86400.0  # one day
+# A batch starts no line that could end later than this, in seconds from its start.
+# It keeps a batch call inside the Bash tool's 600 s limit, past which Claude Code moves the call to the background.
+BATCH_TIME_LIMIT = 570.0
 
 DOCKER_HOST = "host.docker.internal"
 DOCKER_URL = f"http://{DOCKER_HOST}:11434"
@@ -129,6 +133,8 @@ def run_batch(args: argparse.Namespace, log: "_Log") -> int:
     Any other failure stops the run with that failure's exit code.
     A run that reaches its last line exits 0, even with bad lines.
     Claude Code shows a failed command's output only as an excerpt. A nonzero exit would hide answer lines.
+    A run starts no line that could end past BATCH_TIME_LIMIT, counting the request timeout, but always starts one.
+    A run that stops there exits 0 too, and its stop note gives a --lines value for the lines left.
     """
     for flag, key in LINE_KEY_FOR_FLAG.items():
         if getattr(args, flag) not in (None, []):
@@ -141,13 +147,18 @@ def run_batch(args: argparse.Namespace, log: "_Log") -> int:
         chosen = choose_lines(lines, args.ids.split())
     elif args.lines is not None:
         chosen = choose_line_numbers(text, args.lines.split())
+    todo = [i for i, (number, _) in enumerate(lines) if chosen is None or number in chosen]
     out = _open_out(args.out) if args.out else sys.stdout
     url, source = resolve_url()
     answered = failed = 0
+    left = []
+    start = time.monotonic()
     try:
-        for number, line in lines:
-            if chosen is not None and number not in chosen:
-                continue
+        for done, index in enumerate(todo):
+            if done and time.monotonic() - start + args.timeout > BATCH_TIME_LIMIT:
+                left = todo[done:]
+                break
+            number, line = lines[index]
             ref = {"line": number}
             record = log.start()
             try:
@@ -176,10 +187,14 @@ def run_batch(args: argparse.Namespace, log: "_Log") -> int:
             out.close()
 
     summary = f"{answered} answered, {failed} failed"
+    rerun = ""
+    if left:
+        summary = f"stopped at the time limit: {summary}, {len(left)} left"
+        rerun = f"; rerun with --lines '{_lines_value(lines, left)}'"
     if args.out:
-        print(f"{summary} -> {args.out}")
+        print(f"{summary} -> {args.out}{rerun}")
     else:
-        print(f"clef: {summary}", file=sys.stderr)
+        print(f"clef: {summary}{rerun}", file=sys.stderr)
     return EXIT_OK
 
 
@@ -206,23 +221,28 @@ def choose_lines(lines: list[tuple[int, str]], ids: list[str]) -> set[int]:
 def choose_line_numbers(text: str, values: list[str]) -> set[int]:
     """Return the line numbers that --lines names, whether or not those lines have an `id`.
 
-    A listed blank line runs nothing. A value that is not a line number of the file is a bad request.
+    A value is a line number N, or a range A-B: every line from A to B, both included.
+    A listed blank line runs nothing. A value that names a line past the file's end is a bad request,
+    and so is a range that ends before it starts.
     """
     if not values:
         raise _bad("--lines lists no line numbers")
-    bad = [value for value in dict.fromkeys(values) if not re.fullmatch(r"[1-9][0-9]*", value)]
+    unique = list(dict.fromkeys(values))
+    bad = [value for value in unique if not _LINES_VALUE.fullmatch(value)]
     if bad:
-        raise _bad(f"--lines {' '.join(bad)}: not a line number")
+        raise _bad(f"--lines {' '.join(bad)}: not a line number or range")
     # The count that `grep -c ''` gives for `\n` or `\r\n` endings: a last line with no newline counts too.
     count = text.count("\n") + (1 if text and not text.endswith("\n") else 0)
-    # A value with more digits than the count is past the last line. Checking that first keeps
-    # int() off a value over Python's integer digit limit.
-    over = [
-        value for value in dict.fromkeys(values) if len(value) > len(str(count)) or int(value) > count
-    ]
+    # A number with more digits than the count is past the last line. Checking that first keeps
+    # int() off a number over Python's integer digit limit.
+    spans = [(value, *_span(value)) for value in unique]
+    over = [value for value, _, last in spans if _past(last, count)]
     if over:
         raise _bad(f"--lines {' '.join(over)}: the batch file has {count} lines")
-    return {int(value) for value in values}
+    backward = [value for value, first, last in spans if _past(first, int(last))]
+    if backward:
+        raise _bad(f"--lines {' '.join(backward)}: a range must not end before it starts")
+    return {number for _, first, last in spans for number in range(int(first), int(last) + 1)}
 
 
 def read_body(args: argparse.Namespace, body: dict) -> dict:
@@ -417,6 +437,9 @@ class _Log:
 _OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
+_LINES_VALUE = re.compile(r"[1-9][0-9]*(-[1-9][0-9]*)?")
+
+
 class _Parser(argparse.ArgumentParser):
     def error(self, message):
         raise ClefError(message, EXIT_BAD_REQUEST)
@@ -441,9 +464,19 @@ line with no `id` or a bad one, whose line number is. Other lines get no
 result line.
 A listed value that matches no line exits 2 before any call.
 
---lines '1 2 3' runs only the batch lines with these line numbers, whether
-or not they have an `id`. It does not mix with --ids. A listed blank line
-runs nothing. A value past the last line exits 2 before any call.
+--lines '1-50 75 90-100' runs only the batch lines with these line numbers,
+whether or not they have an `id`. A-B is every line from A to B, both
+included. It does not mix with --ids, which takes no ranges. A listed blank
+line runs nothing. A value past the last line, or a range that ends before it
+starts, exits 2 before any call.
+
+A batch run starts no line that could end more than 570 s after the run
+began, counting --timeout, so a run stays inside the Bash tool's 600 s limit.
+It always starts one line. A run that stops at the limit exits 0, and its
+summary becomes the stop note:
+  clef: stopped at the time limit: 40 answered, 1 failed, 59 left; rerun with --lines '42-100'
+Rerun with that --lines value until no stop note appears. The value lists
+line numbers, even for a run with --ids.
 
 When CLEF_LOG names a file, each call appends one JSON line to it, answered
 or failed. A --batch line is one call. A failed call's line holds its stderr
@@ -473,7 +506,7 @@ def _parse_args(argv):
     parser.add_argument("--batch", metavar="IN.jsonl", help="make one call per line of this file")
     parser.add_argument("--out", metavar="OUT.jsonl", help="with --batch, write results here, not to stdout")
     parser.add_argument("--ids", metavar="'ID ...'", help="with --batch, run only the lines with these ids or line numbers")
-    parser.add_argument("--lines", metavar="'N ...'", help="with --batch, run only the lines with these line numbers")
+    parser.add_argument("--lines", metavar="'N A-B ...'", help="with --batch, run only the lines with these line numbers or ranges")
     args = parser.parse_args(argv)
     for flag in ("out", "ids", "lines"):
         if getattr(args, flag) is not None and args.batch is None:
@@ -536,6 +569,32 @@ def _line_ref(item, number):
     if not (isinstance(value, (str, float)) or _is_int(value)):
         raise _bad("`id` must be a string or number")
     return {"id": value}
+
+
+def _span(value):
+    """Return a --lines value's first and last line number, as text. A single number is both."""
+    first, _, last = value.partition("-")
+    return first, last or first
+
+
+def _past(number, limit):
+    """Return whether a number, given as text, is greater than `limit`. A longer number is, and skips int()."""
+    return len(number) > len(str(limit)) or int(number) > limit
+
+
+def _lines_value(lines, left):
+    """Return a --lines value for the batch lines at these indexes of `lines`.
+
+    Lines with only blank lines between them join one range, since a blank line runs nothing.
+    """
+    runs = []
+    for index in left:
+        if runs and runs[-1][1] == index - 1:
+            runs[-1][1] = index
+        else:
+            runs.append([index, index])
+    parts = [str(lines[first][0]) if first == last else f"{lines[first][0]}-{lines[last][0]}" for first, last in runs]
+    return " ".join(parts)
 
 
 def _batch_lines(text):

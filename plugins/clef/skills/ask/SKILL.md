@@ -78,7 +78,7 @@ Batches stay on `clef-flash`. Re-ask only a batch's close lines on `clef`:
    ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --model clef --batch <scratchpad>/batch.jsonl --ids 'T3 T7 12'
    ```
 
-`--ids` runs only the lines it lists. The re-ask writes no file, so it gets no prompt. List at most 100 values in one call. A re-ask of more values runs one call per group of up to 100 values, in the foreground, as "Batch runs" describes. Separate the values with spaces. An `id` that holds a space or an apostrophe cannot go in `--ids`. An `id` that starts with `-` makes the call ask the user. A value matches every line whose `id` or line number reads the same, so a re-ask can run an extra line.
+`--ids` runs only the lines it lists. The re-ask writes no file, so it gets no prompt. It is a batch run, so the time limit and stop note in "Batch runs" apply to it too. Separate the values with spaces. An `id` that holds a space or an apostrophe cannot go in `--ids`. An `id` that starts with `-` makes the call ask the user. A value matches every line whose `id` or line number reads the same, so a re-ask can run an extra line.
 
 ## Keeping tokens down
 
@@ -105,20 +105,26 @@ A batch judges many items with the same questions. Build the batch file in one t
 
    Add no `cd` or `&&` before it, no pipe or `> file` after it, and no `--out`. Each of those can make the call ask the user. Read the result lines from its output. Exit 0 does not mean every line succeeded. Find the failed lines as "Exit codes" describes. When Claude Code saves a large output to a file, read that file with a plain `jq`, with no redirect. To run only some lines, add `--ids` to pick them by `id`, as "Model choice" shows, or `--lines` to pick them by line number.
 
-Run every batch call in the foreground, with the Bash tool's `timeout` set to 600000, its maximum. This is not `clef.py --timeout`, which limits each request. Never run a batch in the background: a `claude -p` session ends without waiting for it, and you lose its answers.
+Run the whole batch file in one call, in the foreground, with the Bash tool's `timeout` set to 600000, its maximum. This is not `clef.py --timeout`, which limits each request. Never run a batch in the background: a `claude -p` session ends without waiting for it, and you lose its answers.
 
-A batch of more than 100 lines runs in parts of up to 100 lines, one call per part:
+`clef.py` stops a batch before the Bash tool's limit. It starts no line that could end more than 570 s after the run began. When it stops early, it exits 0 and prints a stop note on stderr in place of the summary:
 
-1. Count the file's lines with `grep -c '' <scratchpad>/batch.jsonl`.
-2. Run the same batch file once per part, with that part's line numbers in `--lines`. `--lines` takes no ranges, so write out each number. The second part lists 101 to 200:
+```text
+clef: stopped at the time limit: 40 answered, 1 failed, 59 left; rerun with --lines '42-100'
+```
+
+1. Read the run's result lines.
+2. Run the same batch file again, with the `--lines` value from the stop note, as a foreground call alone:
 
    ```sh
-   ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --batch <scratchpad>/batch.jsonl --lines '101 102 103 … 200'
+   ${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py --batch <scratchpad>/batch.jsonl --lines '42-100'
    ```
 
-3. Read each part's result lines before you run the next part.
+3. Repeat until a run prints no stop note.
 
-`--lines` picks a line by its number, even when the line has an `id`. A listed blank line runs nothing. If Claude Code moves a call to the background anyway, wait for its notification before you answer.
+Keep the same `--model` on each rerun. The stop note gives line numbers, even after an `--ids` run.
+
+`--lines` picks a line by its number, even when the line has an `id`. It takes single numbers and ranges, as in `'1-50 75 90-100'`. A listed blank line runs nothing. If Claude Code moves a call to the background anyway, wait for its notification before you answer.
 
 ## `--guess` and `CLEF_LOG`
 
@@ -129,7 +135,7 @@ Neither is required.
 
 ## Exit codes
 
-- **Batch output:** a batch that reaches its last line exits 0, even when some lines failed. Find the failed lines by their `error` key. The stderr line `clef: N answered, M failed` gives the counts. Exit 3 or 1 stops a batch. Each answer line printed before the stop holds a good answer. A batch exits 2 only when the script refuses it before any line runs. It then prints no result lines.
+- **Batch output:** a batch that reaches its last line exits 0, even when some lines failed. Find the failed lines by their `error` key. The stderr line `clef: N answered, M failed` gives the counts. A batch stopped at the time limit exits 0 too, and prints the stop note that "Batch runs" describes. Exit 3 or 1 stops a batch. Each answer line printed before the stop holds a good answer. A batch exits 2 only when the script refuses it before any line runs. It then prints no result lines.
 - **Exit 2, or `"exit": 2` in a batch error line:** fix the request. If the server refused an over-long state, decide yourself. Stepping down to `clef-flash` does not help, because both models have the same window.
 - **Exit 3:** tell the user once, with the stderr line and the fix from "Fixes for exit 3" in `${CLAUDE_PLUGIN_ROOT}/skills/ask/setup.md`. Then decide yourself for the rest of the session. Call Clef again only if the user says the server is back. Never start the server.
 
