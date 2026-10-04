@@ -11,7 +11,6 @@ description: >-
   same questions in one batch run. Do not use when the answer is
   free text, a computed number or an extracted list, or when the
   judgment needs files, tools or history the state does not hold.
-allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/skills/ask/scripts/clef.py *)
 ---
 
 # Ask Clef

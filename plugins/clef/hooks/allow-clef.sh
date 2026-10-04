@@ -2,9 +2,10 @@
 # PreToolUse hook: approve a plain call of this plugin's clef.py, so the clef:ask
 # skill runs it with no Bash prompt.
 #
-# The skill's `allowed-tools` rule should do this alone. Claude Code 2.1.289
-# drops that rule in most turns: see #62. Remove this hook once the
-# rule holds.
+# A skill's `allowed-tools` rule should do this, but Claude Code 2.1.289 drops
+# that rule in most turns. The rule also made Claude Code ask before it loaded
+# the skill, when Claude picked the skill itself: see #66. So clef:ask has no
+# `allowed-tools` line. #62 tracks when the rule can take over from this hook.
 #
 # This pattern decides which commands skip the prompt. It approves two shapes:
 #
