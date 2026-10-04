@@ -153,18 +153,23 @@ CI also scans the plugin hooks with `scripts/scan-hooks.py`. The hook scan reads
 The hook scan fails when a line does one of these things:
 
 - It calls a network tool, such as `curl`, `wget` or `nc`.
-- It pipes text into a shell, or runs a shell on a stream such as `source <(…)`.
+- It pipes text into a shell, or into an interpreter that reads its program from the pipe.
+- It runs a stream or command output as code, such as `source <(…)` or `eval "$(…)"`.
 - It opens a connection through `/dev/tcp/` or `/dev/udp/`.
-- It loads a network module, such as Python's `urllib`, Node's `https` or Perl's `LWP`.
-- It fetches code or packages, such as `uvx`, `npx`, `pip install`, `git clone`, or a script header that lists dependencies for uv.
+- It loads a network module, such as Python's `urllib`, Node's `https` or Perl's `LWP`, or calls `fetch`.
+- It fetches code or packages, such as `uvx`, `npx`, `npm install`, `pip install`, `git clone`, or a script header that lists dependencies for uv.
 
-It also fails on an `http` hook, and on a command whose script is missing or sits outside the plugin. A whole-line comment does not count. Run the same scan locally:
+It also fails on an `http` hook. It fails on a command that runs a script by a path outside `${CLAUDE_PLUGIN_ROOT}`, or whose script is missing. It fails on a file it cannot read or parse. A whole-line comment does not count. Run the same scan locally:
 
 ```
 mise run scan:hooks
 ```
 
-The hook scan has no suppression file. If a hook needs the network, change the rule in `scripts/scan-hooks.py` and say why in the pull request. The scan matches text only, so a script that builds a command name at run time gets past it. A hook that runs a script under `skills/` gets past it too, unless the command names that script through `${CLAUDE_PLUGIN_ROOT}`.
+The hook scan has no suppression file. If a hook needs the network, change the rule in `scripts/scan-hooks.py` and say why in the pull request. The hook scan has these limits:
+
+- It matches text only. It does not detect a command name that a script builds at run time.
+- It does not detect a hook that runs a script under `skills/`, unless the command names that script through `${CLAUDE_PLUGIN_ROOT}`.
+- It checks network use and code fetches only. It does not detect a hook that reads secrets or deletes files.
 
 ## License
 

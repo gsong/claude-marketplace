@@ -40,5 +40,5 @@ tools = { "pipx:cisco-ai-skill-scanner" = { version = "2.2.0", uvx_args = "--no-
 run = "scripts/scan-skills.sh"
 
 [tasks."scan:hooks"]
-description = "Scan the plugin hooks for network use and shell downloads"
+description = "Scan the plugin hooks for network use and code fetches"
 run = "scripts/scan-hooks.py"
