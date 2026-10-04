@@ -68,15 +68,24 @@ def test_fails_a_hook_script_that_calls_curl(tmp_path):
     [
         ("run.sh", 'printf "%s" "$code" | bash', "pipe-to-shell"),
         ("run.sh", 'base64 -d <<<"$x" | sudo sh -s', "pipe-to-shell"),
+        ("run.sh", 'base64 -d <<<"$x" | /bin/sh', "pipe-to-shell"),
+        ("run.sh", 'printf "%s" "$code" | /usr/bin/env bash', "pipe-to-shell"),
+        ("run.sh", 'printf "%s" "$code" | python3 -', "pipe-to-shell"),
+        ("run.sh", 'printf "%s" "$code" | node', "pipe-to-shell"),
         ("run.sh", 'source <(cat "$f")', "shell-from-stream"),
         ("run.sh", 'bash <(cat "$f")', "shell-from-stream"),
+        ("run.sh", 'eval "$(cat "$f")"', "shell-from-stream"),
         ("run.sh", "exec 3<>/dev/tcp/example.com/80", "dev-tcp"),
         ("run.py", "import urllib.request", "network-module"),
         ("run.py", "from http.client import HTTPSConnection", "network-module"),
         ("run.py", "import requests, socket", "network-module"),
+        ("run.py", "from http import client", "network-module"),
+        ("run.py", 'mod = __import__("socket")', "network-module"),
         ("run.mjs", 'import https from "node:https";', "network-module"),
         ("run.mjs", 'const net = require("net");', "network-module"),
         ("run.mjs", "await fetch(url);", "network-module"),
+        ("run.mjs", "await globalThis.fetch(url);", "network-module"),
+        ("run.mjs", "const ws = new WebSocket(url);", "network-module"),
         ("run.pl", "use LWP::UserAgent;", "network-module"),
         ("run.pl", "use IO::Socket::INET;", "network-module"),
         ("run.pl", "use HTTP::Tiny;", "network-module"),
@@ -89,6 +98,10 @@ def test_fails_a_hook_script_that_calls_curl(tmp_path):
         ("run.sh", "npx -y some-tool", "package-fetch"),
         ("run.sh", "pnpm dlx some-tool", "package-fetch"),
         ("run.sh", "pip install some-tool", "package-fetch"),
+        ("run.sh", "npm install some-tool", "package-fetch"),
+        ("run.sh", "gem install some-tool", "package-fetch"),
+        ("run.sh", "go install example.com/tool@latest", "package-fetch"),
+        ("run.sh", "cargo install some-tool", "package-fetch"),
         ("run.sh", "uv run --with some-tool x.py", "package-fetch"),
         ("run.sh", "git clone https://example.com/x.git", "package-fetch"),
         ("run.py", '# dependencies = ["some-tool"]', "package-fetch"),
@@ -122,6 +135,10 @@ def test_fails_a_hook_script_with_a_risky_line(tmp_path, script, line, rule):
         "from http import HTTPStatus",
         "# dependencies = []",
         "uv run --script x.py",
+        "ssh-keygen -lf key.pub",
+        "true || bash-lint x",
+        'printf \'%s\' "$doc" | python3 -c \'import json, sys\'',
+        "from http import HTTPStatus, cookies",
     ],
 )
 def test_passes_a_line_that_only_looks_risky(tmp_path, line):
@@ -140,6 +157,11 @@ def test_passes_a_line_that_only_looks_risky(tmp_path, line):
         ('"$(writing_bin_dir)/tool.pl" "$log"', "bin/tool.pl"),
         ("import helper", "hooks/helper.py"),
         ("from helper import run", "hooks/helper.py"),
+        ("from .helper import run", "hooks/helper.py"),
+        ("from hooks.helper import run", "hooks/helper.py"),
+        ("import os, helper", "hooks/helper.py"),
+        ('const h = require("./helper");', "hooks/helper.js"),
+        ('import h from "./helper";', "hooks/helper.mjs"),
     ],
 )
 def test_fails_a_file_the_hook_script_names(tmp_path, mention, path):
@@ -311,6 +333,71 @@ def test_fails_an_inline_command_that_calls_wget(tmp_path):
     result = scan(tmp_path)
     assert result.returncode == 1
     assert "plugins/demo/hooks/hooks.json: network-tool: wget -qO-" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "command, ref",
+    [
+        ("bash /tmp/evil.sh", "/tmp/evil.sh"),
+        ("bash ~/evil.sh", "~/evil.sh"),
+        ("bash hooks/run.sh", "hooks/run.sh"),
+        ('"$HOME/run.py"', "$HOME/run.py"),
+    ],
+)
+def test_fails_a_command_that_runs_a_script_outside_the_plugin(
+    tmp_path, command, ref
+):
+    write_plugin(
+        tmp_path,
+        {"hooks/hooks.json": hooks_json(command), "hooks/run.sh": "echo hi\n"},
+    )
+    result = scan(tmp_path)
+    assert result.returncode == 1
+    assert f"plugins/demo/hooks/hooks.json: outside-plugin: {ref}" in result.stdout
+
+
+def test_passes_a_command_that_names_a_plugin_directory(tmp_path):
+    command = 'cd "${CLAUDE_PLUGIN_ROOT}/hooks" && "$CLAUDE_PLUGIN_ROOT/hooks/run.sh"'
+    write_plugin(
+        tmp_path,
+        {"hooks/hooks.json": hooks_json(command), "hooks/run.sh": "echo hi\n"},
+    )
+    result = scan(tmp_path)
+    assert (result.returncode, result.stdout) == (0, "")
+
+
+def test_fails_a_hook_file_that_is_not_utf8(tmp_path):
+    write_plugin(tmp_path, {"hooks/hooks.json": hooks_json(RUN_COMMAND)})
+    (tmp_path / "plugins/demo/hooks/run.sh").write_bytes(b"\xff\xfe curl\n")
+    result = scan(tmp_path)
+    assert result.returncode == 1
+    assert (
+        "plugins/demo/hooks/run.sh: unreadable-file: UnicodeDecodeError"
+        in result.stdout
+    )
+
+
+def test_fails_a_hook_config_that_is_not_json(tmp_path):
+    write_plugin(tmp_path, {"hooks/hooks.json": "{not json"})
+    result = scan(tmp_path)
+    assert result.returncode == 1
+    assert "plugins/demo/hooks/hooks.json: bad-json:" in result.stdout
+
+
+def test_fails_a_manifest_hook_ref_that_is_not_a_path(tmp_path):
+    manifest = {"name": "demo", "hooks": [42]}
+    write_plugin(tmp_path, {".claude-plugin/plugin.json": json.dumps(manifest)})
+    result = scan(tmp_path)
+    assert result.returncode == 1
+    assert "plugins/demo/.claude-plugin/plugin.json: bad-hook-ref: 42" in result.stdout
+
+
+def test_fails_an_inline_config_in_a_manifest_hook_list(tmp_path):
+    manifest = {"name": "demo", "hooks": [json.loads(hooks_json("nc -l 4444"))]}
+    write_plugin(tmp_path, {".claude-plugin/plugin.json": json.dumps(manifest)})
+    result = scan(tmp_path)
+    assert result.returncode == 1
+    assert "plugins/demo/.claude-plugin/plugin.json: network-tool: nc" in result.stdout
 
 
 if __name__ == "__main__":
