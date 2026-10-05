@@ -27,14 +27,14 @@ The CI check that reads each plugin hook command, and the code files it names, f
 Cloudflare's decision model. It reads a state of text or JSON, plus up to four images, and answers typed questions about it. A typed question takes a yes/no (`noul`), pick-one (`choice`) or rating (`score`) answer.
 
 **Typed question**:
-A question written as Clef receives it, with a type and instructions. A `choice` or `score` question also lists every option or level. A question that cannot be written this way is not a typed question.
+A question in the form Clef receives: a type, instructions, and each `choice` option or `score` level. Any other question is not typed.
 
 **Decision point**:
 One kind of item, such as an email or a ticket. It holds every typed question a system asks about each item again and again at runtime. One item's facts fit in one Clef state.
 _Avoid_: candidate
 
 **Fit test**:
-The check that decides whether a decision point suits Clef, and whether Clef runs locally or in the cloud. It judges stakes, a source of true answers, latency and fallback.
+The test, run on each decision point, of whether that decision point suits Clef. A decision point fits only if it passes on stakes, latency, fallback and a true-answer source besides Claude. Clef runs on the system's own hardware by default, and in Cloudflare's cloud only when that hardware cannot run it.
 
 **Reject pattern**:
 A named shape that excludes a question from a decision point, or rules out an experiment design. An example is a second opinion on facts Claude has already read.
