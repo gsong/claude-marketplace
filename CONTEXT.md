@@ -23,9 +23,12 @@ The CI check that reads each plugin hook command, and the code files it names, f
 
 ### Clef opportunities
 
+**Clef**:
+Cloudflare's decision model. It reads a state of text or JSON, plus up to four images, and answers typed questions about it. A typed question takes a yes/no (`noul`), pick-one (`choice`) or rating (`score`) answer.
+
 **Decision point**:
-One kind of item, such as an email or a ticket, plus the typed questions a system asks about each one again and again at runtime. One item's facts fit in one Clef state.
+One kind of item, such as an email or a ticket. It holds every typed question a system asks about each item again and again at runtime. One item's facts fit in one Clef state.
 _Avoid_: candidate
 
 **Reject pattern**:
-A named shape that rules a question out of a decision point, such as a second opinion on facts Claude has already read.
+A named shape that excludes a question from a decision point, or rules out an experiment design. An example is a second opinion on facts Claude has already read.
