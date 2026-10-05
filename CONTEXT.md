@@ -38,3 +38,6 @@ The test, run on each decision point, of whether that decision point suits Clef.
 
 **Reject pattern**:
 A named shape that excludes a question from a decision point, or rules out an experiment design. An example is a second opinion on facts Claude has already read.
+
+**Verdict**:
+The recorded outcome for a question or a decision point. A dropped question gets its reason, such as "not typed" or a reject pattern. A decision point gets "fits", "fits, pending a latency measurement" or "no fit", which names what failed.
