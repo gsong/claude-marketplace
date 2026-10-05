@@ -41,3 +41,12 @@ A named shape that excludes a question from a decision point, or rules out an ex
 
 **Verdict**:
 The recorded outcome for a question or a decision point. A dropped question gets its reason, such as "not typed" or a reject pattern. A decision point gets "fits", "fits, pending a latency measurement" or "no fit", which names what failed.
+
+**Experiment**:
+The test of one decision point that fits, run in three stages: offline, shadow mode, then act. Each stage must pass a bar, set before any run, before the next stage starts.
+
+**Baseline**:
+What Clef competes with in an experiment. One baseline is today's behavior at the decision point. The other is a strong LLM that gets the same input, as a reference ceiling.
+
+**Shadow mode**:
+The experiment stage where Clef answers at the real call site but only logs its answers. Today's behavior still acts.
