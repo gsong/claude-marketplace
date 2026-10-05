@@ -7,25 +7,3 @@
 disabled_rules:
   # Plugins take the MIT license in LICENSE at the repo root.
   - MANIFEST_MISSING_LICENSE
-
-suppressions:
-  - rule_id: DATA_EXFIL_SOCKET_CONNECT
-    skills: [ask]
-    paths: [scripts/clef.py]
-    reason: resolve_url() calls getaddrinfo only to test whether the Docker host name resolves.
-  - rule_id: DATA_EXFIL_NETWORK_REQUESTS
-    skills: [ask]
-    paths: [scripts/clef.py]
-    reason: clef.py posts the question to the local Clef server, which is the skill's job.
-  - rule_id: TOOL_ABUSE_UNDECLARED_NETWORK
-    skills: [ask]
-    paths: [SKILL.md]
-    reason: The network use is clef.py's call to the local Clef server.
-  - rule_id: UNDECLARED_NETWORK_DESTINATION
-    skills: [ask]
-    paths: [scripts/test_clef.py]
-    reason: The tests use fixed local server URLs.
-  - rule_id: PIPELINE_TAINT_FLOW
-    skills: [ask]
-    paths: [setup.md]
-    reason: setup.md tells the user how to install uv with Astral's documented installer.
