@@ -42,6 +42,9 @@ A named shape that excludes a question from a decision point, or rules out an ex
 **Verdict**:
 The recorded outcome for a question or a decision point. A dropped question gets its reason, such as "not typed" or a reject pattern. A decision point gets "fits", "fits, pending a latency measurement" or "no fit", which names what failed. A decision point the user skips gets "skipped by user". A decision point the session does not reach gets "not reached".
 
+**Record**:
+The Markdown file that a session looking for Clef opportunities writes as it works. It opens with a review of the outcome and then shows the survey. Each decision point gets an entry with its verdict. A last section holds the experiment rules that every fit shares.
+
 **Experiment**:
 The test of one decision point that fits, run in three stages: offline, shadow mode, then act. Each stage must pass a bar, set before any run, before the next stage starts.
 
