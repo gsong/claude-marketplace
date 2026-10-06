@@ -40,7 +40,7 @@ The test, run on each decision point, of whether that decision point suits Clef.
 A named shape that excludes a question from a decision point, or rules out an experiment design. An example is a second opinion on facts Claude has already read.
 
 **Verdict**:
-The recorded outcome for a question or a decision point. A dropped question gets its reason, such as "not typed" or a reject pattern. A decision point gets "fits", "fits, pending a latency measurement" or "no fit", which names what failed.
+The recorded outcome for a question or a decision point. A dropped question gets its reason, such as "not typed" or a reject pattern. A decision point gets "fits", "fits, pending a latency measurement" or "no fit", which names what failed. A decision point the user skips gets "skipped by user". A decision point the session does not reach gets "not reached".
 
 **Experiment**:
 The test of one decision point that fits, run in three stages: offline, shadow mode, then act. Each stage must pass a bar, set before any run, before the next stage starts.
