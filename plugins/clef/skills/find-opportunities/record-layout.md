@@ -59,7 +59,7 @@ Local before cloud, then by stakes, then by volume.
 <question.id>:
   type: <noul | choice | score>
   instructions: <the full question>
-  criteria:
+  criteria: # choice: this map. score: a list of levels, lowest first.
     <option_id>: <description>
 ```
 

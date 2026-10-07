@@ -13,7 +13,7 @@ Write "decision point" for one kind of item and its questions, never "candidate"
 
 ## Files
 
-- [fit-test.md](fit-test.md): decision points, typed questions, the readable properties F1–F5, the gates and every verdict. Read it before step 3.
+- [fit-test.md](fit-test.md): decision points, typed questions, the readable properties F1–F5, the gates and every verdict. Read it before step 2.
 - [reject-patterns.md](reject-patterns.md): R1–R11. Read it before step 3.
 - [experiment-template.md](experiment-template.md): the shared experiment rules. Step 1 copies it into the record.
 - [record-layout.md](record-layout.md): the record skeleton and the review rules. Read it before step 1.
