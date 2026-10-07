@@ -9,7 +9,7 @@ context:
   add_dirs: [skill]
 execution:
   model: sonnet
-  max_turns: 9
+  max_turns: 14
   timeout_seconds: 80
   allowed_tools: [Write, Edit]
   prompt: |
@@ -92,5 +92,4 @@ graders:
     name: survey-finds-decision-points
     focus: { source: file, path: .eval-record.md }
     criteria: |
-      The record's survey found this decision point, under any name: sorting each email in the shared sales inbox into a folder (sales lead, support request, vendor invoice or spam).
-      Pass if it appears as a decision point. Other decision points may also appear.
+      Read the record's Decision points section. Each decision point there starts with a heading of the form "### <number>. <name>". Pass if one decision point is about sorting emails in the shared sales inbox into folders or categories. Ignore every other decision point, and ignore the verdicts.

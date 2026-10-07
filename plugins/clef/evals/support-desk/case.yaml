@@ -9,8 +9,8 @@ context:
   add_dirs: [skill]
 execution:
   model: sonnet
-  max_turns: 15
-  timeout_seconds: 150
+  max_turns: 20
+  timeout_seconds: 225
   allowed_tools: [Write, Edit]
   prompt: |
     /clef:find-opportunities ./support-desk
@@ -92,7 +92,7 @@ graders:
     name: survey-finds-decision-points
     focus: { source: file, path: .eval-record.md }
     criteria: |
-      The record's survey found both of these decision points, under any name:
-      1. Labeling support tickets by team. Hits include the LLM call in app/labeler.py and the keyword rules in app/rules.py.
-      2. Approving refund requests, from the runbook step in docs/runbook.md.
-      Pass if both appear as decision points. Other decision points may also appear.
+      Read the record's Decision points section. Each decision point there starts with a heading of the form "### <number>. <name>". Pass if both are true:
+      1. One decision point is about labeling or routing support tickets to a team.
+      2. Another decision point is about approving refund requests.
+      Ignore every other decision point, and ignore the verdicts. Fail only if one of the two is missing.
