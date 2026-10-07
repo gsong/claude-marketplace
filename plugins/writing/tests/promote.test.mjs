@@ -155,6 +155,23 @@ test("the reason quotes the corrections it is built from", () => {
   assert.match(out.reason, /say it plainly/);
 });
 
+// Pasted text arrives wrapped in tags. The tags are the same in every turn
+// that quotes something, so they clustered as a pattern of their own.
+test("pasted-text tags never cluster", () => {
+  const log = state(
+    [
+      ["7b3c", "budget", "trim"],
+      ["7b1a", "forecast", "shorten"],
+      ["9f02", "invoice", "clarify"],
+    ].map(([id, quoted, ask]) =>
+      correction(
+        `"\n\n<pasted_content id="${id}">\n${quoted}\n</pasted_content id="${id}">\n\n" ${ask}`,
+      ),
+    ),
+  );
+  assert.equal(promote(log), null);
+});
+
 // Corrections with no reason carry no pattern. They come from served sessions
 // where the transcript was unavailable.
 test("empty reasons never cluster", () => {
