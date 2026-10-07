@@ -21,7 +21,7 @@ execution:
     - A wrong label costs little. Hidden comments stay in the database, and a person works the review queue and can restore any comment.
     - If Clef has no answer, the Worker keeps today's Llama call.
     - The labels: our moderators' past decisions on the review queue, about 5,000 comments. Sam Ortiz rechecks disputes.
-    - Readers never wait on moderation. The blog shows a comment only after the Worker answers, so treat it as background work with no latency budget.
+    - Readers never wait on moderation. The Worker reads new comments from a queue, so it is background work with no latency budget.
     - About 5,000 comments a day, about 150 tokens each.
     - Compare against Claude Opus. Pass bar: Clef ties or beats the Llama call on the comments it answers, and answers at least 70% of them.
 graders:
