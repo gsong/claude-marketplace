@@ -61,6 +61,9 @@ graders:
     pattern: '^\| (\d+) +\|(?![\s\S]*^### \1\. )'
     flags: m
     match: not_contains
+  # allowed_tools leaves Bash out of the session, so the model cannot call
+  # ollama and this grader cannot fail. It checks the no-run rule only in a
+  # run started with --allow-tools Bash.
   - type: tool_used
     name: never-runs-ollama
     tool: Bash
