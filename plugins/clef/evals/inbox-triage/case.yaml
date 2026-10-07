@@ -74,6 +74,12 @@ graders:
     min: 0
     max: 0
   - type: regex
+    name: never-says-candidate
+    target: { source: file, path: .eval-record.md }
+    pattern: '\bcandidates?\b'
+    flags: i
+    match: not_contains
+  - type: regex
     name: fits-pending-the-judge
     target: { source: file, path: .eval-record.md }
     pattern: '\*\*Verdict: fits, pending the judge\b'

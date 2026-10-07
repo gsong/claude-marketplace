@@ -67,6 +67,12 @@ graders:
     min: 0
     max: 0
   - type: regex
+    name: never-says-candidate
+    target: { source: file, path: .eval-record.md }
+    pattern: '\bcandidates?\b'
+    flags: i
+    match: not_contains
+  - type: regex
     name: ticket-labeling-fits
     target: { source: file, path: .eval-record.md }
     pattern: '^### \d+\. (?![^\n]*[Rr]efund)[^\n]*[Tt]icket[^\n]*\n+\*\*Verdict: fits(?:, local|, pending )'

@@ -63,6 +63,12 @@ graders:
     min: 0
     max: 0
   - type: regex
+    name: never-says-candidate
+    target: { source: file, path: .eval-record.md }
+    pattern: '\bcandidates?\b'
+    flags: i
+    match: not_contains
+  - type: regex
     name: review-opens-with-no-fit
     target: { source: file, path: .eval-record.md }
     pattern: '^## Review\n+\**Clef does not fit here'

@@ -71,6 +71,12 @@ graders:
     min: 0
     max: 0
   - type: regex
+    name: never-says-candidate
+    target: { source: file, path: .eval-record.md }
+    pattern: '\bcandidates?\b'
+    flags: i
+    match: not_contains
+  - type: regex
     name: fits-cloud
     target: { source: file, path: .eval-record.md }
     pattern: '\*\*Verdict: fits, cloud\*\*'
