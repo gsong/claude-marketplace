@@ -9,7 +9,7 @@ Find the decision points in a system that Clef could make, run the fit test on e
 
 This skill plans and writes only. It never runs `ollama` and never calls Clef, in any form. Clef first runs in an experiment's offline stage, long after this session ends.
 
-Write "decision point" for one kind of item and its questions. Keep the record's terms: typed question, fit test, reject pattern, verdict, record, experiment, baseline, shadow mode.
+Write "decision point" for one kind of item and its questions, never "candidate". Keep the record's terms: typed question, fit test, reject pattern, verdict, record, experiment, baseline, shadow mode.
 
 ## Files
 
