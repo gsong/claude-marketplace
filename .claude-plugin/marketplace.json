@@ -4,7 +4,7 @@
     "name": "George Song"
   },
   "metadata": {
-    "description": "George Song's Claude Code plugins for git, GitHub, documentation, session memory, Codex integration, repo maintenance, writing, and utilities"
+    "description": "George Song's Claude Code plugins for git, GitHub, documentation, session memory, Clef opportunities, Codex integration, repo maintenance, writing, and utilities"
   },
   "allowCrossMarketplaceDependenciesOn": ["openai-codex"],
   "plugins": [
@@ -23,6 +23,14 @@
       "author": { "name": "George Song" },
       "category": "productivity",
       "keywords": ["memory", "session", "instructions"]
+    },
+    {
+      "name": "clef",
+      "source": "./plugins/clef",
+      "description": "Find where Clef, Cloudflare's decision model, can make a system's repeated decisions, and design an experiment for each fit",
+      "author": { "name": "George Song" },
+      "category": "development",
+      "keywords": ["clef", "cloudflare", "ollama", "decision", "experiment"]
     },
     {
       "name": "codex-tools",

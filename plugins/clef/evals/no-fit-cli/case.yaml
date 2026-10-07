@@ -1,0 +1,88 @@
+schema_version: "1.1"
+name: no-fit-cli
+description: "CLI repo with no fit: the review says Clef does not fit here"
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+  # The run denies reads outside its working directory. skill links to the
+  # skill directory, so the run can read the skill's reference files.
+  add_dirs: [skill]
+execution:
+  model: sonnet
+  max_turns: 15
+  timeout_seconds: 45
+  allowed_tools: [Write, Edit]
+  prompt: |
+    /clef:find-opportunities ./csv2json
+
+    That's a small CLI of ours. You can't ask me questions in this session. If you ask which items it handles again and again, and what it decides about each, my answer is none: it converts one file per run and decides nothing.
+graders:
+  - type: file_exists
+    name: record-exists
+    path: "clef-opportunities/csv2json-????-??-??.md"
+  - type: regex
+    name: record-at-todays-path
+    target: { source: file, path: .eval-record.md }
+    pattern: "^# Clef opportunities: "
+    flags: m
+  - type: regex
+    name: sections-in-order
+    target: { source: file, path: .eval-record.md }
+    pattern: '^# Clef opportunities: [\s\S]*^## Review$[\s\S]*^## Survey$[\s\S]*^## Decision points$[\s\S]*^## Experiment template$'
+    flags: m
+  - type: regex
+    name: every-decision-point-has-a-verdict
+    target: { source: file, path: .eval-record.md }
+    pattern: '^### \d+\. [^\n]*\n+(?!\n)(?!\*\*Verdict: (?:fits, local|fits, cloud|fits, pending |no fit: |skipped by user))'
+    flags: m
+    match: not_contains
+  - type: regex
+    name: none-not-reached
+    target: { source: file, path: .eval-record.md }
+    pattern: 'not reached\*\*|Review not run yet'
+    match: not_contains
+  - type: regex
+    name: review-row-for-every-entry
+    target: { source: file, path: .eval-record.md }
+    pattern: '^### (\d+)\. (?<![\s\S]*^\| \1 +\|[\s\S]*)'
+    flags: m
+    match: not_contains
+  - type: regex
+    name: no-review-row-without-entry
+    target: { source: file, path: .eval-record.md }
+    pattern: '^\| (\d+) +\|(?![\s\S]*^### \1\. )'
+    flags: m
+    match: not_contains
+  - type: tool_used
+    name: never-runs-ollama
+    tool: Bash
+    input_match: "ollama"
+    min: 0
+    max: 0
+  - type: regex
+    name: review-opens-with-no-fit
+    target: { source: file, path: .eval-record.md }
+    pattern: '^## Review\n+\**Clef does not fit here'
+    flags: m
+  - type: regex
+    name: review-says-what-was-searched
+    target: { source: file, path: .eval-record.md }
+    pattern: '^## Review\n(?:(?!^## )[\s\S])*?\b(?:survey|search)'
+    flags: mi
+  - type: regex
+    name: no-fits
+    target: { source: file, path: .eval-record.md }
+    pattern: '^### Fits, in planning order\n+1\. |\*\*Verdict: fits'
+    flags: m
+    match: not_contains
+  - type: regex
+    name: no-open-items
+    target: { source: file, path: .eval-record.md }
+    pattern: '^- \[ \]'
+    flags: m
+    match: not_contains
+  - type: llm
+    name: survey-finds-decision-points
+    focus: { source: file, path: .eval-record.md }
+    criteria: |
+      csv2json converts one CSV file to JSON per run and makes no repeated decisions at runtime. Pass if the record's survey names no decision point that fits, and the record says what the survey searched.

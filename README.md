@@ -36,6 +36,16 @@ Session memory and project instruction management for Claude Code.
 
 **Skills:** `/ai-memory:save`, `/ai-memory:review`
 
+### clef
+
+Find where Clef, Cloudflare's decision model, can make a system's repeated decisions, and design an experiment for each fit.
+
+```
+/plugin install clef@gsong-marketplace
+```
+
+**Skills:** `/clef:find-opportunities`
+
 ### codex-tools
 
 OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi-round consensus discussions via the codex plugin.

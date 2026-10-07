@@ -1,0 +1,98 @@
+schema_version: "1.1"
+name: support-desk
+description: "Support desk repo: one local request-path fit and one no fit on stakes"
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+  # The run denies reads outside its working directory. skill links to the
+  # skill directory, so the run can read the skill's reference files.
+  add_dirs: [skill]
+execution:
+  model: sonnet
+  max_turns: 15
+  timeout_seconds: 150
+  allowed_tools: [Write, Edit]
+  prompt: |
+    /clef:find-opportunities ./support-desk
+
+    That's our support desk repo. You can't ask me questions in this session, so here are my answers up front:
+
+    - Skip nothing, and keep your order.
+    - Ticket team labeling: a wrong label puts a ticket in the wrong team's queue, and an agent there moves it by hand. If Clef has no answer, the app keeps today's path: the keyword rules, then the OpenAI call. Dana Kim, our support lead, will label a random sample of 150 recent tickets, and she rechecks disputes. Labeling runs inside the email webhook request, with a budget of 300 ms. The app server has an NVIDIA GPU with 24 GB of memory, so Clef can run there. Ticket text must stay on our servers. We get about 400 tickets a day. Compare against Claude Opus. Pass bar: Clef ties or beats today's labeling on the tickets it answers, and answers at least 80% of tickets.
+    - Refund approval: the idea is that Clef would decide each refund request and click Approve itself, with no agent checking. A refund cannot be pulled back.
+graders:
+  - type: file_exists
+    name: record-exists
+    path: "clef-opportunities/support-desk-????-??-??.md"
+  - type: regex
+    name: record-at-todays-path
+    target: { source: file, path: .eval-record.md }
+    pattern: "^# Clef opportunities: "
+    flags: m
+  - type: regex
+    name: sections-in-order
+    target: { source: file, path: .eval-record.md }
+    pattern: '^# Clef opportunities: [\s\S]*^## Review$[\s\S]*^## Survey$[\s\S]*^## Decision points$[\s\S]*^## Experiment template$'
+    flags: m
+  - type: regex
+    name: every-decision-point-has-a-verdict
+    target: { source: file, path: .eval-record.md }
+    pattern: '^### \d+\. [^\n]*\n+(?!\n)(?!\*\*Verdict: (?:fits, local|fits, cloud|fits, pending |no fit: |skipped by user))'
+    flags: m
+    match: not_contains
+  - type: regex
+    name: none-not-reached
+    target: { source: file, path: .eval-record.md }
+    pattern: 'not reached\*\*|Review not run yet'
+    match: not_contains
+  - type: regex
+    name: review-row-for-every-entry
+    target: { source: file, path: .eval-record.md }
+    pattern: '^### (\d+)\. (?<![\s\S]*^\| \1 +\|[\s\S]*)'
+    flags: m
+    match: not_contains
+  - type: regex
+    name: no-review-row-without-entry
+    target: { source: file, path: .eval-record.md }
+    pattern: '^\| (\d+) +\|(?![\s\S]*^### \1\. )'
+    flags: m
+    match: not_contains
+  - type: tool_used
+    name: never-runs-ollama
+    tool: Bash
+    input_match: "ollama"
+    min: 0
+    max: 0
+  - type: regex
+    name: ticket-labeling-fits
+    target: { source: file, path: .eval-record.md }
+    pattern: '^### \d+\. (?![^\n]*[Rr]efund)[^\n]*[Tt]icket[^\n]*\n+\*\*Verdict: fits'
+    flags: m
+  - type: regex
+    name: typed-questions-as-yaml
+    target: { source: file, path: .eval-record.md }
+    pattern: '^```yaml\n(?:(?!^```)[\s\S])*?^ +type: (?:noul|choice|score) *$'
+    flags: m
+  - type: regex
+    name: refund-no-fit-on-stakes
+    target: { source: file, path: .eval-record.md }
+    pattern: '^### \d+\. [^\n]*[Rr]efund[^\n]*\n+\*\*Verdict: no fit: [^\n]*(?:stakes|R6)'
+    flags: m
+  - type: regex
+    name: refund-lists-gates-not-asked
+    target: { source: file, path: .eval-record.md }
+    pattern: '^### \d+\. [^\n]*[Rr]efund[^\n]*\n(?:(?!^### )[\s\S])*?\*\*Gates not asked:\*\*'
+    flags: m
+  - type: regex
+    name: open-items-hold-latency-measurement
+    target: { source: file, path: .eval-record.md }
+    pattern: '^### Open items\n(?:(?!^## )[\s\S])*?latency measurement'
+    flags: m
+  - type: llm
+    name: survey-finds-decision-points
+    focus: { source: file, path: .eval-record.md }
+    criteria: |
+      The record's survey found both of these decision points, under any name:
+      1. Labeling support tickets by team. Hits include the LLM call in app/labeler.py and the keyword rules in app/rules.py.
+      2. Approving refund requests, from the runbook step in docs/runbook.md.
+      Pass if both appear as decision points. Other decision points may also appear.
