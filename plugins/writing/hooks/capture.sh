@@ -97,29 +97,27 @@ rewrite=$(sed -n 's/^> //p' <<<"$diff_out")
 # A background task that finishes starts a turn of its own, with a task
 # notification as its prompt. An edit in that turn is not a correction, so it
 # is not logged. Older transcripts carry no origin, and their prompts count as
-# the user's. The first output line says whether the turn belongs to something
-# other than the user. The rest is the reason.
+# the user's. The first output line says whether the turn has prompts and none
+# of them is the user's. The rest is the reason.
 reason=""
 foreign=false
 if [[ -n $transcript && -f $transcript && -n $prompt_id ]]; then
-  found=$(jq -rn --arg pid "$prompt_id" '
+  { IFS= read -r foreign; reason=$(cat); } < <(jq -rn --arg pid "$prompt_id" '
     [ inputs
       | select(.type == "user" and .promptId == $pid)
       | select(has("toolUseResult") | not)
       | select(.isMeta != true)
-    ]
+    ] as $prompts
+    | $prompts
     | map(select((.origin.kind // "human") == "human")) as $human
-    | ($human
+    | ($prompts | length) > 0 and ($human | length) == 0,
+      ($human
        | map(.message.content
              | if type == "string" then .
                else ([.[] | select(.type == "text") | .text] | join("\n"))
                end
-             | select(. != null and . != ""))) as $texts
-    | (($texts | length) == 0 and ($human | length) < length),
-      ($texts | first // "")' "$transcript" 2>/dev/null) || found=false
-  foreign=${found%%$'\n'*}
-  reason=${found#*$'\n'}
-  [[ $found == *$'\n'* ]] || reason=""
+             | select(. != null and . != ""))
+       | first // "")' "$transcript" 2>/dev/null)
 fi
 
 if [[ $foreign == true ]]; then

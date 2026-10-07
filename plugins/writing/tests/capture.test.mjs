@@ -41,9 +41,12 @@ function workspace(profile = "technical") {
   };
 }
 
-// Writes a transcript holding one genuine user prompt plus the noise that sits
-// beside it: tool results, meta records and a prompt from an earlier turn.
-function transcript(ws, promptId, text) {
+// Writes a transcript holding the prompts for promptId plus the noise that sits
+// beside them: tool results, meta records and a prompt from an earlier turn.
+// prompts is one typed prompt's text, or a list of { text, origin } pairs. An
+// origin of undefined leaves the field out, as older transcripts do.
+function transcript(ws, promptId, prompts) {
+  const list = typeof prompts === "string" ? [{ text: prompts }] : prompts;
   const records = [
     {
       type: "user",
@@ -55,7 +58,12 @@ function transcript(ws, promptId, text) {
       promptId,
       message: { content: [{ type: "text", text: "working on it" }] },
     },
-    { type: "user", promptId, message: { content: text } },
+    ...list.map(({ text, origin }) => ({
+      type: "user",
+      promptId,
+      ...(origin && { origin: { kind: origin } }),
+      message: { content: text },
+    })),
     {
       type: "user",
       promptId,
@@ -270,22 +278,6 @@ test("the reason skips tool results, meta records and other turns", () => {
   assert.equal(log(ws)[0].reason, "the real instruction");
 });
 
-// Writes a transcript whose records for promptId are the given prompts, each
-// a { text, origin } pair. An origin of undefined leaves the field out, as
-// older transcripts do.
-function originTranscript(ws, promptId, prompts) {
-  const records = prompts.map(({ text, origin }) => ({
-    type: "user",
-    promptId,
-    ...(origin && { origin: { kind: origin } }),
-    message: { content: text },
-  }));
-  writeFileSync(
-    ws.transcript,
-    `${records.map((r) => JSON.stringify(r)).join("\n")}\n`,
-  );
-}
-
 // A background task that finishes starts a turn with a task notification as
 // its prompt. The user asked for nothing in that turn.
 test("an edit in a turn started by a task notification logs nothing", () => {
@@ -293,7 +285,7 @@ test("an edit in a turn started by a task notification logs nothing", () => {
   transcript(ws, "turn-1", "write me a draft");
   capture(ws, { body: "one\n" });
 
-  originTranscript(ws, "turn-2", [
+  transcript(ws, "turn-2", [
     {
       text: "<task-notification>agent finished</task-notification>",
       origin: "task-notification",
@@ -316,7 +308,7 @@ test("the reason skips a task notification beside a typed prompt", () => {
   transcript(ws, "turn-1", "write me a draft");
   capture(ws, { body: "one\n" });
 
-  originTranscript(ws, "turn-2", [
+  transcript(ws, "turn-2", [
     {
       text: "<task-notification>done</task-notification>",
       origin: "task-notification",
@@ -325,6 +317,38 @@ test("the reason skips a task notification beside a typed prompt", () => {
   ]);
   capture(ws, { body: "two\n", promptId: "turn-2" });
   assert.equal(log(ws)[0].reason, "now make it shorter");
+});
+
+// A typed prompt with no text, such as a pasted image, is still the user's.
+test("a notification beside a prompt with no text still logs the change", () => {
+  const ws = workspace();
+  transcript(ws, "turn-1", "write me a draft");
+  capture(ws, { body: "one\n" });
+
+  transcript(ws, "turn-2", [
+    {
+      text: "<task-notification>done</task-notification>",
+      origin: "task-notification",
+    },
+    { text: [{ type: "image" }], origin: "human" },
+  ]);
+  capture(ws, { body: "two\n", promptId: "turn-2" });
+  const entries = log(ws);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].reason, "");
+});
+
+// The transcript can lag behind the hook. A turn with no record yet is logged,
+// so a real correction is not lost.
+test("a turn missing from the transcript logs the change with no reason", () => {
+  const ws = workspace();
+  transcript(ws, "turn-1", "write me a draft");
+  capture(ws, { body: "one\n" });
+
+  capture(ws, { body: "two\n", promptId: "turn-2" });
+  const entries = log(ws);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].reason, "");
 });
 
 // Served and remote sessions send an empty transcript_path. The edit is still
