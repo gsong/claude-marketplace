@@ -9,7 +9,7 @@ context:
   add_dirs: [skill]
 execution:
   model: sonnet
-  max_turns: 11
+  max_turns: 18
   timeout_seconds: 90
   allowed_tools: [Write, Edit]
   prompt: |
@@ -92,5 +92,4 @@ graders:
     name: survey-finds-decision-points
     focus: { source: file, path: .eval-record.md }
     criteria: |
-      The record's survey found this decision point, under any name: moderating each blog comment (publish, hide or send to review), from the Workers AI call in moderate-comments.js.
-      Pass if it appears as a decision point. Other decision points may also appear.
+      Read the record's Decision points section. Each decision point there starts with a heading of the form "### <number>. <name>". Pass if one decision point is about moderating blog comments. Ignore every other decision point, and ignore the verdicts.

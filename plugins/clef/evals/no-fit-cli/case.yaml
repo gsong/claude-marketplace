@@ -85,4 +85,6 @@ graders:
     name: survey-finds-decision-points
     focus: { source: file, path: .eval-record.md }
     criteria: |
-      csv2json converts one CSV file to JSON per run and makes no repeated decisions at runtime. Pass if the record's survey names no decision point that fits, and the record says what the survey searched.
+      Read the record's Review and Survey sections. Pass if both are true:
+      1. The record says Clef does not fit here, and no decision point has a verdict that starts with "fits".
+      2. The record says what the survey searched or read in csv2json.
