@@ -10,7 +10,7 @@ Find where Clef, Cloudflare's decision model, can make a system's repeated decis
 
 The skill writes its record to `clef-opportunities/<input-name>-<date>.md`. Pass that record back in to resume it.
 
-After each write to a record, a hook formats it with prettier. It uses the project's own prettier in `node_modules/.bin`, else one on `PATH`. It never installs one. Without prettier, the hook does nothing.
+After each write to a record, a hook formats it with prettier. It uses the prettier in `node_modules/.bin` of the directory that holds `clef-opportunities/`, else one on `PATH`. It never installs one. Without prettier or `jq`, the hook does nothing.
 
 The skill plans and writes only. It never runs `ollama` and never calls Clef. Clef first runs in an experiment's offline stage, after the session ends.
 
