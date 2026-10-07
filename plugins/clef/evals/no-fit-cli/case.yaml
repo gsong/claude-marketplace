@@ -76,7 +76,9 @@ graders:
   - type: regex
     name: review-says-what-was-searched
     target: { source: file, path: .eval-record.md }
-    pattern: '^## Review\n(?:(?!^## )[\s\S])*?\b(?:survey|search)'
+    # The line that names the survey must also name csv2json or a file, so
+    # "the survey found nothing" alone does not pass.
+    pattern: '^## Review\n(?:(?!^## )[\s\S])*?\b(?:survey|search)[^\n]*(?:csv2json|\w\.(?:py|md)\b)'
     flags: mi
   - type: regex
     name: no-fits
