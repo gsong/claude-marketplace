@@ -75,8 +75,11 @@ close $lf;
 # precision: the user is the classifier, the hook only decides when to ask.
 my %cluster;
 for my $key (@turn_order) {
+    # Pasted text arrives wrapped in tags that every quoting turn shares.
+    # Drop the tags so they never form a pattern; keep the text they wrap.
+    (my $reason = $turn_reason{$key}) =~ s{</?pasted_content\b[^>]*>}{ }g;
     my %seen;
-    for my $word (map { stem($_) } split /\s+/, $turn_reason{$key}) {
+    for my $word (map { stem($_) } split /\s+/, $reason) {
         next if $seen{$word}++;
         push @{ $cluster{ $turn_profile{$key} }{$word} }, $key;
     }
