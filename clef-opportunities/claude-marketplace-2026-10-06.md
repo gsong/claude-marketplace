@@ -12,28 +12,28 @@ One of 20 decision points fits: the logged draft correction in the writing plugi
 
 ### Verdicts
 
-| #   | Decision point | Side | Signal | Verdict |
-| --- | --- | --- | --- | --- |
-| 1 | [PR review finding](#1-pr-review-finding) | product | LLM call | no fit: no question survived |
-| 2 | [PR review comment from a reviewer](#2-pr-review-comment-from-a-reviewer) | product | LLM call | no fit: no question survived |
-| 3 | [Pull request under review](#3-pull-request-under-review) | product | LLM call | no fit: no question survived |
-| 4 | [docs-ai doc](#4-docs-ai-doc) | product | LLM call | no fit: no question survived |
-| 5 | [Codex discussion reply](#5-codex-discussion-reply) | product | LLM call | no fit: no question survived |
-| 6 | [Outgoing prose](#6-outgoing-prose) | product | rule chain | no fit: no question survived |
-| 7 | [Logged draft correction](#7-logged-draft-correction) | product | rule chain | fits, local |
-| 8 | [Published page text](#8-published-page-text) | product | rule chain | no fit: no question survived |
-| 9 | [User prompt](#9-user-prompt) | product | rule chain | no fit: no question survived |
-| 10 | [Bash tool call](#10-bash-tool-call) | product | rule chain | no fit: no question survived |
-| 11 | [Findings JSON file](#11-findings-json-file) | product | rule chain | no fit: no question survived |
-| 12 | [GitHub issue](#12-github-issue) | product | manual triage | no fit: no question survived |
-| 13 | [Skill-scanner CI finding](#13-skill-scanner-ci-finding) | product | manual triage | no fit: no question survived |
-| 14 | [Dependency upgrade](#14-dependency-upgrade) | product | manual triage | no fit: no question survived |
-| 15 | [zizmor finding](#15-zizmor-finding) | product | manual triage | no fit: no question survived |
-| 16 | [Project-board item](#16-project-board-item) | product | manual triage | no fit: no question survived |
-| 17 | [CLAUDE.md instruction](#17-claudemd-instruction) | Claude | Claude-side | no fit: no question survived |
-| 18 | [Uncommitted change](#18-uncommitted-change) | Claude | Claude-side | no fit: no question survived |
-| 19 | [Headline option](#19-headline-option) | Claude | Claude-side | no fit: no question survived |
-| 20 | [Clef decision point](#20-clef-decision-point) | Claude | Claude-side | no fit: no question survived |
+| #   | Decision point                                                            | Side    | Signal        | Verdict                      |
+| --- | ------------------------------------------------------------------------- | ------- | ------------- | ---------------------------- |
+| 1   | [PR review finding](#1-pr-review-finding)                                 | product | LLM call      | no fit: no question survived |
+| 2   | [PR review comment from a reviewer](#2-pr-review-comment-from-a-reviewer) | product | LLM call      | no fit: no question survived |
+| 3   | [Pull request under review](#3-pull-request-under-review)                 | product | LLM call      | no fit: no question survived |
+| 4   | [docs-ai doc](#4-docs-ai-doc)                                             | product | LLM call      | no fit: no question survived |
+| 5   | [Codex discussion reply](#5-codex-discussion-reply)                       | product | LLM call      | no fit: no question survived |
+| 6   | [Outgoing prose](#6-outgoing-prose)                                       | product | rule chain    | no fit: no question survived |
+| 7   | [Logged draft correction](#7-logged-draft-correction)                     | product | rule chain    | fits, local                  |
+| 8   | [Published page text](#8-published-page-text)                             | product | rule chain    | no fit: no question survived |
+| 9   | [User prompt](#9-user-prompt)                                             | product | rule chain    | no fit: no question survived |
+| 10  | [Bash tool call](#10-bash-tool-call)                                      | product | rule chain    | no fit: no question survived |
+| 11  | [Findings JSON file](#11-findings-json-file)                              | product | rule chain    | no fit: no question survived |
+| 12  | [GitHub issue](#12-github-issue)                                          | product | manual triage | no fit: no question survived |
+| 13  | [Skill-scanner CI finding](#13-skill-scanner-ci-finding)                  | product | manual triage | no fit: no question survived |
+| 14  | [Dependency upgrade](#14-dependency-upgrade)                              | product | manual triage | no fit: no question survived |
+| 15  | [zizmor finding](#15-zizmor-finding)                                      | product | manual triage | no fit: no question survived |
+| 16  | [Project-board item](#16-project-board-item)                              | product | manual triage | no fit: no question survived |
+| 17  | [CLAUDE.md instruction](#17-claudemd-instruction)                         | Claude  | Claude-side   | no fit: no question survived |
+| 18  | [Uncommitted change](#18-uncommitted-change)                              | Claude  | Claude-side   | no fit: no question survived |
+| 19  | [Headline option](#19-headline-option)                                    | Claude  | Claude-side   | no fit: no question survived |
+| 20  | [Clef decision point](#20-clef-decision-point)                            | Claude  | Claude-side   | no fit: no question survived |
 
 ### Fits, in planning order
 
@@ -50,47 +50,47 @@ Local before cloud, then by stakes, then by volume.
 
 **Searched:** every file under `plugins/` (skills, hooks, `bin/`, `scripts/`, references), plus `docs/`, `CONTEXT.md`, `README.md` and `.github/`. Four parallel search subagents ran, one per signal: LLM call, rule chain, manual triage and Claude-side. Eval fixtures under `plugins/clef/evals/` were excluded as test data. No hook or script in the repo calls a model. Every LLM call is a subagent or Codex call made by a skill that the user runs.
 
-| Hit | Signal | Kind of item | Decision point |
-| --- | --- | --- | --- |
-| `plugins/gh-tools/skills/triage/SKILL.md:88-152` | LLM call | PR review finding | 1 |
-| `plugins/gh-tools/skills/review/SKILL.md:115-229` | LLM call | PR review finding | 1 |
-| `plugins/codex-tools/skills/review/SKILL.md:133-146` | rule chain | PR review finding | 1 |
-| `plugins/gh-tools/skills/post-comments/SKILL.md:68-80` | rule chain | PR review finding | 1 |
-| `plugins/gh-tools/skills/post-comments/SKILL.md:128-143` | manual triage | PR review finding | 1 |
-| `plugins/gh-tools/skills/address-review/SKILL.md:44-112` | LLM call | PR review comment from a reviewer | 2 |
-| `plugins/gh-tools/skills/review/SKILL.md:81-111` | LLM call | pull request under review | 3 |
-| `plugins/codex-tools/skills/review/SKILL.md:86-107` | LLM call | pull request under review | 3 |
-| `plugins/ai-docs/skills/check/SKILL.md:35-113` | LLM call | docs-ai doc | 4 |
-| `plugins/ai-docs/skills/lookup/SKILL.md:30-58` | Claude-side | docs-ai doc | 4 |
-| `plugins/ai-docs/skills/audit/SKILL.md:33-110` | LLM call | docs-ai doc | 4 |
-| `plugins/ai-docs/skills/update/SKILL.md:57-100` | LLM call | docs-ai doc | 4 |
-| `plugins/ai-docs/skills/init/SKILL.md:54-95` | LLM call | docs-ai doc | 4 |
-| `plugins/codex-tools/skills/discuss/SKILL.md:59-139` | LLM call | Codex discussion reply | 5 |
-| `plugins/writing/defaults/rules/{common,technical,comms,mixed}.md` | rule chain | outgoing prose | 6 |
-| `plugins/writing/bin/voice-scan.pl:27-139` | rule chain | outgoing prose | 6 |
-| `plugins/writing/hooks/gate.sh:36-159` | rule chain | outgoing prose | 6 |
-| `plugins/writing/hooks/send-lint.py:44-104` | rule chain | outgoing prose | 6 |
-| `plugins/writing/hooks/capture.sh:19-142` | Claude-side | logged draft correction | 7 |
-| `plugins/writing/bin/promote.pl:12-110` | rule chain | logged draft correction | 7 |
-| `plugins/writing/hooks/smart-quotes.py:44-168` | rule chain | published page text | 8 |
-| `plugins/ai-docs/hooks/docs-reminder.sh:10-104` | rule chain | user prompt | 9 |
-| `plugins/writing/hooks/send-lint.sh:15-20` | rule chain | Bash tool call | 10 |
-| `plugins/writing/hooks/surfaces.py:184-260,469-482` | rule chain | Bash tool call | 10 |
-| `plugins/gh-tools/scripts/validate-findings.py:68-142` | rule chain | findings JSON file | 11 |
-| `docs/agents/triage-labels.md:1-14` | manual triage | GitHub issue | 12 |
-| `docs/agents/issue-tracker.md:8-43` | manual triage | GitHub issue | 12 |
-| `README.md:136-140` | manual triage | skill-scanner CI finding | 13 |
-| `plugins/repo-maintenance/skills/gha/SKILL.md:32-85` | manual triage | dependency upgrade | 14 |
-| `plugins/repo-maintenance/skills/pnpm-deps/SKILL.md:17-54` | manual triage | dependency upgrade | 14 |
-| `plugins/repo-maintenance/skills/mise/SKILL.md:44` | manual triage | dependency upgrade | 14 |
-| `plugins/repo-maintenance/skills/pnpm/SKILL.md:77` | Claude-side | dependency upgrade | 14 |
-| `plugins/repo-maintenance/skills/zizmor/SKILL.md:24-48` | manual triage | zizmor finding | 15 |
-| `plugins/gh-tools/skills/project-manager/SKILL.md:23-121` | manual triage | project-board item | 16 |
-| `plugins/ai-memory/skills/review/SKILL.md:17-50` | Claude-side | CLAUDE.md instruction | 17 |
-| `plugins/git-tools/skills/auto-squash/SKILL.md:30-80` | Claude-side | uncommitted change | 18 |
-| `plugins/git-tools/skills/commit/SKILL.md:20` | Claude-side | uncommitted change | 18 |
-| `plugins/writing/skills/draft/SKILL.md:50-60` | Claude-side | headline option | 19 |
-| `plugins/clef/skills/find-opportunities/SKILL.md:40-50` | Claude-side | Clef decision point | 20 |
+| Hit                                                                | Signal        | Kind of item                      | Decision point |
+| ------------------------------------------------------------------ | ------------- | --------------------------------- | -------------- |
+| `plugins/gh-tools/skills/triage/SKILL.md:88-152`                   | LLM call      | PR review finding                 | 1              |
+| `plugins/gh-tools/skills/review/SKILL.md:115-229`                  | LLM call      | PR review finding                 | 1              |
+| `plugins/codex-tools/skills/review/SKILL.md:133-146`               | rule chain    | PR review finding                 | 1              |
+| `plugins/gh-tools/skills/post-comments/SKILL.md:68-80`             | rule chain    | PR review finding                 | 1              |
+| `plugins/gh-tools/skills/post-comments/SKILL.md:128-143`           | manual triage | PR review finding                 | 1              |
+| `plugins/gh-tools/skills/address-review/SKILL.md:44-112`           | LLM call      | PR review comment from a reviewer | 2              |
+| `plugins/gh-tools/skills/review/SKILL.md:81-111`                   | LLM call      | pull request under review         | 3              |
+| `plugins/codex-tools/skills/review/SKILL.md:86-107`                | LLM call      | pull request under review         | 3              |
+| `plugins/ai-docs/skills/check/SKILL.md:35-113`                     | LLM call      | docs-ai doc                       | 4              |
+| `plugins/ai-docs/skills/lookup/SKILL.md:30-58`                     | Claude-side   | docs-ai doc                       | 4              |
+| `plugins/ai-docs/skills/audit/SKILL.md:33-110`                     | LLM call      | docs-ai doc                       | 4              |
+| `plugins/ai-docs/skills/update/SKILL.md:57-100`                    | LLM call      | docs-ai doc                       | 4              |
+| `plugins/ai-docs/skills/init/SKILL.md:54-95`                       | LLM call      | docs-ai doc                       | 4              |
+| `plugins/codex-tools/skills/discuss/SKILL.md:59-139`               | LLM call      | Codex discussion reply            | 5              |
+| `plugins/writing/defaults/rules/{common,technical,comms,mixed}.md` | rule chain    | outgoing prose                    | 6              |
+| `plugins/writing/bin/voice-scan.pl:27-139`                         | rule chain    | outgoing prose                    | 6              |
+| `plugins/writing/hooks/gate.sh:36-159`                             | rule chain    | outgoing prose                    | 6              |
+| `plugins/writing/hooks/send-lint.py:44-104`                        | rule chain    | outgoing prose                    | 6              |
+| `plugins/writing/hooks/capture.sh:19-142`                          | Claude-side   | logged draft correction           | 7              |
+| `plugins/writing/bin/promote.pl:12-110`                            | rule chain    | logged draft correction           | 7              |
+| `plugins/writing/hooks/smart-quotes.py:44-168`                     | rule chain    | published page text               | 8              |
+| `plugins/ai-docs/hooks/docs-reminder.sh:10-104`                    | rule chain    | user prompt                       | 9              |
+| `plugins/writing/hooks/send-lint.sh:15-20`                         | rule chain    | Bash tool call                    | 10             |
+| `plugins/writing/hooks/surfaces.py:184-260,469-482`                | rule chain    | Bash tool call                    | 10             |
+| `plugins/gh-tools/scripts/validate-findings.py:68-142`             | rule chain    | findings JSON file                | 11             |
+| `docs/agents/triage-labels.md:1-14`                                | manual triage | GitHub issue                      | 12             |
+| `docs/agents/issue-tracker.md:8-43`                                | manual triage | GitHub issue                      | 12             |
+| `README.md:136-140`                                                | manual triage | skill-scanner CI finding          | 13             |
+| `plugins/repo-maintenance/skills/gha/SKILL.md:32-85`               | manual triage | dependency upgrade                | 14             |
+| `plugins/repo-maintenance/skills/pnpm-deps/SKILL.md:17-54`         | manual triage | dependency upgrade                | 14             |
+| `plugins/repo-maintenance/skills/mise/SKILL.md:44`                 | manual triage | dependency upgrade                | 14             |
+| `plugins/repo-maintenance/skills/pnpm/SKILL.md:77`                 | Claude-side   | dependency upgrade                | 14             |
+| `plugins/repo-maintenance/skills/zizmor/SKILL.md:24-48`            | manual triage | zizmor finding                    | 15             |
+| `plugins/gh-tools/skills/project-manager/SKILL.md:23-121`          | manual triage | project-board item                | 16             |
+| `plugins/ai-memory/skills/review/SKILL.md:17-50`                   | Claude-side   | CLAUDE.md instruction             | 17             |
+| `plugins/git-tools/skills/auto-squash/SKILL.md:30-80`              | Claude-side   | uncommitted change                | 18             |
+| `plugins/git-tools/skills/commit/SKILL.md:20`                      | Claude-side   | uncommitted change                | 18             |
+| `plugins/writing/skills/draft/SKILL.md:50-60`                      | Claude-side   | headline option                   | 19             |
+| `plugins/clef/skills/find-opportunities/SKILL.md:40-50`            | Claude-side   | Clef decision point               | 20             |
 
 **User changes:** none. The user kept all 20 decision points in the order shown.
 
@@ -223,13 +223,13 @@ The `not_a_correction` option was added on 2026-10-06, during the first labeling
 
 #### Fit test
 
-| Gate | Result | Evidence |
-| --- | --- | --- |
-| F6 stakes | pass | Worst wrong answer: a real voice correction is marked `content`, so its pattern surfaces late or never. Nobody catches it, but it costs one missed rule. The reverse costs one extra question. The user keeps the final act. |
-| F11 fallback | pass | Today every logged correction counts toward the keyword clusters. A log line with no kind keeps counting that way. |
-| F7 judge | pass | The user labels the logged corrections. Claude drafts each label, and the user checks it. |
-| F10 latency | pass | Background. `capture.sh` starts a detached call to Ollama on 127.0.0.1 and writes the kind next to the log line. Nothing waits on it. Bash or Perl can reach Clef there. |
-| Where Clef runs | local | The user's Mac: Apple M4 Max, 64 GB, with `ollama` at `/opt/homebrew/bin/ollama`. |
+| Gate            | Result | Evidence                                                                                                                                                                                                                     |
+| --------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F6 stakes       | pass   | Worst wrong answer: a real voice correction is marked `content`, so its pattern surfaces late or never. Nobody catches it, but it costs one missed rule. The reverse costs one extra question. The user keeps the final act. |
+| F11 fallback    | pass   | Today every logged correction counts toward the keyword clusters. A log line with no kind keeps counting that way.                                                                                                           |
+| F7 judge        | pass   | The user labels the logged corrections. Claude drafts each label, and the user checks it.                                                                                                                                    |
+| F10 latency     | pass   | Background. `capture.sh` starts a detached call to Ollama on 127.0.0.1 and writes the kind next to the log line. Nothing waits on it. Bash or Perl can reach Clef there.                                                     |
+| Where Clef runs | local  | The user's Mac: Apple M4 Max, 64 GB, with `ollama` at `/opt/homebrew/bin/ollama`.                                                                                                                                            |
 
 #### Experiment
 
