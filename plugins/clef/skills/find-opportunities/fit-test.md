@@ -95,7 +95,7 @@ Each decision point gets one of:
 
 - **fits, local**
 - **fits, cloud**
-- **fits, pending <every unknown>**, such as "fits, pending the judge and a latency measurement". Every request-path fit carries "a latency measurement", because the skill never times Clef. The fit-test table still shows local or cloud.
+- **fits, pending <every unknown>**, such as "fits, pending the judge and a latency measurement". Name each unknown in plain words, with no F code: "the judge", never "the F7 judge" or "the judge (F7)". Every request-path fit carries "a latency measurement", because the skill never times Clef. The fit-test table still shows local or cloud.
 - **no fit: <what failed>**: stakes (R6), no judge (F7), no fallback (F11), cannot run locally and the data may not leave, or no question survived.
 - **skipped by user**, with the user's reason.
 - **not reached**, left only when the session stops before it.
