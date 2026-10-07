@@ -3,22 +3,26 @@
 # clef-opportunities/, it formats the record with prettier, so a repo that
 # checks formatting in CI accepts the record as written.
 #
-# It runs only a prettier that is already installed: the project's own in
-# node_modules/.bin, else one on PATH. It never fetches one. Without prettier
-# or jq it does nothing, and it never blocks the write.
+# It runs only a prettier that is already installed: the one in
+# node_modules/.bin of the directory that holds clef-opportunities/, else one
+# on PATH. It never fetches one. Without prettier or jq it does nothing, and
+# it never blocks the write.
 set -uo pipefail
 
 command -v jq &>/dev/null || exit 0
 
 file=$(jq -r '.tool_input.file_path // empty')
-[[ $file == */clef-opportunities/*.md ]] || exit 0
+# The leading slash lets a relative path such as clef-opportunities/x.md match.
+[[ /$file == */clef-opportunities/*.md ]] || exit 0
 [[ -f $file ]] || exit 0
 
-prettier="${CLAUDE_PROJECT_DIR:-.}/node_modules/.bin/prettier"
+root=${file%/clef-opportunities/*}
+[[ $root == "$file" ]] && root=.
+prettier="$root/node_modules/.bin/prettier"
 if [[ ! -x $prettier ]]; then
   prettier=$(command -v prettier) || exit 0
 fi
 
 # The project's prettier config and .prettierignore still apply.
-"$prettier" --write --log-level warn "$file" >/dev/null 2>&1 || true
+"$prettier" --write --log-level warn "$file" >/dev/null 2>&1
 exit 0
