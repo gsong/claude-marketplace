@@ -93,19 +93,39 @@ rewrite=$(sed -n 's/^> //p' <<<"$diff_out")
 # steady from one user prompt to the next, so every edit in a turn pairs with
 # the same words. Records of type "user" also carry tool results and injected
 # context, which are not the user speaking.
+#
+# A background task that finishes starts a turn of its own, with a task
+# notification as its prompt. An edit in that turn is not a correction, so it
+# is not logged. Older transcripts carry no origin, and their prompts count as
+# the user's. The first output line says whether the turn belongs to something
+# other than the user. The rest is the reason.
 reason=""
+foreign=false
 if [[ -n $transcript && -f $transcript && -n $prompt_id ]]; then
-  reason=$(jq -rn --arg pid "$prompt_id" '
+  found=$(jq -rn --arg pid "$prompt_id" '
     [ inputs
       | select(.type == "user" and .promptId == $pid)
       | select(has("toolUseResult") | not)
       | select(.isMeta != true)
-      | .message.content
-      | if type == "string" then .
-        else ([.[] | select(.type == "text") | .text] | join("\n"))
-        end
-      | select(. != null and . != "")
-    ] | (first // "")' "$transcript" 2>/dev/null) || reason=""
+    ]
+    | map(select((.origin.kind // "human") == "human")) as $human
+    | ($human
+       | map(.message.content
+             | if type == "string" then .
+               else ([.[] | select(.type == "text") | .text] | join("\n"))
+               end
+             | select(. != null and . != ""))) as $texts
+    | (($texts | length) == 0 and ($human | length) < length),
+      ($texts | first // "")' "$transcript" 2>/dev/null) || found=false
+  foreign=${found%%$'\n'*}
+  reason=${found#*$'\n'}
+  [[ $found == *$'\n'* ]] || reason=""
+fi
+
+if [[ $foreign == true ]]; then
+  cp "$file" "$snapshot" 2>/dev/null
+  printf '%s' "$prompt_id" >"$snapshot_turn" 2>/dev/null
+  exit 0
 fi
 
 # Two tool calls in one turn can land together. A directory is the one lock

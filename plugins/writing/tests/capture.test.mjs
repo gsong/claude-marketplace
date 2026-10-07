@@ -270,6 +270,63 @@ test("the reason skips tool results, meta records and other turns", () => {
   assert.equal(log(ws)[0].reason, "the real instruction");
 });
 
+// Writes a transcript whose records for promptId are the given prompts, each
+// a { text, origin } pair. An origin of undefined leaves the field out, as
+// older transcripts do.
+function originTranscript(ws, promptId, prompts) {
+  const records = prompts.map(({ text, origin }) => ({
+    type: "user",
+    promptId,
+    ...(origin && { origin: { kind: origin } }),
+    message: { content: text },
+  }));
+  writeFileSync(
+    ws.transcript,
+    `${records.map((r) => JSON.stringify(r)).join("\n")}\n`,
+  );
+}
+
+// A background task that finishes starts a turn with a task notification as
+// its prompt. The user asked for nothing in that turn.
+test("an edit in a turn started by a task notification logs nothing", () => {
+  const ws = workspace();
+  transcript(ws, "turn-1", "write me a draft");
+  capture(ws, { body: "one\n" });
+
+  originTranscript(ws, "turn-2", [
+    {
+      text: "<task-notification>agent finished</task-notification>",
+      origin: "task-notification",
+    },
+  ]);
+  capture(ws, { body: "two\n", promptId: "turn-2", tool: "Edit" });
+  assert.deepEqual(log(ws), []);
+
+  // The snapshot still moves forward, so the next diff starts from "two".
+  transcript(ws, "turn-3", "cut the hedging");
+  capture(ws, { body: "three\n", promptId: "turn-3", tool: "Edit" });
+  const entries = log(ws);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].reason, "cut the hedging");
+  assert.equal(entries[0].original, "two");
+});
+
+test("the reason skips a task notification beside a typed prompt", () => {
+  const ws = workspace();
+  transcript(ws, "turn-1", "write me a draft");
+  capture(ws, { body: "one\n" });
+
+  originTranscript(ws, "turn-2", [
+    {
+      text: "<task-notification>done</task-notification>",
+      origin: "task-notification",
+    },
+    { text: "now make it shorter", origin: "human" },
+  ]);
+  capture(ws, { body: "two\n", promptId: "turn-2" });
+  assert.equal(log(ws)[0].reason, "now make it shorter");
+});
+
 // Served and remote sessions send an empty transcript_path. The edit is still
 // worth logging; only the reason is missing.
 test("an empty transcript path logs the change with no reason", () => {
