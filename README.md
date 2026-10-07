@@ -46,6 +46,8 @@ Find where Clef, Cloudflare's decision model, can make a system's repeated decis
 
 **Skills:** `/clef:find-opportunities`
 
+**Hooks:** `PostToolUse` formats a `clef-opportunities/` record with prettier after each write
+
 ### codex-tools
 
 OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi-round consensus discussions via the codex plugin.
