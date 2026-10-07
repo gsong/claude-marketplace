@@ -172,6 +172,20 @@ test("pasted-text tags never cluster", () => {
   assert.equal(promote(log), null);
 });
 
+// Only the tags go. A pattern in the quoted text is still a pattern.
+test("text inside pasted-text tags still clusters", () => {
+  const log = state(
+    ["7b3c", "7b1a", "9f02"].map((id) =>
+      correction(
+        `"\n\n<pasted_content id="${id}">\nhedging here\n</pasted_content id="${id}">\n\n" no`,
+      ),
+    ),
+  );
+  const out = promote(log);
+  assert.ok(out, "expected the quoted pattern to surface");
+  assert.match(out.reason, /in common is "hedg"/);
+});
+
 // Corrections with no reason carry no pattern. They come from served sessions
 // where the transcript was unavailable.
 test("empty reasons never cluster", () => {
