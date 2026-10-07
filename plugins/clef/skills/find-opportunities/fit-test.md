@@ -71,7 +71,7 @@ Run the gates per decision point, in this order. The first three can fail outrig
 
 1. **F6 stakes.** Pass when a wrong answer costs little. With high stakes, pass only if Clef escalates, orders or pre-sorts, and a person or existing system keeps the final act. Fail under R6 if Clef would decide an irreversible act alone. Record the worst wrong answer and who catches it.
 2. **F11 fallback.** Pass only when the fallback is today's behavior, such as the old model call, the rule chain or the manual queue.
-3. **F7 judge.** Pass when the user names a source of true answers that is not Claude alone. Examples: past outcomes, existing human labels, or a person who will label a sample. The labels need not exist yet. Claude may draft labels for a person to check.
+3. **F7 judge.** Pass when the user names a source of true answers that is not Claude alone. Examples: past outcomes, existing human labels, or a person who will label a sample. The labels need not exist yet. Claude may draft labels for a person to check. When the user names none, list the sources that could serve as "possible judges".
 4. **F10 latency.** Batch or background work passes. A request path records its budget in milliseconds and passes pending a latency measurement. Record whether the call site can call Clef at all.
 5. **Where Clef runs.** Local is the default. Choose the cloud only when local Clef cannot run where the system runs, such as a server without a GPU or a machine without memory for the 11–18 GB model. Latency and volume never move a decision point to the cloud. A cloud choice records four fields:
    - why local Clef cannot run there
