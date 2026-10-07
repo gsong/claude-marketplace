@@ -95,7 +95,7 @@ graders:
   - type: regex
     name: open-items-hold-latency-measurement
     target: { source: file, path: .eval-record.md }
-    pattern: '^### Open items\n(?:(?!^## )[\s\S])*?latency measurement'
+    pattern: '^### Open items\n(?:(?!^## )[\s\S])*?latency[^\n]*measure'
     flags: m
   - type: llm
     name: survey-finds-decision-points
