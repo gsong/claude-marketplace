@@ -583,6 +583,25 @@ test(
   },
 );
 
+// A code sample is not prose, so a long line of code is not a long sentence.
+test(
+  "html: a <pre> block is not scanned",
+  { skip: !HAS_HTML_PARSER && "perl has no HTML::Parser" },
+  () => {
+    const path = htmlDraft();
+    writeFileSync(
+      path,
+      readFileSync(path, "utf-8").replace(
+        "</body>",
+        '<pre>{\n  "banned": 1\n}</pre>\n</body>',
+      ),
+    );
+    const out = onWrite(path, commonPlusBanned());
+    assert.match(out ?? "", /line 3: the word banned/);
+    assert.doesNotMatch(out ?? "", /line [45]:/);
+  },
+);
+
 // A converter failure must not silence the gate. The raw file is scanned
 // instead, noise and all.
 test("html: a failing converter falls back to the raw file", () => {

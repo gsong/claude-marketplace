@@ -12,6 +12,7 @@
 # What it drops, because none of it is prose the reader sees:
 #   - <style> and <script> contents, so CSS declarations stop tripping the
 #     semicolon rule
+#   - <pre> contents, so a code sample stops reading as one long sentence
 #   - HTML comments, which on a client-facing page are notes to ourselves
 #   - the tags themselves
 #
@@ -51,11 +52,11 @@ $total_lines++ if length $html and $html !~ /\n\z/;
 my %BLOCK = map { $_ => 1 } qw(
     p h1 h2 h3 h4 h5 h6 li td th tr blockquote cite caption
     div section article header footer aside main figcaption
-    dt dd pre ul ol dl table thead tbody form
+    dt dd ul ol dl table thead tbody form
 );
 
-# Contents are markup or styling, never prose.
-my %OPAQUE = map { $_ => 1 } qw(style script noscript template svg);
+# Contents are markup, styling or code, never prose.
+my %OPAQUE = map { $_ => 1 } qw(style script noscript template svg pre);
 
 my @out = ('') x $total_lines;
 my $buf   = '';

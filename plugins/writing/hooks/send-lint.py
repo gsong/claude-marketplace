@@ -189,7 +189,7 @@ def _strip_tags(markup: str) -> str:
     def blank(match: re.Match) -> str:
         return "\n" * match.group(0).count("\n")
 
-    text = re.sub(r"(?is)<(style|script|noscript|template)\b.*?</\1\s*>", blank, markup)
+    text = re.sub(r"(?is)<(style|script|noscript|template|pre)\b.*?</\1\s*>", blank, markup)
     text = re.sub(r"(?s)<!--.*?-->", blank, text)
     text = re.sub(r"(?s)<[^>]*>", lambda m: blank(m) or " ", text)
     return html.unescape(text)
