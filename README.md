@@ -38,13 +38,13 @@ Session memory and project instruction management for Claude Code.
 
 ### clef
 
-Find where Clef, Cloudflare's decision model, can make a system's repeated decisions, and design an experiment for each fit.
+Find where Clef, Cloudflare's decision model, can make a system's repeated decisions, design an experiment for each fit, and build software that calls Clef.
 
 ```
 /plugin install clef@gsong-marketplace
 ```
 
-**Skills:** `/clef:find-opportunities`
+**Skills:** `/clef:find-opportunities`, `/clef:build`
 
 **Hooks:** `PostToolUse` formats a `clef-opportunities/` record with prettier after each write
 

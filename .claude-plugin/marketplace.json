@@ -27,10 +27,17 @@
     {
       "name": "clef",
       "source": "./plugins/clef",
-      "description": "Find where Clef, Cloudflare's decision model, can make a system's repeated decisions, and design an experiment for each fit",
+      "description": "Find where Clef, Cloudflare's decision model, can make a system's repeated decisions, design an experiment for each fit, and build software that calls Clef",
       "author": { "name": "George Song" },
       "category": "development",
-      "keywords": ["clef", "cloudflare", "ollama", "decision", "experiment"]
+      "keywords": [
+        "clef",
+        "cloudflare",
+        "ollama",
+        "decision",
+        "experiment",
+        "typesafe"
+      ]
     },
     {
       "name": "codex-tools",
