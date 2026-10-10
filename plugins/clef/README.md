@@ -13,7 +13,14 @@ Find where Clef, Cloudflare's decision model, can make a system's repeated decis
 
 After each write to a record, a `PostToolUse` hook formats it with prettier. It uses the prettier in `node_modules/.bin` of the directory that holds `clef-opportunities/`, else one on `PATH`. It never installs one. Without prettier or `jq`, the hook does nothing.
 
-`/clef:find-opportunities` plans and writes only. It never runs `ollama` and never calls Clef. `/clef:build` writes code that calls Clef, and may run it to test. Clef first runs in an experiment's offline stage, after the session ends.
+`/clef:find-opportunities` plans and writes only. It never runs `ollama` and never calls Clef: Clef first runs in an experiment's offline stage, after the session ends. `/clef:build` writes code that calls Clef, and may run that code to test it.
+
+## Prerequisites
+
+For `/clef:build` only. `/clef:find-opportunities` needs neither.
+
+- [Ollama](https://ollama.com/) with `clef` or `clef-flash` pulled, for local Clef. This is the default.
+- Or a Cloudflare account with [Workers AI](https://developers.cloudflare.com/workers-ai/models/clef/), for Clef in the cloud.
 
 ## Installation
 

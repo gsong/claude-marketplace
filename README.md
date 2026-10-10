@@ -48,6 +48,8 @@ Find where Clef, Cloudflare's decision model, can make a system's repeated decis
 
 **Hooks:** `PostToolUse` formats a `clef-opportunities/` record with prettier after each write
 
+**Requires:** Ollama with `clef` or `clef-flash`, or Workers AI, for `build` only. See the [plugin README](plugins/clef/README.md#prerequisites).
+
 ### codex-tools
 
 OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi-round consensus discussions via the codex plugin.
