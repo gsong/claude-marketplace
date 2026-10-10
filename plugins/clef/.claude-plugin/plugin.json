@@ -1,7 +1,7 @@
 {
   "name": "clef",
   "description": "Find where Clef, Cloudflare's decision model, can make a system's repeated decisions, design an experiment for each fit, and build software that calls Clef",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "author": {
     "name": "George Song"
   },
