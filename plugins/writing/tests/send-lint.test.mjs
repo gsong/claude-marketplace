@@ -384,6 +384,29 @@ test("artifact: without html-prose.pl, HTML is still stripped of markup", () => 
   );
 });
 
+// A code sample is not prose, so the fallback drops <pre> like <style>.
+test("artifact: without html-prose.pl, a <pre> block is not scanned", () => {
+  const bin = tempDir();
+  symlinkSync(
+    join(HERE, "..", "bin", "voice-scan.pl"),
+    join(bin, "voice-scan.pl"),
+  );
+  const dir = tempDir();
+  writeFileSync(
+    join(dir, "page.html"),
+    '<pre>\n{ "techword": 1 }\n</pre>\n<p>Hi techword</p>\n',
+  );
+  const out = lint(call("Artifact", { file_path: "page.html" }, { cwd: dir }), {
+    env: { WRITING_LINE_BIN: bin },
+  });
+  assertAdvisory(out, /page\.html\]\nline 4: the word techword/);
+  assert.doesNotMatch(
+    out.additionalContext,
+    /line [1-3]:/,
+    "a <pre> block was scanned as prose",
+  );
+});
+
 test("artifact: a non-publish action and an asset upload are ignored", () => {
   const dir = tempDir();
   writeFileSync(join(dir, "page.md"), "techword\n");
