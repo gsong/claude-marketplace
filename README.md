@@ -38,17 +38,15 @@ Session memory and project instruction management for Claude Code.
 
 ### clef
 
-Find where Clef, Cloudflare's decision model, can make a system's repeated decisions, design an experiment for each fit, and build software that calls Clef.
+Build software with Clef, Cloudflare's decision model, run locally through Ollama or on Workers AI.
 
 ```
 /plugin install clef@gsong-marketplace
 ```
 
-**Skills:** `/clef:find-opportunities`, `/clef:build`
+**Skills:** `/clef:build`
 
-**Hooks:** `PostToolUse` formats a `clef-opportunities/` record with prettier after each write
-
-**Requires:** Ollama with `clef` or `clef-flash`, or Workers AI, for `build` only. See the [plugin README](plugins/clef/README.md#prerequisites).
+**Requires:** Ollama with `clef` or `clef-flash`, or Workers AI. See the [plugin README](plugins/clef/README.md#prerequisites).
 
 ### codex-tools
 

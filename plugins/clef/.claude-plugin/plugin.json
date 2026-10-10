@@ -1,6 +1,6 @@
 {
   "name": "clef",
-  "description": "Find where Clef, Cloudflare's decision model, can make a system's repeated decisions, design an experiment for each fit, and build software that calls Clef",
+  "description": "Build software with Clef, Cloudflare's decision model, run locally through Ollama or on Workers AI",
   "version": "0.7.0",
   "author": {
     "name": "George Song"
@@ -8,12 +8,5 @@
   "homepage": "https://github.com/gsong/claude-marketplace",
   "repository": "https://github.com/gsong/claude-marketplace",
   "license": "MIT",
-  "keywords": [
-    "clef",
-    "cloudflare",
-    "ollama",
-    "decision",
-    "experiment",
-    "typesafe"
-  ]
+  "keywords": ["clef", "cloudflare", "ollama", "decision", "typesafe"]
 }

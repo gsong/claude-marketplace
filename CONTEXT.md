@@ -21,35 +21,10 @@ The CI check that runs Cisco skill-scanner on each skill directory, together wit
 **Hook scan**:
 The CI check that reads each plugin hook command, and the code files it names, for network use and downloads.
 
-### Clef opportunities
+### Clef
 
 **Clef**:
 Cloudflare's decision model. It reads a state of text or JSON, plus up to four images, and answers typed questions about it. A typed question takes a yes/no (`noul`), pick-one (`choice`) or rating (`score`) answer.
 
 **Typed question**:
 A question in the form Clef receives: a type, instructions, and each `choice` option or `score` level. Any other question is not typed.
-
-**Decision point**:
-One kind of item, such as an email or a ticket. It holds every typed question a system asks about each item again and again at runtime. One item's facts fit in one Clef state.
-_Avoid_: candidate
-
-**Fit test**:
-The test, run on each decision point, of whether that decision point suits Clef. A decision point fits only if it passes on stakes, latency, fallback and a true-answer source besides Claude. Clef runs on the system's own hardware by default, and in Cloudflare's cloud only when that hardware cannot run it.
-
-**Reject pattern**:
-A named shape that excludes a question from a decision point, or rules out an experiment design. An example is a second opinion on facts Claude has already read.
-
-**Verdict**:
-The recorded outcome for a question or a decision point. A dropped question gets its reason, such as "not typed" or a reject pattern. A decision point gets "fits", "fits, pending" or "no fit". "Fits, pending" names what is still unknown, such as the judge or a latency measurement. "No fit" names what failed. A decision point the user skips gets "skipped by user". A decision point the session does not reach gets "not reached".
-
-**Record**:
-The Markdown file that a session looking for Clef opportunities writes as it works. It opens with a review of the outcome and then shows the survey. Each decision point gets an entry with its verdict. A last section holds the experiment rules that every fit shares.
-
-**Experiment**:
-The test of one decision point that fits, run in three stages: offline, shadow mode, then act. Each stage must pass a bar, set before any run, before the next stage starts.
-
-**Baseline**:
-What Clef competes with in an experiment. One baseline is today's behavior at the decision point. The other is a strong LLM that gets the same input, as a reference ceiling.
-
-**Shadow mode**:
-The experiment stage where Clef answers at the real call site but only logs its answers. Today's behavior still acts.
