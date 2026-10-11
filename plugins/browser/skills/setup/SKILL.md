@@ -5,15 +5,15 @@ description: Set up a repo for /browser:chrome. Writes agent-browser.json with a
 
 # Setup
 
-Give a repo its own persistent Chrome: a CDP port (Chrome's remote debugging port) and a profile directory that no other repo uses. Two repos on one port drive the same Chrome, so one repo's session acts with the other repo's logins.
+Give a repo its own persistent Chrome. It gets a CDP port (Chrome's remote debugging port) and a profile directory that no other repo uses. Two repos on one port drive the same Chrome, so one repo's session acts with the other repo's logins.
 
 Setup writes three files at the repo root. It merges into a file that already exists and keeps every entry already there.
 
 ## 1. Check where the session runs
 
-The session is in the **container** when `AGENT_BROWSER_CDP` is set or `uname` is not `Darwin`. In the container, stop and write nothing. Tell the user to run `/browser:setup` in a Claude session on the Mac: the port registry and Chrome's processes live there, out of the container's sight.
+The session is in the **container** when `AGENT_BROWSER_CDP` is set or `uname` is not `Darwin`. In the container, stop and write nothing. Tell the user to run `/browser:setup` in a Claude session on the Mac. The container cannot see the Mac's port registry or Chrome processes.
 
-On the Mac, `cd` to the repo root, `git rev-parse --show-toplevel`.
+On the Mac, `cd` to the root of the current checkout, `git rev-parse --show-toplevel`. Setup writes the files there.
 
 ## 2. agent-browser.json
 
@@ -21,8 +21,8 @@ When `agent-browser.json` exists, leave it as it is. Read its `cdp` and `chromeP
 
 When it is absent:
 
-1. Pick the profile name: the repo directory's name, lowercase, with each run of characters other than letters, digits, `.`, `_` and `-` turned into one `-`.
-2. Check that no other repo owns the name. Another repo owns it when `~/.agent-browser/profiles/<name>` exists, or when `~/.agent-browser/ports` has a line ending in ` <name>`. Then ask the user whether this repo shares that profile's logins or takes another name.
+1. Pick the profile name from the main checkout's directory, so every worktree of the repo gets the same name. That directory is the parent of `git rev-parse --path-format=absolute --git-common-dir`. Lowercase its name. Turn each run of characters other than letters, digits, `.`, `_` and `-` into one `-`.
+2. Check whether another repo owns the name. It does when `~/.agent-browser/profiles/<name>` exists, or when `~/.agent-browser/ports` lists the name. Then ask the user whether this repo shares that profile or takes another name. Sharing means both repos use one Chrome, one port, and one set of logins.
 3. Claim the port:
 
    ```bash
@@ -47,7 +47,7 @@ The step is done when `agent-browser.json` names a `cdp` port and a `chromeProfi
 
 The `browser:start` task lets the user start Chrome from a terminal on the Mac. The plugin cache path holds the version, so the task runs the newest installed copy.
 
-When `mise.toml` already has `[tasks."browser:start"]`, leave the file as it is. Otherwise append this block, creating the file when it is absent:
+When `mise.toml` already defines a `browser:start` task, under any quoting of the table name, leave the file as it is. Otherwise append this block, creating the file when it is absent:
 
 ```toml
 [tasks."browser:start"]
@@ -82,5 +82,5 @@ Tell the user:
 
 - for each of the three files, whether setup wrote it, merged into it, or left it as it was;
 - the port and the profile name;
-- the next step: `/browser:chrome` starts Chrome on the profile, or the user runs `mise run browser:start` on the Mac. The profile starts signed out, so the user signs in once in that Chrome window, and the profile keeps the logins;
+- the next step: `/browser:chrome` starts Chrome on the profile, as does `mise run browser:start` on the Mac. The profile starts signed out. The user signs in once in that Chrome window, and the profile keeps the logins;
 - to commit the three files, so teammates and the container get the same setup.

@@ -1,6 +1,6 @@
 // Drives skills/chrome/scripts/ports as a subprocess. The setup skill runs
-// `ports claim <profile>` on the Mac to give a new repo a CDP port that no
-// other repo uses, and records it in ~/.agent-browser/ports.
+// `ports claim <name>` on the Mac for a new repo. It prints a port no other
+// repo uses, and records it in the registry, ~/.agent-browser/ports.
 
 import assert from "node:assert/strict";
 import { test } from "node:test";

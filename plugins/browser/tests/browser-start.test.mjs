@@ -110,6 +110,11 @@ for (const [what, json, key] of [
     '{ "cdp": 10082, "chromeProfile": "a/b" }',
     /chromeProfile/,
   ],
+  [
+    "a profile name with a space",
+    '{ "cdp": 10082, "chromeProfile": "people matcher" }',
+    /chromeProfile/,
+  ],
 ]) {
   test(`stops when agent-browser.json has ${what}`, () => {
     const w = world();

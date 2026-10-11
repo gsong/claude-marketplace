@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Keeps ~/.agent-browser/ports, the registry of the CDP port each repo's Chrome
-# uses, so no two repos share one. Each line is "<port> <chromeProfile>".
+# Keeps ~/.agent-browser/ports, the registry of each repo's Chrome debugging
+# port. It keeps two repos off one port. Each line is "<port> <chromeProfile>".
 #
-#   ports claim <profile>          prints a free port for the profile and records it
-#   ports record <port> <profile>  records the port a repo's Chrome runs on
+#   ports claim <name>          prints a free port for the profile and records it
+#   ports record <port> <name>  records the port a repo's Chrome runs on
 #
 # The setup skill runs claim for a new repo. browser-start runs record, so a
 # repo set up by hand joins the registry the next time its Chrome starts.
@@ -12,7 +12,7 @@ set -euo pipefail
 registry=$HOME/.agent-browser/ports
 
 usage() {
-  echo "usage: ports claim <profile> | ports record <port> <profile>" >&2
+  echo "usage: ports claim <name> | ports record <port> <name>" >&2
   exit 2
 }
 
@@ -29,9 +29,9 @@ claim() {
     echo "ports claim reads the Mac's Chrome processes and registry. Run it on the Mac." >&2
     exit 1
   fi
-  check_profile "$1"
+  check_name "$1"
   local used port
-  port=$(port_of "$1")
+  port=$(port_for_name "$1")
   if [ -n "$port" ]; then
     echo "$port"
     return 0
@@ -39,8 +39,7 @@ claim() {
   used=$(registered_ports; chrome_ports)
   for port in $(seq 10100 10199); do
     if ! grep -qx "$port" <<<"$used" && nothing_listens "$port"; then
-      mkdir -p "$(dirname "$registry")"
-      echo "$port $1" >>"$registry"
+      record "$port" "$1"
       echo "$port"
       return 0
     fi
@@ -50,27 +49,27 @@ claim() {
 }
 
 # Gives the profile this port, and drops any older line for it. When another
-# profile holds the port, it only warns: the caller still starts Chrome, and
-# browser-start refuses if that other profile's Chrome is the one running.
+# profile holds the port, record only warns. browser-start then still starts
+# Chrome, unless that other profile's Chrome is the one running.
 record() {
-  check_profile "$2"
+  check_name "$2"
   local holder
-  holder=$(profile_on "$1")
+  holder=$(name_for_port "$1")
   [ "$holder" != "$2" ] || return 0
   if [ -n "$holder" ]; then
     echo "$registry gives port $1 to the profile $holder. Two repos on one port drive the same Chrome, so give this repo its own cdp port in agent-browser.json." >&2
     return 0
   fi
   mkdir -p "$(dirname "$registry")"
-  local next=$registry.$$
-  { [ ! -f "$registry" ] || awk -v profile="$2" '$2 != profile' "$registry"; } >"$next"
-  echo "$1 $2" >>"$next"
-  mv -f "$next" "$registry"
+  local updated=$registry.$$
+  { [ ! -f "$registry" ] || awk -v name="$2" '$2 != name' "$registry"; } >"$updated"
+  echo "$1 $2" >>"$updated"
+  mv -f "$updated" "$registry"
 }
 
-# The name becomes a directory under ~/.agent-browser/profiles, and a field in
-# a registry line, so it may hold neither a slash nor a space.
-check_profile() {
+# The name becomes a directory under ~/.agent-browser/profiles, so it holds no
+# slash. It is also a field in a registry line, so it holds no space.
+check_name() {
   case $1 in
     "" | . | .. | */* | *[[:space:]]*)
       echo "\"$1\" is not a profile name. Give one directory name under ~/.agent-browser/profiles, such as \"people-matcher\"." >&2
@@ -79,11 +78,11 @@ check_profile() {
   esac
 }
 
-port_of() {
-  [ ! -f "$registry" ] || awk -v profile="$1" '$2 == profile { print $1; exit }' "$registry"
+port_for_name() {
+  [ ! -f "$registry" ] || awk -v name="$1" '$2 == name { print $1; exit }' "$registry"
 }
 
-profile_on() {
+name_for_port() {
   [ ! -f "$registry" ] || awk -v port="$1" '$1 == port { print $2; exit }' "$registry"
 }
 
@@ -98,8 +97,8 @@ chrome_ports() {
   ps -axo command= | grep -oE -- '--remote-debugging-port=[0-9]+' | cut -d= -f2 || true
 }
 
-# curl exits 7 only when nothing accepts the connection. Any other result,
-# even a timeout or a reply that is not HTTP, means a program holds the port.
+# curl exits 7 only when nothing accepts the connection. Any other exit means
+# a program holds the port, even one that times out or replies without HTTP.
 nothing_listens() {
   local status=0
   curl -s --max-time 1 "http://127.0.0.1:$1/" >/dev/null || status=$?
