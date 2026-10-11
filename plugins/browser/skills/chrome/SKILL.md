@@ -16,12 +16,12 @@ Two facts pick the mode:
 - **Where:** the session is in the **container** when `AGENT_BROWSER_CDP` is set or `uname` is not `Darwin`. Otherwise it is on the **Mac**.
 - **Sidecar:** the repo root holds `agent-browser.json`, which names the CDP port (`cdp`) and the persistent profile (`chromeProfile`).
 
-| Where     | Sidecar | Mode                                                                       |
-| --------- | ------- | -------------------------------------------------------------------------- |
-| Mac       | yes     | **Persistent**: start Chrome on the repo's profile                         |
-| Mac       | no      | **Scratch**: start Chrome on a throwaway profile                           |
-| Container | yes     | **Remote**: reach the Chrome a human runs on the Mac                       |
-| Container | no      | Stop. Tell the user the repo needs `agent-browser.json` with a `cdp` port. |
+| Where     | Sidecar | Mode                                                                 |
+| --------- | ------- | -------------------------------------------------------------------- |
+| Mac       | yes     | **Persistent**: start Chrome on the repo's profile                   |
+| Mac       | no      | **Scratch**: start Chrome on a throwaway profile                     |
+| Container | yes     | **Remote**: reach the Chrome a human runs on the Mac                 |
+| Container | no      | Stop. Tell the user to run `/browser:setup` in a session on the Mac. |
 
 The container never launches Chrome.
 
@@ -45,7 +45,7 @@ It opens Chrome on `~/.agent-browser/profiles/<chromeProfile>`, or reports that 
 "${CLAUDE_PLUGIN_ROOT}/skills/chrome/scripts/scratch-chrome" start "<scratchpad>"
 ```
 
-It prints `port=<port>` and `profile=<dir>`. Pass `--cdp <port>` to every `agent-browser` command. The profile starts signed out of everything.
+It prints `port=<port>` and `profile=<dir>`. Pass `--cdp <port>` to every `agent-browser` command. The profile starts signed out of everything. For logins that outlive the session, `/browser:setup` gives the repo a persistent profile.
 
 **Remote.** Probe the Mac's Chrome:
 

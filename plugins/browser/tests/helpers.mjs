@@ -85,6 +85,20 @@ export function world() {
         lines.map((l) => `${l}\n`).join(""),
       );
     },
+    // The port registry, ~/.agent-browser/ports: one "<port> <profile>" line
+    // per repo.
+    registryHolds(...lines) {
+      mkdirSync(join(dirs.home, ".agent-browser"), { recursive: true });
+      writeFileSync(
+        join(dirs.home, ".agent-browser", "ports"),
+        lines.map((l) => `${l}\n`).join(""),
+      );
+    },
+    registry() {
+      const file = join(dirs.home, ".agent-browser", "ports");
+      if (!existsSync(file)) return [];
+      return readFileSync(file, "utf8").split("\n").filter(Boolean);
+    },
     // The argument lists open was called with, one array per call.
     openCalls() {
       const log = join(dirs.state, "open.log");
