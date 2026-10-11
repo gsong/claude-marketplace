@@ -41,13 +41,32 @@ When it is absent:
    }
    ```
 
-The step is done when `agent-browser.json` names a `cdp` port and a `chromeProfile`.
+Then check that git will commit the file. `git check-ignore -q agent-browser.json` exits 0 when a rule ignores it. An ignored file never reaches teammates or the container, and `git add -A` skips it without a word. `git check-ignore -v agent-browser.json` names the rule and the file that holds it. Show the user that rule, and ask before changing it:
+
+- When the rule is a line in the repo's `.gitignore` that names only `agent-browser.json`, offer to delete that line.
+- Otherwise, such as `*.json` or a rule outside the repo, offer to append `!/agent-browser.json` to the root `.gitignore`.
+
+The step is done when `agent-browser.json` names a `cdp` port and a `chromeProfile`, and git does not ignore it, unless the user chose to keep it ignored.
 
 ## 3. mise.toml
 
 The `browser:start` task lets the user start Chrome from a terminal on the Mac. The plugin cache path holds the version, so the task runs the newest installed copy.
 
-When `mise.toml` already defines a `browser:start` task, under any quoting of the table name, leave the file as it is. Otherwise append this block, creating the file when it is absent:
+mise defines a task from a config file such as `mise.toml`, or from an executable file such as `mise-tasks/browser/start`. Ask mise for any source:
+
+```bash
+mise tasks info browser:start --json
+```
+
+Read `source`, the file that defines the task:
+
+- **Exit 1, or `source` outside the repo:** the repo has no task. Append the block below.
+- **`source` is a `.toml` file in the repo:** leave it as it is.
+- **`source` is another file in the repo:** a file task already defines `browser:start`, and appending would leave two definitions. Show the user the path, and ask whether to replace it with the block below or keep it. To replace it, delete the file, then append the block.
+
+When mise fails for another reason, such as an untrusted `mise.toml`, show the user its message and stop.
+
+Append this block to `mise.toml`, creating the file when it is absent:
 
 ```toml
 [tasks."browser:start"]
@@ -82,6 +101,8 @@ Add each key inside the existing `extraKnownMarketplaces` and `enabledPlugins` o
 Tell the user:
 
 - for each of the three files, whether setup wrote it, merged into it, or left it as it was;
+- whether git ignores `agent-browser.json`. When the user kept it ignored, say that the setup stays on this Mac;
+- whether setup deleted a file task that defined `browser:start`;
 - the port and the profile name;
 - the next step: `/browser:chrome` starts Chrome on the profile, as does `mise run browser:start` on the Mac. The profile starts signed out. The user signs in once in that Chrome window, and the profile keeps the logins;
 - to commit the three files, so teammates and the container get the same setup.
