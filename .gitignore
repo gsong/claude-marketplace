@@ -1,2 +1,3 @@
 # Output of `claude plugin eval`
 plugins/*/evals/results/
+.worktrees/
