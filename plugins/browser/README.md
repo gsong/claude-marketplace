@@ -11,7 +11,7 @@
 
 ## Modes
 
-`/browser:chrome` picks a mode from two facts: where the session runs, and whether the repo has an `agent-browser.json`. The skill treats a session as the container when `AGENT_BROWSER_CDP` is set or the OS is not macOS.
+`/browser:chrome` picks a mode from two facts: where the session runs, and whether an `agent-browser.json` sits in the current directory or one above it. The nearest one wins, so a session inside a nested clone uses its workspace's file. The skill treats a session as the container when `AGENT_BROWSER_CDP` is set or the OS is not macOS.
 
 | Where     | `agent-browser.json` | What the skill does                                                                                 |
 | --------- | -------------------- | --------------------------------------------------------------------------------------------------- |
