@@ -11,6 +11,15 @@ This skill owns the setup and the habits. For command syntax, load the `agent-br
 
 ## 1. Pick the mode
 
+First find the **repo root**: the nearest directory, from the current one upward, that holds `agent-browser.json`.
+
+```bash
+dir=$PWD
+while [ "$dir" != / ] && [ ! -f "$dir/agent-browser.json" ]; do dir=$(dirname "$dir"); done
+```
+
+When the loop stops at `/`, no directory holds one, and the repo root is `git rev-parse --show-toplevel`. Search upward even inside a git repo: a workspace of nested clones keeps one `agent-browser.json` at its top, above each clone's own git root. Every later step means this directory by "repo root".
+
 Two facts pick the mode:
 
 - **Where:** the session is in the **container** when `AGENT_BROWSER_CDP` is set or `uname` is not `Darwin`. Otherwise it is on the **Mac**.
