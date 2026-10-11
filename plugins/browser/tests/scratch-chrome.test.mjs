@@ -192,3 +192,14 @@ test("stop refuses a path that climbs out of the scratchpad", () => {
   assert.equal(r.status, 1);
   assert.ok(existsSync(join(real, "Cookies")));
 });
+
+test("start removes the profile when Chrome does not answer", () => {
+  const w = world();
+  const pad = scratchpad(w);
+  const r = w.run("scratch-chrome", ["start", pad], {
+    CHROME_WAIT_SECONDS: "1",
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /did not answer/);
+  assert.deepEqual(readdirSync(pad), []);
+});

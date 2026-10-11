@@ -40,14 +40,21 @@ if curl -sf --max-time 1 "$url" >/dev/null; then
   # Chrome's helper processes carry the browser's flags too, plus --type=.
   # pgrep cannot print the whole command line, which holds the profile.
   # shellcheck disable=SC2009
-  holder=$(ps -axo command= |
+  chrome=$(ps -axo command= |
     grep -E -- "--remote-debugging-port=$port( |\$)" |
     grep -v -- ' --type=' |
-    sed -n '1s/.*--user-data-dir=//; 1s/ --.*//; 1p' || true)
-  if [ -z "$holder" ]; then
+    head -n 1 || true)
+  if [ -z "$chrome" ]; then
     echo "Something answers on port $port, but no Chrome with --remote-debugging-port=$port shows in ps. Free the port, or change cdp in $sidecar." >&2
     exit 1
   fi
+  case $chrome in
+    *--user-data-dir=*)
+      holder=${chrome#*--user-data-dir=}
+      holder=${holder%% --*}
+      ;;
+    *) holder="Chrome's default profile" ;;
+  esac
   if [ "${holder%/}" != "$profile" ]; then
     echo "Chrome on port $port uses the profile $holder, not $profile. Quit that Chrome, or give this repo its own cdp port in $sidecar." >&2
     exit 1
@@ -57,7 +64,7 @@ if curl -sf --max-time 1 "$url" >/dev/null; then
 fi
 
 open -na "Google Chrome" --args --remote-debugging-port="$port" --user-data-dir="$profile"
-wait_seconds=${BROWSER_START_WAIT_SECONDS:-15}
+wait_seconds=${CHROME_WAIT_SECONDS:-15}
 deadline=$(($(date +%s) + wait_seconds))
 until curl -sf --max-time 1 "$url" >/dev/null; do
   if [ "$(date +%s)" -ge "$deadline" ]; then
