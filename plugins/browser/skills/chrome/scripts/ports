@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# Keeps ~/.agent-browser/ports, the registry of the CDP port each repo's Chrome
+# uses, so no two repos share one. Each line is "<port> <chromeProfile>".
+#
+#   ports claim <profile>          prints a free port for the profile and records it
+#   ports record <port> <profile>  records the port a repo's Chrome runs on
+#
+# The setup skill runs claim for a new repo. browser-start runs record, so a
+# repo set up by hand joins the registry the next time its Chrome starts.
+set -euo pipefail
+
+registry=$HOME/.agent-browser/ports
+
+usage() {
+  echo "usage: ports claim <profile> | ports record <port> <profile>" >&2
+  exit 2
+}
+
+main() {
+  case ${1:-} in
+    claim) [ $# -eq 2 ] || usage; claim "$2" ;;
+    record) [ $# -eq 3 ] || usage; record "$2" "$3" ;;
+    *) usage ;;
+  esac
+}
+
+claim() {
+  if [ "$(uname)" != Darwin ]; then
+    echo "ports claim reads the Mac's Chrome processes and registry. Run it on the Mac." >&2
+    exit 1
+  fi
+  check_profile "$1"
+  local used port
+  port=$(port_of "$1")
+  if [ -n "$port" ]; then
+    echo "$port"
+    return 0
+  fi
+  used=$(registered_ports; chrome_ports)
+  for port in $(seq 10100 10199); do
+    if ! grep -qx "$port" <<<"$used" && nothing_listens "$port"; then
+      mkdir -p "$(dirname "$registry")"
+      echo "$port $1" >>"$registry"
+      echo "$port"
+      return 0
+    fi
+  done
+  echo "No free port in 10100-10199. Remove the lines for repos you no longer use from $registry." >&2
+  exit 1
+}
+
+# Gives the profile this port, and drops any older line for it. When another
+# profile holds the port, it only warns: the caller still starts Chrome, and
+# browser-start refuses if that other profile's Chrome is the one running.
+record() {
+  check_profile "$2"
+  local holder
+  holder=$(profile_on "$1")
+  [ "$holder" != "$2" ] || return 0
+  if [ -n "$holder" ]; then
+    echo "$registry gives port $1 to the profile $holder. Two repos on one port drive the same Chrome, so give this repo its own cdp port in agent-browser.json." >&2
+    return 0
+  fi
+  mkdir -p "$(dirname "$registry")"
+  local next=$registry.$$
+  { [ ! -f "$registry" ] || awk -v profile="$2" '$2 != profile' "$registry"; } >"$next"
+  echo "$1 $2" >>"$next"
+  mv -f "$next" "$registry"
+}
+
+# The name becomes a directory under ~/.agent-browser/profiles, and a field in
+# a registry line, so it may hold neither a slash nor a space.
+check_profile() {
+  case $1 in
+    "" | . | .. | */* | *[[:space:]]*)
+      echo "\"$1\" is not a profile name. Give one directory name under ~/.agent-browser/profiles, such as \"people-matcher\"." >&2
+      exit 1
+      ;;
+  esac
+}
+
+port_of() {
+  [ ! -f "$registry" ] || awk -v profile="$1" '$2 == profile { print $1; exit }' "$registry"
+}
+
+profile_on() {
+  [ ! -f "$registry" ] || awk -v port="$1" '$1 == port { print $2; exit }' "$registry"
+}
+
+registered_ports() {
+  [ ! -f "$registry" ] || awk '{ print $1 }' "$registry"
+}
+
+# A Chrome that a repo set up before the registry existed shows only here.
+# pgrep cannot print the flags, which hold the port.
+# shellcheck disable=SC2009
+chrome_ports() {
+  ps -axo command= | grep -oE -- '--remote-debugging-port=[0-9]+' | cut -d= -f2 || true
+}
+
+# curl exits 7 only when nothing accepts the connection. Any other result,
+# even a timeout or a reply that is not HTTP, means a program holds the port.
+nothing_listens() {
+  local status=0
+  curl -s --max-time 1 "http://127.0.0.1:$1/" >/dev/null || status=$?
+  [ "$status" -eq 7 ]
+}
+
+main "$@"

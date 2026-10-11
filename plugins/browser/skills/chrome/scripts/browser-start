@@ -33,6 +33,10 @@ esac
 profile=$HOME/.agent-browser/profiles/$name
 url=http://127.0.0.1:$port/json/version
 
+# The registry keeps /browser:setup from handing this port to another repo.
+# Chrome still starts when recording fails; ports says why on stderr.
+"$(dirname "${BASH_SOURCE[0]}")/ports" record "$port" "$name" || true
+
 # A Chrome already on the port may hold another repo's profile. Driving it
 # would act on that repo's logins, so stop and name both. Never kill it: that
 # Chrome may be mid-task for another session.

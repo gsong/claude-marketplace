@@ -141,3 +141,49 @@ test("says so when the Chrome on the port runs the default profile", () => {
   assert.match(r.stderr, /default profile/);
   assert.doesNotMatch(r.stderr, /Applications/);
 });
+
+test("records its port and profile in the registry", () => {
+  const w = world();
+  w.sidecar(SIDECAR);
+  w.registryHolds("10100 givingpath");
+  w.chromeStartsOnOpen();
+  const r = w.run("browser-start");
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(w.registry(), ["10100 givingpath", "10082 people-matcher"]);
+});
+
+test("records once, however often it runs", () => {
+  const w = world();
+  w.sidecar(SIDECAR);
+  w.registryHolds("10082 people-matcher");
+  w.portUp(10082);
+  w.psLists(
+    `${CHROME} --remote-debugging-port=10082 --user-data-dir=${w.home}/.agent-browser/profiles/people-matcher`,
+  );
+  const r = w.run("browser-start");
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(w.registry(), ["10082 people-matcher"]);
+});
+
+test("moves the profile's registry line when the repo changes its port", () => {
+  const w = world();
+  w.sidecar('{ "cdp": "10101", "chromeProfile": "people-matcher" }');
+  w.registryHolds("10082 people-matcher", "10100 givingpath");
+  w.chromeStartsOnOpen();
+  const r = w.run("browser-start");
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(w.registry(), ["10100 givingpath", "10101 people-matcher"]);
+});
+
+test("warns but still opens Chrome when the registry gives the port to another profile", () => {
+  const w = world();
+  w.sidecar(SIDECAR);
+  w.registryHolds("10082 givingpath");
+  w.chromeStartsOnOpen();
+  const r = w.run("browser-start");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /givingpath/);
+  assert.match(r.stderr, /agent-browser\.json/);
+  assert.ok(w.isUp(10082));
+  assert.deepEqual(w.registry(), ["10082 givingpath"]);
+});

@@ -1,64 +1,42 @@
 # browser
 
-One skill, `/browser:chrome`, drives a real Google Chrome with [agent-browser](https://github.com/vercel-labs/agent-browser). agent-browser attaches to Chrome over CDP, Chrome's remote debugging port. Google sign-ins accept a Chrome started this way. They reject a Chrome that agent-browser launches by itself, because that one reports `navigator.webdriver=true`.
+`/browser:chrome` drives a real Google Chrome with [agent-browser](https://github.com/vercel-labs/agent-browser). agent-browser attaches to Chrome over CDP, Chrome's remote debugging port. Google sign-ins accept a Chrome started this way. They reject a Chrome that agent-browser launches by itself, because that one reports `navigator.webdriver=true`.
 
 ## Skills
 
 | Skill             | Trigger                                    | Description                                                          |
 | ----------------- | ------------------------------------------ | -------------------------------------------------------------------- |
 | `/browser:chrome` | "use the browser", a page WebFetch refuses | Start or reach Chrome, then read and act on pages with agent-browser |
+| `/browser:setup`  | "set this repo up for the browser"         | Write a repo's browser config, with a CDP port no other repo uses    |
 
 ## Modes
 
-The skill picks a mode from two facts: where the session runs, and whether the repo has an `agent-browser.json`. The skill treats a session as the container when `AGENT_BROWSER_CDP` is set or the OS is not macOS.
+`/browser:chrome` picks a mode from two facts: where the session runs, and whether the repo has an `agent-browser.json`. The skill treats a session as the container when `AGENT_BROWSER_CDP` is set or the OS is not macOS.
 
 | Where     | `agent-browser.json` | What the skill does                                                                                 |
 | --------- | -------------------- | --------------------------------------------------------------------------------------------------- |
 | Mac       | yes                  | Runs `browser-start`, then drives the repo's persistent profile                                     |
 | Mac       | no                   | Starts Chrome on a throwaway profile in the session scratchpad, and deletes it when done            |
 | Container | yes                  | Probes `$AGENT_BROWSER_CDP`. If Chrome is down, asks you to run `mise run browser:start` on the Mac |
-| Container | no                   | Stops, and says the repo needs `agent-browser.json` with a `cdp` port                               |
+| Container | no                   | Stops, and asks you to run `/browser:setup` in a session on the Mac                                 |
 
 ## Set up a repo
 
-Add `agent-browser.json` at the repo root:
+Run `/browser:setup` in a Claude session on the Mac. It writes three files at the repo root, and merges into a file that already exists:
 
-```json
-{
-  "cdp": "10082",
-  "contentBoundary": true,
-  "chromeProfile": "people-matcher"
-}
-```
+- `agent-browser.json` names the port Chrome listens on (`cdp`) and the profile directory (`chromeProfile`). Chrome keeps the profile's cookies in `~/.agent-browser/profiles/<chromeProfile>`, so the logins outlive each session. Setup leaves an existing `agent-browser.json` as it is.
+- `mise.toml` gets a `browser:start` task, so you can start Chrome from a terminal on the Mac.
+- `.claude/settings.json` gets the marketplace and enables the plugin, so teammates get it when they trust the repo.
 
-- `cdp` is the port Chrome listens on. Give each repo its own. Two repos on one port drive the same Chrome, so one repo's session acts with the other repo's logins.
-- `chromeProfile` names the profile directory, `~/.agent-browser/profiles/<chromeProfile>`. Chrome keeps the profile's cookies there, so the logins outlive each session.
-
-Add a `browser:start` task to `mise.toml`, so you can start Chrome from a terminal on the Mac. The plugin cache path holds the version, so the task runs the newest installed copy:
-
-```toml
-[tasks."browser:start"]
-run = '''
-dir=$(ls -d "$HOME"/.claude/plugins/cache/gsong-marketplace/browser/*/ 2>/dev/null | sort -V | tail -1)
-[ -n "$dir" ] || { echo "Install browser@gsong-marketplace first" >&2; exit 1; }
-exec "$dir/skills/chrome/scripts/browser-start"
-'''
-```
-
-Enable the plugin in `.claude/settings.json`, so teammates get it when they trust the repo:
-
-```json
-{
-  "extraKnownMarketplaces": {
-    "gsong-marketplace": {
-      "source": { "source": "github", "repo": "gsong/claude-marketplace" }
-    }
-  },
-  "enabledPlugins": { "browser@gsong-marketplace": true }
-}
-```
+Commit the three files. In the container, setup stops and asks for the Mac, because it cannot see the Mac's port registry or Chrome processes.
 
 Some repos have browser-only jobs, such as a consent screen or a menu item no API reaches. Put those in a `browser-notes` skill under `.claude/skills/`. Its body starts by loading `/browser:chrome`. In turn, `/browser:chrome` loads it once Chrome is up.
+
+### Ports
+
+Each repo needs its own port. Two repos on one port drive the same Chrome, so one repo's session acts with the other repo's logins.
+
+`~/.agent-browser/ports` lists the port each profile uses, one `<port> <profile>` line per repo. Setup picks the first port in 10100-10199 that no line names, no running Chrome holds, and nothing answers on. `browser-start` records its port each time it runs, so a repo set up by hand joins the list on its next start. When the list gives that port to another profile, `browser-start` warns and opens Chrome anyway.
 
 ## Profile safety
 
