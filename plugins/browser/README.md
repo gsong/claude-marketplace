@@ -28,7 +28,7 @@ Run `/browser:setup` in a Claude session on the Mac. It writes three files at th
 - `mise.toml` gets a `browser:start` task, so you can start Chrome from a terminal on the Mac.
 - `.claude/settings.json` gets the marketplace and enables the plugin, so teammates get it when they trust the repo.
 
-Commit the three files. In the container, setup stops and asks for the Mac, because it cannot see the Mac's port registry or Chrome processes.
+Commit the three files. Setup checks that git does not ignore `agent-browser.json`, and asks before it changes an ignore rule. In the container, setup stops and asks for the Mac, because it cannot see the Mac's port registry or Chrome processes.
 
 Some repos have browser-only jobs, such as a consent screen or a menu item no API reaches. Put those in a `browser-notes` skill under `.claude/skills/`. Its body starts by loading `/browser:chrome`. In turn, `/browser:chrome` loads it once Chrome is up.
 
