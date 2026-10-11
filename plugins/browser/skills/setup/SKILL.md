@@ -67,7 +67,8 @@ These entries enable the plugin for each teammate who trusts the repo. Merge the
 {
   "extraKnownMarketplaces": {
     "gsong-marketplace": {
-      "source": { "source": "github", "repo": "gsong/claude-marketplace" }
+      "source": { "source": "github", "repo": "gsong/claude-marketplace" },
+      "autoUpdate": true
     }
   },
   "enabledPlugins": { "browser@gsong-marketplace": true }
