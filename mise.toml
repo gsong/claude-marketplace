@@ -26,7 +26,8 @@ run = "git ls-files -z '*.py' | xargs -0 ruff check"
 
 [tasks."lint:shellcheck"]
 description = "Lint the shell scripts"
-run = "git ls-files -z '*.sh' | xargs -0 shellcheck"
+# The browser scripts have no extension: a mise task runs them by name.
+run = "git ls-files -z '*.sh' 'plugins/browser/skills/chrome/scripts/*' | xargs -0 shellcheck"
 
 [tasks."lint:zizmor"]
 description = "Audit the GitHub Actions workflows"
