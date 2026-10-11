@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Opens Chrome on the Mac with remote debugging, for agent-browser. Run it from
+# a repo whose agent-browser.json names the port (cdp) and the profile
+# (chromeProfile). The profile lives at ~/.agent-browser/profiles/<chromeProfile>.
+set -euo pipefail
+
+if [ "$(uname)" != Darwin ]; then
+  echo "browser-start opens Chrome on the Mac. Run it in a host terminal. agent-browser in the container then connects to that Chrome." >&2
+  exit 1
+fi
+
+# agent-browser.json is JSON, but one key per line is all this reads, so sed
+# does the job without jq. cdp may be a string or a number.
+sidecar=agent-browser.json
+if [ ! -f "$sidecar" ]; then
+  echo "No $sidecar in $PWD. Run browser-start from the repo root." >&2
+  exit 1
+fi
+port=$(sed -n 's/.*"cdp"[[:space:]]*:[[:space:]]*"\{0,1\}\([0-9][0-9]*\).*/\1/p' "$sidecar")
+name=$(sed -n 's/.*"chromeProfile"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$sidecar")
+if [ -z "$port" ]; then
+  echo "$sidecar names no cdp port." >&2
+  exit 1
+fi
+# The name becomes a directory under the profiles directory, so it may not
+# reach outside it.
+case $name in
+  "" | . | .. | */*)
+    echo "$sidecar needs a chromeProfile that names one directory under ~/.agent-browser/profiles, such as \"people-matcher\"." >&2
+    exit 1
+    ;;
+esac
+profile=$HOME/.agent-browser/profiles/$name
+url=http://127.0.0.1:$port/json/version
+
+# A Chrome already on the port may hold another repo's profile. Driving it
+# would act on that repo's logins, so stop and name both. Never kill it: that
+# Chrome may be mid-task for another session.
+if curl -sf --max-time 1 "$url" >/dev/null; then
+  # Chrome's helper processes carry the browser's flags too, plus --type=.
+  # pgrep cannot print the whole command line, which holds the profile.
+  # shellcheck disable=SC2009
+  holder=$(ps -axo command= |
+    grep -E -- "--remote-debugging-port=$port( |\$)" |
+    grep -v -- ' --type=' |
+    sed -n '1s/.*--user-data-dir=//; 1s/ --.*//; 1p' || true)
+  if [ -z "$holder" ]; then
+    echo "Something answers on port $port, but no Chrome with --remote-debugging-port=$port shows in ps. Free the port, or change cdp in $sidecar." >&2
+    exit 1
+  fi
+  if [ "${holder%/}" != "$profile" ]; then
+    echo "Chrome on port $port uses the profile $holder, not $profile. Quit that Chrome, or give this repo its own cdp port in $sidecar." >&2
+    exit 1
+  fi
+  echo "Chrome is already open on port $port with the profile $profile."
+  exit 0
+fi
+
+open -na "Google Chrome" --args --remote-debugging-port="$port" --user-data-dir="$profile"
+wait_seconds=${BROWSER_START_WAIT_SECONDS:-15}
+deadline=$(($(date +%s) + wait_seconds))
+until curl -sf --max-time 1 "$url" >/dev/null; do
+  if [ "$(date +%s)" -ge "$deadline" ]; then
+    echo "Chrome did not answer on port $port within $wait_seconds seconds. If a Chrome with this profile is open without the port, quit it and run browser-start again." >&2
+    exit 1
+  fi
+  sleep 0.5
+done
+echo "Chrome is open on port $port with the profile $profile."
