@@ -4,7 +4,7 @@
     "name": "George Song"
   },
   "metadata": {
-    "description": "George Song's Claude Code plugins for git, GitHub, documentation, session memory, Clef, Codex integration, repo maintenance, writing, and utilities"
+    "description": "George Song's Claude Code plugins for git, GitHub, documentation, session memory, browser automation, Clef, Codex integration, repo maintenance, writing, and utilities"
   },
   "allowCrossMarketplaceDependenciesOn": ["openai-codex"],
   "plugins": [
@@ -23,6 +23,14 @@
       "author": { "name": "George Song" },
       "category": "productivity",
       "keywords": ["memory", "session", "instructions"]
+    },
+    {
+      "name": "browser",
+      "source": "./plugins/browser",
+      "description": "Drive a real Google Chrome with agent-browser, on a repo's persistent profile or a throwaway one",
+      "author": { "name": "George Song" },
+      "category": "development",
+      "keywords": ["browser", "chrome", "agent-browser", "cdp"]
     },
     {
       "name": "clef",

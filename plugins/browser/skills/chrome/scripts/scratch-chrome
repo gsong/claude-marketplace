@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+# Runs Chrome on a throwaway profile inside the session scratchpad, for a repo
+# with no agent-browser.json.
+#
+#   scratch-chrome start <scratchpad>   prints port=<port> and profile=<dir>
+#   scratch-chrome stop <dir>           quits that Chrome and deletes <dir>
+#
+# stop deletes only a chrome-* directory directly inside a directory named
+# scratchpad. It refuses every other path, so it can never reach a persistent
+# profile under ~/.agent-browser/profiles.
+set -euo pipefail
+
+usage() {
+  echo "usage: scratch-chrome start <scratchpad> | scratch-chrome stop <scratchpad>/chrome-*" >&2
+  exit 2
+}
+
+main() {
+  [ $# -eq 2 ] || usage
+  case $1 in
+    start) start "$2" ;;
+    stop) stop "$2" ;;
+    *) usage ;;
+  esac
+}
+
+start() {
+  if [ "$(uname)" != Darwin ]; then
+    echo "scratch-chrome opens Chrome on the Mac. It does not run anywhere else." >&2
+    exit 1
+  fi
+  local pad
+  pad=$(real_dir "$1") || refuse_start "$1"
+  [ "$(basename "$pad")" = scratchpad ] || refuse_start "$1"
+
+  local port
+  port=$(free_port) || {
+    echo "No free port in 9300-9399." >&2
+    exit 1
+  }
+  local profile
+  profile=$(mktemp -d "$pad/chrome-XXXXXX")
+  open -na "Google Chrome" --args --remote-debugging-port="$port" \
+    --user-data-dir="$profile" --no-first-run --no-default-browser-check about:blank
+  wait_for "$port"
+  echo "port=$port"
+  echo "profile=$profile"
+}
+
+stop() {
+  local profile
+  profile=$(scratch_profile "$1") || {
+    echo "Refusing $1: stop deletes only a chrome-* directory inside the session scratchpad, given by its full path." >&2
+    exit 1
+  }
+  quit_chrome_on "$profile"
+  rm -rf -- "$profile"
+}
+
+refuse_start() {
+  echo "$1 is not a scratchpad directory. Pass the session scratchpad." >&2
+  exit 1
+}
+
+# Prints the physical path of a scratch profile, or fails when the path is
+# anything else. Checking the physical path means a symlink or a .. cannot
+# point stop at a persistent profile.
+scratch_profile() {
+  local given=${1%/}
+  case $given in /*) ;; *) return 1 ;; esac
+  [ ! -L "$given" ] || return 1
+  local real
+  real=$(real_dir "$given") || return 1
+  case $(basename "$real") in chrome-*) ;; *) return 1 ;; esac
+  [ "$(basename "$(dirname "$real")")" = scratchpad ] || return 1
+  local profiles
+  if profiles=$(real_dir "$HOME/.agent-browser"); then
+    case $real in "$profiles"/*) return 1 ;; esac
+  fi
+  echo "$real"
+}
+
+# Quits the Chrome whose browser process runs on this profile, and waits for
+# it to exit, so Chrome does not write into the directory while it goes.
+quit_chrome_on() {
+  local pids
+  pids=$(ps -axo pid=,command= | awk -v flag="--user-data-dir=$1" '
+    index($0, " --type=") { next }
+    {
+      i = index($0, flag)
+      if (!i) next
+      after = substr($0, i + length(flag), 1)
+      if (after == "" || after == " ") print $1
+    }')
+  [ -n "$pids" ] || return 0
+  # shellcheck disable=SC2086 # one PID per word
+  kill $pids 2>/dev/null || true
+  local deadline=$(($(date +%s) + 10)) pid
+  for pid in $pids; do
+    while kill -0 "$pid" 2>/dev/null; do
+      if [ "$(date +%s)" -ge "$deadline" ]; then
+        echo "Chrome (PID $pid) on $1 did not quit within 10 seconds. Kept the profile." >&2
+        exit 1
+      fi
+      sleep 0.2
+    done
+  done
+}
+
+# Prints the physical path of a directory, with every symlink resolved.
+real_dir() {
+  [ -d "$1" ] && (cd -P -- "$1" && pwd)
+}
+
+answers() {
+  curl -sf --max-time 1 "http://127.0.0.1:$1/json/version" >/dev/null
+}
+
+free_port() {
+  local port
+  for port in $(seq 9300 9399); do
+    if ! answers "$port"; then
+      echo "$port"
+      return 0
+    fi
+  done
+  return 1
+}
+
+wait_for() {
+  local deadline=$(($(date +%s) + 15))
+  until answers "$1"; do
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      echo "Chrome did not answer on port $1 within 15 seconds." >&2
+      exit 1
+    fi
+    sleep 0.5
+  done
+}
+
+main "$@"

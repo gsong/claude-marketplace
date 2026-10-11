@@ -1,0 +1,12 @@
+{
+  "name": "browser",
+  "description": "Drive a real Google Chrome with agent-browser, on a repo's persistent profile or a throwaway one",
+  "version": "1.0.0",
+  "author": {
+    "name": "George Song"
+  },
+  "homepage": "https://github.com/gsong/claude-marketplace",
+  "repository": "https://github.com/gsong/claude-marketplace",
+  "license": "MIT",
+  "keywords": ["browser", "chrome", "agent-browser", "cdp"]
+}

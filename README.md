@@ -36,6 +36,18 @@ Session memory and project instruction management for Claude Code.
 
 **Skills:** `/ai-memory:save`, `/ai-memory:review`
 
+### browser
+
+Drive a real Google Chrome with agent-browser, on a repo's persistent profile or a throwaway one.
+
+```
+/plugin install browser@gsong-marketplace
+```
+
+**Skills:** `/browser:chrome`
+
+**Requires:** macOS with Google Chrome, agent-browser 0.38 or later, and curl. See the [plugin README](plugins/browser/README.md#prerequisites).
+
 ### clef
 
 Build software with Clef, Cloudflare's decision model, run locally through Ollama or on Workers AI.
