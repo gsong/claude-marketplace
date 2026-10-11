@@ -42,7 +42,13 @@ start() {
   profile=$(mktemp -d "$pad/chrome-XXXXXX")
   open -na "Google Chrome" --args --remote-debugging-port="$port" \
     --user-data-dir="$profile" --no-first-run --no-default-browser-check about:blank
-  wait_for "$port"
+  # The caller never sees a profile that fails here, so stop could not reach
+  # it later. Remove it now, quitting a Chrome that came up late.
+  if ! wait_for "$port"; then
+    quit_chrome_on "$profile"
+    rm -rf -- "$profile"
+    exit 1
+  fi
   echo "port=$port"
   echo "profile=$profile"
 }
@@ -128,11 +134,12 @@ free_port() {
 }
 
 wait_for() {
-  local deadline=$(($(date +%s) + 15))
+  local wait_seconds=${CHROME_WAIT_SECONDS:-15}
+  local deadline=$(($(date +%s) + wait_seconds))
   until answers "$1"; do
     if [ "$(date +%s)" -ge "$deadline" ]; then
-      echo "Chrome did not answer on port $1 within 15 seconds." >&2
-      exit 1
+      echo "Chrome did not answer on port $1 within $wait_seconds seconds." >&2
+      return 1
     fi
     sleep 0.5
   done

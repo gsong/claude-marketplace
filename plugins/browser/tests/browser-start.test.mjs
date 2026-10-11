@@ -40,7 +40,7 @@ test("opens Chrome on the sidecar's port and profile, then waits for it", () => 
 test("fails when Chrome does not answer within the wait", () => {
   const w = world();
   w.sidecar(SIDECAR);
-  const r = w.run("browser-start", [], { BROWSER_START_WAIT_SECONDS: "1" });
+  const r = w.run("browser-start", [], { CHROME_WAIT_SECONDS: "1" });
   assert.equal(r.status, 1);
   assert.match(r.stderr, /did not answer on port 10082/);
 });
@@ -129,4 +129,15 @@ test("reads a cdp port written as a number", () => {
   const r = w.run("browser-start");
   assert.equal(r.status, 0, r.stderr);
   assert.ok(w.isUp(10082));
+});
+
+test("says so when the Chrome on the port runs the default profile", () => {
+  const w = world();
+  w.sidecar(SIDECAR);
+  w.portUp(10082);
+  w.psLists(`${CHROME} --remote-debugging-port=10082 --no-first-run`);
+  const r = w.run("browser-start");
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /default profile/);
+  assert.doesNotMatch(r.stderr, /Applications/);
 });
