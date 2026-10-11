@@ -36,7 +36,7 @@ Some repos have browser-only jobs, such as a consent screen or a menu item no AP
 
 Each repo needs its own port. Two repos on one port drive the same Chrome, so one repo's session acts with the other repo's logins.
 
-`~/.agent-browser/ports` lists the port each profile uses, one `<port> <profile>` line per repo. Setup picks the first port in 10100-10199 that no line names, no running Chrome holds, and nothing answers on. `browser-start` records its port each time it runs, so a repo set up by hand joins the list on its next start. When the list gives that port to another profile, `browser-start` warns and opens Chrome anyway.
+The port registry, `~/.agent-browser/ports`, holds one `<port> <profile>` line per repo. Setup picks the first port in 10100-10199 that the registry does not list, no running Chrome holds, and nothing answers on. `browser-start` records its port each time it runs, so a repo set up by hand joins the registry on its next start. When the registry gives that port to another profile, `browser-start` warns and opens Chrome anyway.
 
 ## Profile safety
 
