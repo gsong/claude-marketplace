@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Set up a repo for /browser:chrome. Writes agent-browser.json with a CDP port no other repo uses, the browser:start mise task, and the plugin entries in .claude/settings.json. Use when the user asks to set a repo up for the browser, or when /browser:chrome says the repo needs agent-browser.json.
+description: Set up a repo for browser:chrome. Writes agent-browser.json with a CDP port no other repo uses, the browser:start mise task, and the plugin entries in .claude/settings.json. Use when the user asks to set a repo up for the browser, or when browser:chrome says the repo needs agent-browser.json.
 ---
 
 # Setup
