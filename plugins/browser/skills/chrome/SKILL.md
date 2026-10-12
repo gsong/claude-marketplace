@@ -82,6 +82,21 @@ When the repo has a `browser-notes` skill, load it now. It holds the repo's serv
 
 When the task is done, run `agent-browser close`. In scratch mode, then run `scratch-chrome stop "<profile>"` with the `profile=` path that `start` printed. It quits that Chrome and deletes the profile.
 
+## Parallel agents
+
+Several subagents can drive one Chrome at once when each runs its **own session**. A session holds one active tab, so two agents sharing a session switch that tab under each other and read the wrong page.
+
+The main agent runs steps 1 and 2 once, then hands each subagent:
+
+- **A fresh session name**, unique to this run, such as `checkout-1-k3f9`. A name from an earlier run comes back pinned to its old tab, and fails with `tab_gone` once that tab is closed.
+- **The connection**: `--cdp <port>` in scratch mode, or the repo root in persistent mode.
+
+The subagent passes `--session <name> --pin-tab` on every command. Its first `open` opens a new tab and binds the session to it. `--pin-tab` turns a lost tab into a `tab_gone` error, so the session stays off other agents' tabs.
+
+A subagent's `agent-browser close` ends its own session; Chrome and the other tabs keep running. In scratch mode, the main agent runs `scratch-chrome stop` after every subagent has returned.
+
+All sessions share the profile's cookies and storage, so a sign-in or sign-out in one tab reaches every tab on that site.
+
 ## Snapshot first
 
 `snapshot -i` answers "is X on the page", "did the form submit", and "what does this list hold". For details the tree omits, use `get text`, `get value`, `get html` or `eval`, which all return text.
