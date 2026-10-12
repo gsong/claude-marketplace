@@ -32,6 +32,7 @@ test("opens Chrome on the sidecar's port and profile, then waits for it", () => 
       "--args",
       "--remote-debugging-port=10082",
       `--user-data-dir=${w.home}/.agent-browser/profiles/people-matcher`,
+      "about:blank",
     ],
   ]);
   assert.match(r.stdout, /10082/);

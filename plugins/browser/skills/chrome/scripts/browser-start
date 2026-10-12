@@ -68,7 +68,9 @@ if curl -sf --max-time 1 "$url" >/dev/null; then
   exit 0
 fi
 
-open -na "Google Chrome" --args --remote-debugging-port="$port" --user-data-dir="$profile"
+# agent-browser skips chrome://newtab. Finding no other tab, its first session
+# opens two blank tabs and abandons one, so start Chrome on a tab it uses.
+open -na "Google Chrome" --args --remote-debugging-port="$port" --user-data-dir="$profile" about:blank
 wait_seconds=${CHROME_WAIT_SECONDS:-15}
 deadline=$(($(date +%s) + wait_seconds))
 until curl -sf --max-time 1 "$url" >/dev/null; do
