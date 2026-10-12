@@ -91,11 +91,15 @@ The main agent runs steps 1 and 2 once, then hands each subagent:
 - **A fresh session name**, unique to this run, such as `checkout-1-k3f9`. A name from an earlier run comes back pinned to its old tab, and fails with `tab_gone` once that tab is closed.
 - **The connection**: `--cdp <port>` in scratch mode, or the repo root in persistent mode.
 
-The subagent passes `--session <name> --pin-tab` on every command, and starts with `window new`, which binds the session to the new window's tab. `--pin-tab` turns a lost tab into a `tab_gone` error, so the session stays off other agents' tabs.
+The subagent passes `--session <name> --pin-tab` on every command. `--pin-tab` turns a lost tab into a `tab_gone` error, so the session stays off other agents' tabs. The subagent starts with three commands:
+
+1. `tab list --json`: note the `targetId` of the active tab, a blank tab the session opens on connecting.
+2. `window new`: binds the session to the new window's tab.
+3. `tab close <targetId>`: closes that blank tab.
 
 A window shows one tab at a time, so a window per session keeps every agent's tab visible. In a hidden tab, each `click` waits about 5 seconds, and `press` loses keys while another tab holds focus.
 
-A subagent's `agent-browser close` ends its own session; Chrome and the other tabs keep running. In scratch mode, the main agent runs `scratch-chrome stop` after every subagent has returned.
+To finish, a subagent runs `tab close`, which closes its window, then `agent-browser close`, which ends its session. Chrome and the other windows keep running. In scratch mode, the main agent runs `scratch-chrome stop` after every subagent has returned.
 
 All sessions share the profile's cookies and storage, so a sign-in or sign-out in one tab reaches every tab on that site.
 
