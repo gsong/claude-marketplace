@@ -1,7 +1,7 @@
 {
   "name": "browser",
   "description": "Drive a real Google Chrome with agent-browser, on a repo's persistent profile or a throwaway one",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "author": {
     "name": "George Song"
   },
