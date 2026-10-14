@@ -39,6 +39,12 @@ fetches through `javascript_tool`, across two sites. **[V, measured]**
   was likely 100,000 to 200,000 tokens. **[I]** Anthropic does not say how the
   meter weighs cached reads.
 
+On the meter, a browsing chat with 2 page loads, 4 `javascript_tool` or
+network calls and one follow-up used about 3 points of a 5-hour Pro session
+and about 1 point of the week. It ran on Sonnet 5.5 at Medium effort. A
+similar task on Opus 5.5 at Medium measured the same. Settings > Usage shows
+the week in whole percents, so that cost is 0.5 to 1.5 points. **[V, live]**
+
 ## Trimming rules
 
 - Fetch big pages and JSON inside the page script; return only what the task

@@ -21,6 +21,8 @@ These facts were researched in October 2026 and change monthly. Each claim
 carries a mark:
 
 - **[V]** verified on a primary source, with the URL or source given.
+- **[V, live]** observed in a live test on Claude Desktop 2.31226.1 with a
+  personal Pro account, 2026-10-11. The test notes are private.
 - **[I]** inference or unverified. Test it before a design depends on it.
 
 Before a decision rests on a claim, fetch its URL again. When the page
@@ -53,11 +55,11 @@ with the date.
 
 ## Defaults
 
-| Need                                | Default on Pro or Max                                                                |
-| ----------------------------------- | ------------------------------------------------------------------------------------ |
-| Teach Claude a procedure            | A plugin that holds only a skill, from a Git marketplace with **Sync automatically** |
-| Read a site the user signs in to    | The skill tells Claude to use the browser it has; the user signs in once             |
-| Pull JSON from a signed-in site     | `javascript_tool` runs `fetch` in the page and trims the result there                |
-| Keep a record between chats         | A file in a local folder project                                                     |
-| Run code that needs a stored secret | A standalone Desktop Extension with `sensitive` `user_config`                        |
-| Anything on Free                    | A Desktop Extension, or one custom connector                                         |
+| Need                                | Default on Pro or Max                                                                                       |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Teach Claude a procedure            | A plugin that holds only a skill, from a Git marketplace with **Sync automatically**                        |
+| Read a site the user signs in to    | Run from Claude Desktop; the skill tells Claude to use the browser it has, and the user signs in when asked |
+| Pull JSON from a signed-in site     | `javascript_tool` runs `fetch` in the page and trims the result there                                       |
+| Keep a record between chats         | A file in a local folder project                                                                            |
+| Run code that needs a stored secret | A standalone Desktop Extension with `sensitive` `user_config`                                               |
+| Anything on Free                    | A Desktop Extension, or one custom connector                                                                |

@@ -25,6 +25,12 @@ Sources:
   GitLab and Bitbucket repos work. **Sync automatically** works for github.com,
   so a push reaches every user without a reinstall.
   https://claude.com/docs/cowork/guide/plugins **[V]**
+- Live, Customize > Plugins > Add plugin > Add marketplace > Add from a
+  repository accepted `owner/repo`, with **Sync automatically** on by default.
+  A plain question loaded the skill with no slash command. A push reached
+  Claude Desktop in under 4 minutes, with no version bump, reinstall or
+  restart. The plugin menu offers only "Remove", with no manual update.
+  **[V, live]**
 - Sharing and publishing plugins inside an organization is Team and Enterprise
   only. https://support.claude.com/en/articles/13837440-use-plugins-in-claude **[V]**
 - Skills "run in Claude's code sandbox." https://claude.com/docs/skills/overview,
@@ -52,6 +58,11 @@ From https://claude.com/docs/plugins/platform-support **[V]**:
   into the code sandbox. Only `${CLAUDE_SKILL_DIR}` and `${CLAUDE_PLUGIN_ROOT}`
   are documented for Cowork; `${CLAUDE_PLUGIN_DATA}` is Claude Code only.
   https://claude.com/docs/skills/how-to **[V]**
+- In Claude Desktop, the skill's announced base folder
+  (`/mnt/skills/plugins/<plugin>:<skill>/`) did not exist in several runs.
+  Claude found the bundled script by searching under
+  `/root/.claude/plugins/synced/`. Have the skill tell Claude to confirm a
+  script's path exists, and to search for it when it is missing. **[V, live]**
 
 ## Unified Claude and cloud sessions
 
@@ -65,6 +76,8 @@ From https://claude.com/docs/plugins/platform-support **[V]**:
 - Each cloud session gets a sandbox "created when the session starts and
   destroyed when it ends", sharing no state with other sandboxes.
   https://support.claude.com/en/articles/14479288-claude-cowork-architecture-overview **[V]**
+- Every Claude Desktop chat in the live test ran in the cloud, linked to the
+  Mac. **[V, live]**
 - Conflict: one page says plugin local MCP servers "work through the desktop
   app only"; the architecture page says they "don't run in cloud sessions".
   **[V, conflicting]** Whether a standalone .mcpb loads in a unified Pro or Max
