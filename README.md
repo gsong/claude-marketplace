@@ -60,16 +60,6 @@ Build software with Clef, Cloudflare's decision model, run locally through Ollam
 
 **Requires:** Ollama with `clef` or `clef-flash`, or Workers AI. See the [plugin README](plugins/clef/README.md#prerequisites).
 
-### cowork
-
-Build for Claude Desktop and claude.ai: plugins, skills, Desktop Extensions and connectors, and what each plan lets them do.
-
-```
-/plugin install cowork@gsong-marketplace
-```
-
-**Skills:** `/cowork:build`
-
 ### codex-tools
 
 OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi-round consensus discussions via the codex plugin.
@@ -82,6 +72,16 @@ OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi
 **Skills:** `/codex-tools:review`, `/codex-tools:run`, `/codex-tools:discuss`
 
 **Requires:** Codex CLI and the codex plugin (installs with codex-tools once the `openai-codex` marketplace is added); `review` also needs gh, uv, and the gh-tools directory. See the [plugin README](plugins/codex-tools/README.md#prerequisites).
+
+### cowork
+
+Build for Claude Desktop and claude.ai: plugins, skills, Desktop Extensions and connectors, and what each plan lets them do.
+
+```
+/plugin install cowork@gsong-marketplace
+```
+
+**Skills:** `/cowork:build`
 
 ### gh-tools
 
