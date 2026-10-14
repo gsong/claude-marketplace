@@ -1,0 +1,12 @@
+{
+  "name": "cowork",
+  "description": "Build for Claude Desktop and claude.ai: plugins, skills, Desktop Extensions and connectors, and what each plan lets them do",
+  "version": "1.0.0",
+  "author": {
+    "name": "George Song"
+  },
+  "homepage": "https://github.com/gsong/claude-marketplace",
+  "repository": "https://github.com/gsong/claude-marketplace",
+  "license": "MIT",
+  "keywords": ["claude.ai", "cowork", "plugin", "skill", "mcpb", "browser"]
+}

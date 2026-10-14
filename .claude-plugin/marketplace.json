@@ -4,7 +4,7 @@
     "name": "George Song"
   },
   "metadata": {
-    "description": "George Song's Claude Code plugins for git, GitHub, documentation, session memory, browser automation, Clef, Codex integration, repo maintenance, writing, and utilities"
+    "description": "George Song's Claude Code plugins for git, GitHub, documentation, session memory, browser automation, Clef, Cowork, Codex integration, repo maintenance, writing, and utilities"
   },
   "allowCrossMarketplaceDependenciesOn": ["openai-codex"],
   "plugins": [
@@ -39,6 +39,14 @@
       "author": { "name": "George Song" },
       "category": "development",
       "keywords": ["clef", "cloudflare", "ollama", "decision", "typesafe"]
+    },
+    {
+      "name": "cowork",
+      "source": "./plugins/cowork",
+      "description": "Build for Claude Desktop and claude.ai: plugins, skills, Desktop Extensions and connectors, and what each plan lets them do",
+      "author": { "name": "George Song" },
+      "category": "development",
+      "keywords": ["claude.ai", "cowork", "plugin", "skill", "mcpb", "browser"]
     },
     {
       "name": "codex-tools",
