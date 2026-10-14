@@ -1,6 +1,6 @@
 # Usage limits and context budget
 
-Researched 2026-10-11. Marks: **[V]** verified, **[I]** inference.
+Researched 2026-10-11. Marks are defined in [SKILL.md](../SKILL.md#freshness).
 
 ## What is published
 
