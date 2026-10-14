@@ -33,8 +33,10 @@ carries a mark:
   disagree. Treat both as **[I]**.
 
 Before a decision rests on a claim, fetch its URL again. When the page
-disagrees with the reference, trust the page and update the reference file,
-with the date.
+disagrees with the reference, trust the page for this decision. Do not edit
+the reference file: an installed plugin is a synced copy, so the edit is lost.
+Tell the user which claim is stale, with the URL and today's date, and suggest
+they open an issue on gsong/claude-marketplace.
 
 ## Design steps
 
