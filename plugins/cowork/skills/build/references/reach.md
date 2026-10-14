@@ -101,9 +101,9 @@ names, deferred loading, site approval and `javascript_tool` behaviour below.
   `const` survives between calls in the same page, so wrap each script in one
   async function to avoid a redeclaration error.
 - **Trim inside the page.** Have the script reduce the response to the fields
-  you need before it returns. Raw responses run 18 to 40 times larger than the
-  trimmed data (see [usage.md](usage.md)), and small returns keep personal
-  data out of the transcript.
+  you need before it returns. A raw record runs 18 to 40 times larger than its
+  trimmed form, and a whole task about 90 times (see [usage.md](usage.md)).
+  Small returns also keep personal data out of the transcript.
 - **`navigate`** puts `https://` in front of anything without `http(s)://`, so
   a `javascript:` URL never runs.
 - **`get_page_text`** returns the `innerText` of the longest `article`,

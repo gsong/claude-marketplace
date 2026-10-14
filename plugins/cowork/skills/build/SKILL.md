@@ -42,15 +42,16 @@ they open an issue on gsong/claude-marketplace.
 
 1. **Pin the plan and the surface.** Learn the user's plan (Free, Pro, Max,
    Team, Enterprise) and where they run Claude (Desktop on macOS or Windows,
-   web, mobile). Ask when unknown. Free gets no plugins, no Cowork and no
-   browser tools, so a Free design differs from the rest.
+   web, mobile). Ask when unknown. Free gets no plugins and no browser tools,
+   and likely no Cowork **[I]**, so a Free design differs from the rest.
 2. **Pick the packaging.** Read [packaging.md](references/packaging.md): plugin,
    Agent Skill, Desktop Extension, custom connector or project. It also says
    which plugin parts load in Chat, Cowork and cloud sessions.
 3. **Pick the route out.** For anything that reads a website, runs code or
    holds a credential, read [reach.md](references/reach.md). The short answer:
-   sandbox code reaches package registries only, so browsers and MCP servers
-   are the routes to other sites.
+   on Free, Pro and Max, sandbox code reaches only a fixed list of package
+   hosts, so browsers and MCP servers are the routes to other sites. Team and
+   Enterprise owners can add domains to that list.
 4. **Pick where state lives.** For anything that must remember a result
    between chats, read [state.md](references/state.md).
 5. **Budget the work.** For anything that browses, fetches or runs on a
@@ -70,6 +71,10 @@ they open an issue on gsong/claude-marketplace.
 | Teach Claude a procedure            | A plugin that holds only a skill, from a Git marketplace with **Sync automatically**                        |
 | Read a site the user signs in to    | Run from Claude Desktop; the skill tells Claude to use the browser it has, and the user signs in when asked |
 | Pull JSON from a signed-in site     | `javascript_tool` runs `fetch` in the page and trims the result there                                       |
-| Keep a record between chats         | A file in a local folder project                                                                            |
-| Run code that needs a stored secret | A standalone Desktop Extension with `sensitive` `user_config`                                               |
-| Anything on Free                    | A Desktop Extension, or one custom connector                                                                |
+| Keep a record between chats         | A file in a local folder project; Desktop only, and Desktop must be open                                    |
+| Run code that needs a stored secret | A standalone Desktop Extension with `sensitive` `user_config` **[I]**                                       |
+| Anything on Free                    | A Desktop Extension **[I]**, or one custom connector                                                        |
+
+The **[I]** cells rest on untested claims: whether a standalone .mcpb loads in a
+unified Pro or Max chat, and whether .mcpb works on Free. Cover them in the
+step 6 tests before a design depends on them.

@@ -72,7 +72,7 @@ From https://claude.com/docs/plugins/platform-support **[V]**:
 - From 2026-10-06, new Pro and Max tasks run in the cloud. Local files, the
   browser, computer use and local connectors still work, but only through the
   open Desktop app.
-  https://support.claude.com/en/articles/15520349-use-cowork-on-web-desktop-and-mobile **[V]**
+  https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile **[V]**
 - Each cloud session gets a sandbox "created when the session starts and
   destroyed when it ends", sharing no state with other sandboxes.
   https://support.claude.com/en/articles/14479288-claude-cowork-architecture-overview **[V]**
