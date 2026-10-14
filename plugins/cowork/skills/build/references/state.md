@@ -10,12 +10,17 @@ resort: past-chat search.
 | **Local folder project**      | Yes, in chats started in that project **[V]** | Yes                         | The user's computer; content Claude reads passes through Anthropic's servers **[V]** | Desktop only, and Desktop must be open **[V]**                     |
 | **Claude memory**             | Yes **[V]**                                   | No; Claude words it **[I]** | Anthropic servers; visible in Settings > Memory **[V]**                              | On by default for Free, Pro, Max; the user can turn it off **[V]** |
 | **Past-chat search**          | Yes, paid plans **[V]**                       | Retrieval is fuzzy **[I]**  | The user's chat history **[V]**                                                      | Needs no extra step; deleting a chat loses it                      |
-| **Claude Docs**               | Yes **[V]**                                   | Yes                         | Anthropic servers; private unless shared **[V]**                                     | A new chat cannot find a doc by name without its link **[V]**      |
+| **Claude Docs**               | Yes **[V]**                                   | Yes                         | The user's Claude account; private unless shared **[V]**                             | A new chat cannot find a doc by name without its link **[I]**      |
 | claude.ai project knowledge   | Read-only to Claude **[V]**                   | n/a                         | Anthropic servers                                                                    | Ruled out                                                          |
 | Cowork outputs, session files | One session only **[V/I]**                    | n/a                         | n/a                                                                                  | Ruled out; cloud sandboxes are destroyed at session end            |
 | Plugin data directory         | Claude Code only **[V]**                      | n/a                         | n/a                                                                                  | Ruled out                                                          |
 | The skill's own folder        | No; copied fresh into each sandbox **[V]**    | n/a                         | n/a                                                                                  | Ruled out                                                          |
 | Artifact storage              | Per artifact **[V]**                          | Yes                         | Anthropic servers; 20 MB, text only **[V]**                                          | Only the artifact's own page code reads it **[I]**                 |
+
+Sources for table claims not cited further down:
+memory on by default, https://support.claude.com/en/articles/11817273;
+Claude Docs, https://support.claude.com/en/articles/16923645-get-started-with-claude-docs;
+artifact storage, https://support.claude.com/en/articles/9487310 **[V]**
 
 ## Local folder project
 
@@ -30,7 +35,8 @@ resort: past-chat search.
 - A cloud session reads and writes the folder only while Desktop is open on
   that computer, and only if the session started on Desktop or is a scheduled
   task. https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile **[V]**
-- Claude reads files up to 50 MB. **[V]**
+- Claude reads files up to 50 MB.
+  https://claude.com/docs/cowork/guide/projects **[V]**
 - A skill cannot attach a folder itself, so the design needs a one-time step
   where the user creates the folder project. If no folder is attached, the
   skill says so and offers the fallback.
