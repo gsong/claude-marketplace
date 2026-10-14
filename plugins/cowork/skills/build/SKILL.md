@@ -20,10 +20,17 @@ different rules; its docs do not answer these questions.
 These facts were researched in October 2026 and change monthly. Each claim
 carries a mark:
 
-- **[V]** verified on a primary source, with the URL or source given.
+- **[V]** verified on a primary source, with the URL or source given. A
+  qualifier narrows it: **[V, measured]** and **[V on two sites]** are our own
+  measurements, **[V, user report]** is a public bug report, and
+  **[V: absence]** means no source states the thing.
 - **[V, live]** observed in a live test on Claude Desktop 2.31226.1 with a
   personal Pro account, 2026-10-11. The test notes are private.
 - **[I]** inference or unverified. Test it before a design depends on it.
+  **[I, strong]**, **[I: test it]** and other qualified **[I]** marks are still
+  inferences.
+- **[V/I]** partly verified, and **[V, conflicting]** where two primary sources
+  disagree. Treat both as **[I]**.
 
 Before a decision rests on a claim, fetch its URL again. When the page
 disagrees with the reference, trust the page and update the reference file,
@@ -47,11 +54,12 @@ with the date.
 5. **Budget the work.** For anything that browses, fetches or runs on a
    schedule, read [usage.md](references/usage.md). Context windows are rarely
    the limit; the plan's opaque usage meter is.
-6. **List the live tests.** Collect every **[I]** claim the design depends on.
-   Write each as a prompt the user pastes into a fresh chat, with a "Pass if"
-   line, and ask them to record their Claude Desktop version (Claude > About).
-   The step is done when every **[I]** dependency has a test or the user has
-   accepted the risk.
+6. **List the live tests.** Collect every claim the design depends on that is
+   marked **[I]** in any form, **[V/I]** or **[V, conflicting]**. Write each as
+   a prompt the user pastes into a fresh chat, with a "Pass if" line, and ask
+   them to record their Claude Desktop version (Claude > About). The step is
+   done when every such dependency has a test or the user has accepted the
+   risk.
 
 ## Defaults
 

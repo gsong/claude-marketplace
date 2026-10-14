@@ -1,6 +1,6 @@
 # Keeping state between chats
 
-Researched 2026-10-11. Marks: **[V]** verified, **[I]** inference.
+Researched 2026-10-11. Marks are defined in [SKILL.md](../SKILL.md#freshness).
 
 Default: a file in a local folder project. Fallback: Claude's memory. Last
 resort: past-chat search.
