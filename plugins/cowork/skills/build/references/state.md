@@ -31,9 +31,9 @@ resort: past-chat search.
   that computer, and only if the session started on Desktop or is a scheduled
   task. https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile **[V]**
 - Claude reads files up to 50 MB. **[V]**
-- A skill cannot attach a folder itself, so the setup guide has the user create
-  the project once. If no folder is attached, the skill says so and offers the
-  fallback.
+- A skill cannot attach a folder itself, so the design needs a one-time step
+  where the user creates the folder project. If no folder is attached, the
+  skill says so and offers the fallback.
 - Manual mode ("Claude asks before it takes actions") may ask before each
   write; Auto mode does not. Deleting files always asks. Live, Claude wrote a
   file to a folder project in Manual mode with no prompt. That is one write in
