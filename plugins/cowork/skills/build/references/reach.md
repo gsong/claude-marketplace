@@ -22,21 +22,40 @@ Sandbox code cannot log in to an arbitrary site on a personal plan.
   cookies. **[I]**
 - Users report custom-domain allowlists failing even on plans that have them:
   https://github.com/anthropics/claude-code/issues/51400 **[V, user report]**
+- Live, a `curl` from the sandbox to a site off the list returned
+  `CONNECT tunnel failed, response 403`, in both a web chat and a Desktop
+  chat. The sandbox had Python 3.13, Node 22, Bun 1.4 and uv 0.11.
+  **[V, live]**
 
 ## Routes to a signed-in site
 
-| Route                                  | Plans                                                                                     | Notes                                                                                                                                                                                                                                                                         |
-| -------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Built-in browser** (pane in Desktop) | Pro, Max, Team; Enterprise when an Owner enables it; rolling out since 2026-08-26 **[V]** | Separate from the user's own browser. The user signs in once, or imports logins site by site from Chrome, Edge or Firefox on macOS. "Claude remembers logins across Cowork sessions." Desktop must be open and online. It is the default when Claude in Chrome is not set up. |
-| **Claude in Chrome** (extension)       | All paid plans **[V]**                                                                    | Uses the user's real Google Chrome and its sign-ins. A Desktop chat drives it once Settings > Connectors > Claude in Chrome is on, toggled per chat. A 1Password integration (beta, macOS) fills passwords Claude never sees.                                                 |
-| **Computer use**                       | Pro, Max; research preview; macOS 14+ and Windows **[V]**                                 | Settings > General > Computer use. Claude tries connectors, then the browser, then the screen.                                                                                                                                                                                |
-| **Local MCP server** (.mcpb)           | Any plan with Desktop **[I]**                                                             | Full control, but you ship code, store passwords and fix it whenever the site changes.                                                                                                                                                                                        |
-| **Remote connector**                   | Free (one), paid plans **[V]**                                                            | A public server holds the user's credentials. Works on mobile, at a real security and hosting cost.                                                                                                                                                                           |
+| Route                                  | Plans                                                                                     | Notes                                                                                                                                                                                                                                                                    |
+| -------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Built-in browser** (pane in Desktop) | Pro, Max, Team; Enterprise when an Owner enables it; rolling out since 2026-08-26 **[V]** | Separate from the user's own browser. The user signs in, or imports logins site by site from Chrome, Edge or Firefox on macOS. "Claude remembers logins across Cowork sessions." Desktop must be open and online. It is the default when Claude in Chrome is not set up. |
+| **Claude in Chrome** (extension)       | All paid plans **[V]**                                                                    | Uses the user's real Google Chrome and its sign-ins. A Desktop chat drives it once Settings > Connectors > Claude in Chrome is on, toggled per chat. A 1Password integration (beta, macOS) fills passwords Claude never sees.                                            |
+| **Computer use**                       | Pro, Max; research preview; macOS 14+ and Windows **[V]**                                 | Settings > General > Computer use. Claude tries connectors, then the browser, then the screen.                                                                                                                                                                           |
+| **Local MCP server** (.mcpb)           | Any plan with Desktop **[I]**                                                             | Full control, but you ship code, store passwords and fix it whenever the site changes.                                                                                                                                                                                   |
+| **Remote connector**                   | Free (one), paid plans **[V]**                                                            | A public server holds the user's credentials. Works on mobile, at a real security and hosting cost.                                                                                                                                                                      |
 
 Sources: https://support.claude.com/en/articles/16607400-use-the-built-in-browser-in-claude-cowork,
 https://support.claude.com/en/articles/12012173-claude-in-chrome,
 https://support.claude.com/en/articles/14128542-let-claude-use-your-computer-in-cowork. The
 preferred browser is set at Settings > Cowork > Preferred browser. **[V]**
+
+Observed in the live test **[V, live]**:
+
+- A claude.ai web chat cannot use the built-in browser, even with Desktop
+  running on the same Mac. Only an `enable__mcp__remote-devices__Claude_Browser`
+  stub appeared, and calling it loaded no tools. Run browser work from a
+  Claude Desktop chat.
+- In a web chat, Claude in Chrome's tools loaded. Their first use asked for
+  "the Claude desktop app and the Claude in Chrome extension".
+- The pane did not offer to save a password after a manual sign-in.
+- After quitting and reopening Claude Desktop, both test sites were signed
+  out.
+- The pane shows one page at a time. Asking for two sign-ins in one message
+  failed, because only the site left in the pane could be signed in to. Ask
+  for one site at a time, with that site's login page showing.
 
 Safety: Claude asks before acting on a site the first time, and some high-risk
 sites are blocked; the categories are not listed.
@@ -51,14 +70,25 @@ to you").
 
 Source: the Claude Desktop app bundle, version 2.31226.1 built 2026-10-09,
 read statically. No public doc lists these tools. **[V for that build; I for
-other builds and rollouts]**
+other builds and rollouts]** A live test on the same build confirmed the tool
+names, deferred loading, site approval and `javascript_tool` behaviour below.
+**[V, live]**
 
 - **Tool names.** `read_page`, `computer`, `form_input`, `navigate`, `find`,
   `get_page_text`, `javascript_tool`, `read_console_messages`,
   `read_network_requests`, `resize_window`, `tabs_context`, `tabs_create`,
-  `tabs_select`, `tabs_close`, `browser_batch`. Prefixes differ by host:
+  `tabs_select`, `tabs_close`, `browser_batch`, `preview_start`,
+  `request_access`. Prefixes differ by host:
   `mcp__Claude_Browser__`, `mcp__remote-devices__Claude_Browser__` (cloud
   session linked to the Mac), `mcp__claude-in-chrome__`.
+- **Deferred loading.** In a Desktop chat the browser tools start deferred.
+  Only `enable__mcp__remote-devices__Claude_Browser` is listed until Claude
+  calls it and a tool search loads the rest. Have the skill load the tools
+  before it uses them.
+- **Site approval.** The dialog offers "once" or "always". "Once" asks again
+  on the next page load. "Always" held across fresh chats, granted "on this
+  computer, until the person removes it in Settings". Have the skill tell the
+  user to choose "always".
 - **`javascript_tool`** runs code in the page's main world through CDP
   `Runtime.evaluate`, with REPL semantics: top-level `await` works and the last
   expression is returned as JSON. A same-origin `fetch` therefore sends the
@@ -66,6 +96,10 @@ other builds and rollouts]**
   Timeout 45 s. It is paused while a page-opened popup (often a sign-in window)
   is open. It passes the same per-site approval as other page tools. Claude in
   Chrome has the same tool, plus a `tabId`.
+- **Live, `javascript_tool`** returned JSON from a same-origin `fetch` under a
+  real login, and ran a `.js` file bundled in the skill unchanged. A top-level
+  `const` survives between calls in the same page, so wrap each script in one
+  async function to avoid a redeclaration error.
 - **Trim inside the page.** Have the script reduce the response to the fields
   you need before it returns. Raw responses run 18 to 40 times larger than the
   trimmed data (see [usage.md](usage.md)), and small returns keep personal
@@ -79,7 +113,10 @@ other builds and rollouts]**
 - **`read_network_requests`** in the built-in browser returns a response body
   when given a `requestId`, but only for the tab's own origin, cut at 10,000
   characters. It never records request bodies. Claude in Chrome's copy has no
-  body option in that build. **[I that bodies are unavailable there]**
+  body option in that build. **[I that bodies are unavailable there]** Live, a
+  body of about 8,400 characters came back whole, but the listing said 151
+  earlier requests had been dropped from the tab's buffer. Read a body soon
+  after the page loads.
 - **Check the tool exists.** Anthropic's own built-in-browser skill omits
   `javascript_tool`, so treat it as undocumented. A skill that relies on it
   should name a fallback, such as reading pages as text.
@@ -100,9 +137,9 @@ reads anything, or the model reads a login form as data.
   HTML login page, so the status code alone misleads. **[V on two sites]**
 - A page that shows neither the login title nor the expected signed-in title is
   a site change or an outage. Report it and stop, rather than signing in again.
-- Login cookies are often session cookies, and server idle timers can be as
-  short as 10 minutes. Whether the built-in browser keeps session cookies
-  across an app quit is undocumented. **[I: test it]**
+- Expect sign-ins often. One test site signed out after about 10 minutes
+  idle, and both test sites were signed out after Claude Desktop quit.
+  **[V, live]**
 
 ## Credentials
 
@@ -117,4 +154,4 @@ reads anything, or the model reads a login form as data.
   some organizations, and stored server-side.
   https://claude.com/docs/connectors/custom/add-unlisted **[V]**
 - Browser routes need no stored secret: the user types the password into the
-  browser once.
+  browser, again after each app quit or site timeout.

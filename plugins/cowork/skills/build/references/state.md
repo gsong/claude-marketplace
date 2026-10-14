@@ -35,8 +35,9 @@ resort: past-chat search.
   the project once. If no folder is attached, the skill says so and offers the
   fallback.
 - Manual mode ("Claude asks before it takes actions") may ask before each
-  write; Auto mode does not. Deleting files always asks. Whether Manual asks
-  per write, per task or never is undocumented. **[I: test it]**
+  write; Auto mode does not. Deleting files always asks. Live, Claude wrote a
+  file to a folder project in Manual mode with no prompt. That is one write in
+  one chat. **[V, live]**
 - Safety guidance suggests a dedicated working folder for Claude.
   https://support.claude.com/en/articles/13364135-use-claude-cowork-safely **[V]**
 
@@ -60,6 +61,14 @@ Paid plans only, RAG-based, shown as a tool call. Inside a project it searches
 that project's chats; outside, all chats outside projects. It does not cover
 pre-merge Cowork tasks. https://support.claude.com/en/articles/11817273,
 https://support.claude.com/en/articles/16761823 **[V]**
+
+## Artifacts in Claude Desktop
+
+Asked for a report "as an artifact", Claude wrote an HTML file in its sandbox
+and opened it in a file viewer beside the chat. It did not appear in the
+Artifacts list. The viewer's "More options" menu has "Publish artifact",
+"Add to project" and "Download as HTML", so publishing a page with personal
+data is one click away for the user. **[V, live]**
 
 ## Watch list
 
