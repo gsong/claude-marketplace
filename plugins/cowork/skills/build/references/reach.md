@@ -170,7 +170,7 @@ names, deferred loading, site approval and `javascript_tool` behaviour below.
   For work that may pass 45 s, have the skill tell Claude to:
   1. Start the work in the background from a synchronous script that returns
      a short status. Guard the start with a flag in `sessionStorage`, so a
-     retry does not start it again.
+     retry does not start it again (see [state.md](state.md#within-one-run)).
   2. Wait in the code sandbox with `sleep 20`, one wait at a time. The page
      kept working through each sleep. On Desktop, Claude ran five `sleep 30`
      calls in parallel, so all five ended together, until the prompt said
