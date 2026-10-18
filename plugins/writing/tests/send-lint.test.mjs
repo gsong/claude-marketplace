@@ -738,3 +738,13 @@ test("a malformed rule file alone does not bounce a send", () => {
     null,
   );
 });
+
+test("shipped rules: a semicolon inside a quote is not flagged, one outside is", () => {
+  const send = (message) =>
+    lint(call(`${SLACK}send_message`, { channel_id: "C1", message }), {
+      rules: join(HERE, "..", "defaults", "rules"),
+    });
+  assert.equal(send('He wrote "different rules; different docs" today'), null);
+  assert.equal(send("He wrote “different rules; different docs” today"), null);
+  assertDeny(send('He wrote "fine" first; then left'), /semicolon/);
+});
