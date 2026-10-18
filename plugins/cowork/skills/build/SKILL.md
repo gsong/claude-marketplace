@@ -1,24 +1,34 @@
 ---
 name: build
 description: >
-  Build for Claude Desktop and claude.ai (Chat and Cowork): plugins, Agent
-  Skills, Desktop Extensions (.mcpb) and custom connectors. Use when designing
-  or packaging something a claude.ai user runs, or when deciding whether it can
-  browse a signed-in site, run code, reach the network, keep state between
-  chats, or fit a plan's usage limits.
+  Make a Claude Code plugin or skill also work in Cowork, on Claude Desktop
+  and claude.ai. Use when a plugin, Agent Skill, Desktop Extension (.mcpb) or
+  connector must run in both, or when deciding whether it can browse a
+  signed-in site, run code, reach the network, keep state between sessions, or
+  fit a plan's usage limits in Cowork.
 ---
 
-# Build for Claude Desktop and claude.ai
+# Build for Cowork too
 
-Claude Desktop and claude.ai run the same Claude for an end user. The user's
-plan decides most of the architecture: what can be installed, which browser
-tools exist, and where code can run. Claude Code is a different product with
-different rules; its docs do not answer these questions.
+This skill is for a plugin that runs in Claude Code and must also run in
+Cowork, on Claude Desktop and claude.ai alike. Claude Code is the baseline:
+for a plugin that runs only there, Claude Code's plugin docs
+(https://code.claude.com/docs/en/plugins) are the source. Each reference says
+what Cowork changes and gives the Claude Code side beside it.
+
+In Cowork, the user's plan decides most of the architecture: what can be
+installed, which browser tools exist, and where code can run.
+
+Cowork sessions run Claude Code inside them: "Claude Code downloads [synced
+plugins] into the session's own environment when the session starts."
+https://code.claude.com/docs/en/plugins/loading#synced-plugins **[V]** So a
+Claude Code doc often describes Cowork too. Treat it as **[I]** for Cowork
+until a Cowork page or a live test agrees.
 
 ## Freshness
 
-These facts were researched in October 2026 and change monthly. Each claim
-carries a mark:
+These facts were researched in October 2026, and the doc claims were rechecked
+on 2026-10-18. They change monthly. Each claim carries a mark:
 
 - **[V]** verified on a primary source, with the URL or source given. A
   qualifier narrows it: **[V, measured]** and **[V on two sites]** are our own
@@ -34,7 +44,7 @@ carries a mark:
   **[I, strong]**, **[I: test it]** and other qualified **[I]** marks are still
   inferences.
 - **[V/I]** partly verified, and **[V, conflicting]** where two primary sources
-  disagree. Treat both as **[I]**.
+  disagree, such as a doc and our live test. Treat both as **[I]**.
 
 Before a decision rests on a claim, fetch its URL again. When the page
 disagrees with the reference, trust the page for this decision. Do not edit
@@ -44,19 +54,20 @@ they open an issue on gsong/claude-marketplace.
 
 ## Design steps
 
-1. **Pin the plan and the surface.** Learn the user's plan (Free, Pro, Max,
-   Team, Enterprise) and where they run Claude (Desktop on macOS or Windows,
+1. **Pin the plan and the apps.** Learn the user's plan (Free, Pro, Max,
+   Team, Enterprise) and where they run Cowork (Desktop on macOS or Windows,
    web, mobile). Ask when unknown. Free gets no plugins and no browser tools,
    and likely no Cowork **[I]**, so a Free design differs from the rest.
 2. **Pick the packaging.** Read [packaging.md](references/packaging.md): plugin,
    Agent Skill, Desktop Extension, custom connector or project. It also says
-   which plugin parts load in Chat, Cowork and cloud sessions, and how a skill
-   finds the scripts it bundles.
+   which plugin parts load in Cowork and in Claude Code, and how a skill finds
+   the scripts it bundles.
 3. **Pick the route out.** For anything that reads a website, runs code or
    holds a credential, read [reach.md](references/reach.md). The short answer:
-   on Free, Pro and Max, sandbox code reaches only a fixed list of package
-   hosts, so browsers and MCP servers are the routes to other sites. Team and
-   Enterprise owners can add domains to that list.
+   in Cowork on Free, Pro and Max, sandbox code reaches only a fixed list of
+   package hosts, so browsers and MCP servers are the routes to other sites.
+   Team and Enterprise owners can add domains to that list. In Claude Code,
+   code has the network of the user's computer.
 4. **Pick where state lives.** For anything that must remember a result
    between chats, carry progress through one long run, or hand the user a
    file, read [state.md](references/state.md).
@@ -66,7 +77,7 @@ they open an issue on gsong/claude-marketplace.
 6. **List the live tests.** Collect every claim the design depends on that is
    marked **[I]** in any form, **[V/I]** or **[V, conflicting]**. Write each as
    a prompt the user pastes into a fresh chat, with a "Pass if" line. Ask the
-   user to record the surface (Desktop, web chat or Claude Code), the browser,
+   user to record where it ran (Desktop, web chat or Claude Code), the browser,
    and their Claude Desktop version (Claude > About), because a transcript
    does not show which app ran. Write each test with these rules
    **[V, live 2026-10-16 to 2026-10-18]**:
@@ -89,18 +100,30 @@ they open an issue on gsong/claude-marketplace.
 
 ## Defaults
 
-| Need                                | Default on Pro or Max                                                                                                                                                  |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Teach Claude a procedure            | A plugin that holds only a skill, from a Git marketplace with **Sync automatically**                                                                                   |
-| Read a site the user signs in to    | The skill tells Claude to use the browser it has, and the user signs in when asked. The built-in browser needs Claude Desktop open; Claude in Chrome needs only Chrome |
-| Pull JSON from a signed-in site     | `javascript_tool` runs `fetch` in the page and trims the result there, under 1,000 characters for Claude in Chrome                                                     |
-| Keep a record between chats         | A file in a local folder project; Desktop only, and Desktop must be open                                                                                               |
-| Run code that needs a stored secret | A standalone Desktop Extension with `sensitive` `user_config` **[I]**                                                                                                  |
-| Anything on Free                    | A Desktop Extension **[I]**, or one custom connector                                                                                                                   |
+| Need                                | Default in Cowork on Pro or Max                                                                                                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Teach Claude a procedure            | A plugin that holds only a skill, from a Git marketplace with **Sync automatically**                                                                                                        |
+| Read a site the user signs in to    | The skill tells Claude to use the browser it has, and the user signs in when asked. The built-in browser needs Claude Desktop open; Claude in Chrome needs only Chrome **[V, conflicting]** |
+| Pull JSON from a signed-in site     | `javascript_tool` runs `fetch` in the page and trims the result there, under 1,000 characters for Claude in Chrome                                                                          |
+| Keep a record between chats         | A file in a local folder project; Desktop only, and Desktop must be open                                                                                                                    |
+| Run code that needs a stored secret | A standalone Desktop Extension with `sensitive` `user_config` **[I]**                                                                                                                       |
+| Anything on Free                    | A Desktop Extension **[I]**, or one custom connector                                                                                                                                        |
 
 The **[I]** cells rest on untested claims: whether a standalone .mcpb loads in a
 unified Pro or Max chat, and whether .mcpb works on Free. Cover them in the
 step 6 tests before a design depends on them.
+
+In Claude Code, three defaults change **[V]**:
+
+- **Read a site the user signs in to:** Claude in Chrome, or agent-browser run
+  through Bash. The built-in browser exists only in Desktop's Code tab, with a
+  clean profile and no saved logins. See [reach.md](references/reach.md#claude-codes-browsers).
+- **Keep a record between chats:** a file under `${CLAUDE_PLUGIN_DATA}`, which
+  survives plugin updates and is deleted on uninstall. See
+  [state.md](references/state.md).
+- **Run code that needs a stored secret:** a plugin `userConfig` option marked
+  `sensitive`, which Claude Code prompts for when the plugin is enabled. See
+  [reach.md](references/reach.md#credentials).
 
 ## Questions the skill asks
 
@@ -119,6 +142,12 @@ Write each asking step with these rules **[V, live 2026-10-15 to 2026-10-18]**:
 - **Leave Claude free to ask** when a tool requires a question, as Claude in
   Chrome does when two Chromes are connected (see
   [reach.md](references/reach.md)).
+- **Keep asking steps in the main session in Claude Code.** Subagents never
+  get `AskUserQuestion`. The `askUserQuestionTimeout` setting can submit an
+  unanswered card after 60 seconds to 10 minutes. Claude then hears the user
+  may be away, so the `[No preference]` rule should cover a timed-out card. https://code.claude.com/docs/en/sub-agents#available-tools,
+  https://code.claude.com/docs/en/tools-reference#askuserquestion-tool-behavior
+  **[V]**
 
 With the first two rules in place, a test that stops Claude after its
 questions passed on claude.ai with either browser, on Desktop with the

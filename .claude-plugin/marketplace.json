@@ -51,10 +51,18 @@
     {
       "name": "cowork",
       "source": "./plugins/cowork",
-      "description": "Build for Claude Desktop and claude.ai: plugins, skills, Desktop Extensions and connectors, and what each plan lets them do",
+      "description": "Make a Claude Code plugin also work in Cowork, on Claude Desktop and claude.ai: packaging, browsers, state, and what each plan allows",
       "author": { "name": "George Song" },
       "category": "development",
-      "keywords": ["claude.ai", "cowork", "plugin", "skill", "mcpb", "browser"]
+      "keywords": [
+        "claude.ai",
+        "cowork",
+        "claude-code",
+        "plugin",
+        "skill",
+        "mcpb",
+        "browser"
+      ]
     },
     {
       "name": "gh-tools",

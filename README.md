@@ -75,7 +75,7 @@ OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi
 
 ### cowork
 
-Build for Claude Desktop and claude.ai: plugins, skills, Desktop Extensions and connectors, and what each plan lets them do.
+Make a Claude Code plugin also work in Cowork, on Claude Desktop and claude.ai: packaging, browsers, state, and what each plan allows.
 
 ```
 /plugin install cowork@gsong-marketplace

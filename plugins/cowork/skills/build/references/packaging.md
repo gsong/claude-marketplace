@@ -1,6 +1,6 @@
 # Packaging and where each part runs
 
-Researched 2026-10-11, with live findings to 2026-10-18. Marks are defined in [SKILL.md](../SKILL.md#freshness).
+Researched 2026-10-11, with live findings to 2026-10-18 and doc claims rechecked 2026-10-18. Marks are defined in [SKILL.md](../SKILL.md#freshness).
 
 ## Mechanisms
 
@@ -30,7 +30,14 @@ Sources:
   A plain question loaded the skill with no slash command. A push reached
   Claude Desktop in under 4 minutes, with no version bump, reinstall or
   restart. The plugin menu offers only "Remove", with no manual update.
-  **[V, live 2026-10-11]**
+  **[V, live 2026-10-11]** A manual update sits on the marketplace instead:
+  select **Check for updates** on it.
+  https://claude.com/docs/cowork/guide/plugins **[V]**
+- In Claude Code, a plugin installs per machine, at user, project or local
+  scope, from any Git repository, URL or local path. A plugin turned on for
+  the claude.ai account also loads in Claude Code as a synced plugin, at the
+  next session start. https://claude.com/docs/plugins/platform-support,
+  https://code.claude.com/docs/en/plugins/loading#synced-plugins **[V]**
 - Sharing and publishing plugins inside an organization is Team and Enterprise
   only. https://support.claude.com/en/articles/13837440-use-plugins-in-claude **[V]**
 - Skills "run in Claude's code sandbox." https://claude.com/docs/skills/overview,
@@ -46,23 +53,75 @@ Sources:
 
 From https://claude.com/docs/plugins/platform-support **[V]**:
 
-- Skills and remote MCP servers load in Chat and Cowork.
-- Agents and hooks load in Cowork and Claude Code only.
-- A local MCP server, including a `.mcpb` bundle, is ignored in Chat. It loads
-  only when the Cowork session runs on the user's computer.
-- Cowork skips an MCP server whose config uses `${user_config.*}`, because
-  Cowork never prompts for values. Ship a credentialed local server as a
-  standalone .mcpb instead.
-- A top-level `bin/` directory makes Chat and Cowork refuse the plugin.
-- In Chat on claude.ai, the skill's whole folder, scripts included, is copied
-  into the code sandbox. Only `${CLAUDE_SKILL_DIR}` and `${CLAUDE_PLUGIN_ROOT}`
-  are documented for Cowork; `${CLAUDE_PLUGIN_DATA}` is Claude Code only.
-  https://claude.com/docs/skills/how-to **[V]**
-- Documented is not the same as expanded. In claude.ai and Desktop chats,
-  `${CLAUDE_SKILL_DIR}` reached Claude as literal text; Claude Code substitutes
-  it. **[V/I]**: probe notes report it, but the run records were not
-  rechecked. `${CLAUDE_PLUGIN_ROOT}` probably
-  stays literal too, and neither was tested in Cowork. **[I]**
+| Part                                           | Cowork                                                                | Claude Code                             |
+| ---------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------- |
+| Skills                                         | Load                                                                  | Load                                    |
+| Commands                                       | Load; the user runs one as `/plugin-name:command`                     | Load                                    |
+| Agents and hooks                               | Load                                                                  | Load                                    |
+| Remote MCP server                              | On the plugin's Connectors tab; works once the user connects it       | Connects directly                       |
+| Local MCP server, including `.mcpb`            | Loads only when the Cowork session runs on the user's computer        | Loads                                   |
+| MCP server that uses `${user_config.*}`        | Skipped when a referenced option has no default; Cowork never prompts | Loads, and prompts for the values       |
+| Top-level `bin/`                               | The plugin cannot be installed                                        | Loads; its files are on the Bash `PATH` |
+| LSP servers, output styles, themes, `settings` | Ignored                                                               | Load                                    |
+
+- Ship a credentialed local server as a standalone .mcpb, since Cowork never
+  prompts for `${user_config.*}` values.
+- Keep executables out of a top-level `bin/`. Put them under `scripts/` and
+  call them as `${CLAUDE_PLUGIN_ROOT}/scripts/<name>`.
+  https://claude.com/docs/plugins/org-sync#keep-executables-out-of-the-top-level-bin-directory **[V]**
+
+### Variables in skill text
+
+- Claude Code replaces `${CLAUDE_SKILL_DIR}`, `${CLAUDE_PLUGIN_ROOT}`,
+  `${CLAUDE_PLUGIN_DATA}`, `${CLAUDE_PROJECT_DIR}`, `${CLAUDE_SESSION_ID}` and
+  `$ARGUMENTS` in skill text when the skill loads. The two `PLUGIN` variables
+  work only in plugin skills. It also replaces `${CLAUDE_SKILL_DIR}` and
+  `${CLAUDE_PROJECT_DIR}` in Bash rules in `allowed-tools`, so a skill can run
+  its own script with no prompt. They are placeholders, not environment
+  variables: a Bash command never sees them.
+  https://code.claude.com/docs/en/skills#available-string-substitutions,
+  https://code.claude.com/docs/en/plugins/manifest-reference#where-each-variable-resolves
+  **[V]**
+- "Claude Code and Cowork replace `${CLAUDE_SKILL_DIR}` with the skill's
+  folder when the skill loads." https://claude.com/docs/skills/how-to#add-scripts
+  **[V]** A Cowork changelog fix for skills that ran "with those paths blank"
+  names both `${CLAUDE_PLUGIN_ROOT}` and `${CLAUDE_SKILL_DIR}`, so Cowork
+  substitutes both. https://claude.com/docs/cowork/changelog (v2.2553.0,
+  2026-09-17) **[V/I]** The org-sync page tells authors to call bundled
+  scripts as `${CLAUDE_PLUGIN_ROOT}/scripts/<name>` from skills, hooks and MCP
+  configs.
+  https://claude.com/docs/plugins/org-sync#keep-executables-out-of-the-top-level-bin-directory
+  **[V]** `${CLAUDE_PLUGIN_DATA}` appears only in Claude Code's docs.
+- Cowork replaces every `!` command line in a skill with a placeholder; local
+  Claude Code runs them. A skill synced from claude.ai into a plain terminal
+  session gets `${CLAUDE_PROJECT_DIR}` and `${CLAUDE_SESSION_ID}` as literal
+  text, and its `!` lines do not run.
+  https://code.claude.com/docs/en/skills#how-synced-skills-behave **[V]** So a
+  skill for both surfaces gathers its context with ordinary tool calls.
+- In claude.ai and Desktop chats, `${CLAUDE_SKILL_DIR}` reached Claude as
+  literal text. **[V/I]**: test notes report it, but the run records were not
+  rechecked. Those chats may have been Chat, where the docs predict no
+  substitution, or Cowork, where they predict it. **[V, conflicting]**
+- So write each path so it works either way: keep it readable relative to
+  `SKILL.md`, such as `scripts/render.py`, and have the skill find its folder
+  as below.
+
+### Chat on plans that have not merged it
+
+On plans that still keep Chat apart from Cowork, the same plugin also loads in
+Chat. The merge reached Pro and Max first, with "more plans" to follow, so
+Team and Enterprise are among them as of 2026-10-18.
+https://support.claude.com/en/articles/16761823-claude-cowork-and-chat-are-one-claude
+**[V/I]** In Chat, from the platform-support page above **[V]**:
+
+- Skills load. A command loads as a skill, which Claude applies when it fits.
+- Agents, hooks and local MCP servers are ignored. A remote MCP server is
+  ignored when its URL holds a `${user_config.*}` reference.
+- The skill's whole folder, scripts included, is copied into the code sandbox,
+  so a path relative to `SKILL.md` works there.
+  https://claude.com/docs/skills/how-to#add-scripts **[V]**
+
+Drop this section once those plans merge Chat into Cowork.
 
 ### Find the skill's own folder
 
@@ -74,6 +133,10 @@ The Skill tool prints the folder when it loads a skill:
 in web chats on 2026-10-14. On 2026-10-17 and 2026-10-18 it existed and
 held the skill's files on claude.ai, Desktop and Claude Code.
 **[V, live 2026-10-11 to 2026-10-18]**
+
+In Claude Code, `${CLAUDE_SKILL_DIR}` gives the folder **[V]**, and so did
+that line **[V, live 2026-10-17 to 2026-10-18]**. The search below is for
+Cowork, where neither is certain.
 
 So have the skill read the path from that line, never build it. Then have
 Claude try these in order, each as its own command, until one finds the files:
@@ -97,8 +160,8 @@ Why each detail matters **[V, live 2026-10-17 to 2026-10-18]**:
 
 ## Unified Claude and cloud sessions
 
-- From 2026-09-16, Chat and Cowork merge into one Claude for Pro and Max, in a
-  staged rollout with no way back. Free is not mentioned.
+- Chat and Cowork merge into one Claude, "starting with Pro and Max plans",
+  with "more plans" to follow and no way back. Free is not mentioned.
   https://support.claude.com/en/articles/16761823-claude-cowork-and-chat-are-one-claude **[V]**
 - From 2026-10-06, new Pro and Max tasks run in the cloud. Local files, the
   browser, computer use and local connectors still work, but only through the
@@ -109,7 +172,15 @@ Why each detail matters **[V, live 2026-10-17 to 2026-10-18]**:
   https://support.claude.com/en/articles/14479288-claude-cowork-architecture-overview **[V]**
 - Every Claude Desktop chat in the live test ran in the cloud, linked to the
   Mac. **[V, live 2026-10-11]**
-- Conflict: one page says plugin local MCP servers "work through the desktop
-  app only"; the architecture page says they "don't run in cloud sessions".
-  **[V, conflicting]** Whether a standalone .mcpb loads in a unified Pro or Max
-  conversation is undocumented. **[I: test it]**
+- Conflict: one page says "Local connectors and plugins that include local MCP
+  servers work through the desktop app only"; the architecture page says
+  "Local MCP servers don't run in sessions in the cloud". **[V, conflicting]**
+  Whether a standalone .mcpb loads in a unified Pro or Max conversation is
+  undocumented. claude.com calls a Desktop Extension a "local connector", which
+  hints that it works through the open Desktop app.
+  https://claude.com/docs/connectors/custom/add-unlisted **[I: test it]**
+- In Claude Code, a plugin can declare an `.mcpb` in `mcpServers`, and the
+  user sets its values in `/plugin`. The standalone CLI does not read Claude
+  Desktop's extensions.
+  https://code.claude.com/docs/en/plugins/components#include-a-packaged-mcpb-server,
+  https://code.claude.com/docs/en/desktop **[V]**

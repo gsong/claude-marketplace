@@ -1,6 +1,6 @@
 # Usage limits and context budget
 
-Researched 2026-10-11. Marks are defined in [SKILL.md](../SKILL.md#freshness).
+Researched 2026-10-11, with doc claims rechecked 2026-10-18. Marks are defined in [SKILL.md](../SKILL.md#freshness).
 
 ## What is published
 
@@ -15,9 +15,14 @@ Researched 2026-10-11. Marks are defined in [SKILL.md](../SKILL.md#freshness).
 - claude.ai, Claude Code and Claude Desktop draw on the same limit. **[V]**
 - "Tools and connectors are token-intensive." Browsing, running code and
   creating files are usage drivers. "Claude Cowork consumes limits faster than
-  Chat." No page gives a factor between chat and browser work.
+  Chat." "Browser interactions are more compute-intensive than regular chats",
+  and "Claude Code and Cowork sessions are significantly more token-intensive
+  than chat." No page gives a factor between chat and browser work.
   https://support.claude.com/en/articles/9797557-usage-limit-best-practices,
-  https://claude.com/product/cowork **[V]**
+  https://claude.com/product/cowork,
+  https://support.claude.com/en/articles/12902405-claude-in-chrome-troubleshooting,
+  https://support.claude.com/en/articles/14782391-claude-enterprise-consumption-guide
+  **[V]**
 - Newest models on paid plans support up to 1M tokens of context, varying by
   model. **[V]** So the context window is rarely the limit; the usage meter
   is.
@@ -36,8 +41,10 @@ fetches through `javascript_tool`, across two sites. **[V, measured]**
   ran 4,900 raw and 120 trimmed.
 - With skill text, scripts and the final report, new text was about 6,000
   tokens. Each tool call re-reads the conversation, so the processed total
-  was likely 100,000 to 200,000 tokens. **[I]** Anthropic does not say how the
-  meter weighs cached reads.
+  was likely 100,000 to 200,000 tokens. **[I]** Cached content "counts less
+  against your limits than new content", but Anthropic gives no factor.
+  https://support.claude.com/en/articles/9797557-usage-limit-best-practices
+  **[V]**
 
 On the meter, a browsing chat with 2 page loads, 4 `javascript_tool` or
 network calls and one follow-up used about 3 points of a 5-hour Pro session
@@ -65,3 +72,6 @@ the week in whole percents, so that cost is 0.5 to 1.5 points.
    follow-up question.
 3. Note Settings > Usage again. The difference is the real cost on that plan
    and model.
+
+Claude Code's `/usage` breakdown:
+https://code.claude.com/docs/en/costs#plan-usage-breakdown
