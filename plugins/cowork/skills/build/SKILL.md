@@ -26,8 +26,9 @@ carries a mark:
   **[V: absence]** means no source states the thing.
 - **[V, live <date>]** observed in our own live test on that date or date
   range. The 2026-10-11 test used Claude Desktop 2.31226.1 on a personal Pro
-  account. Tests from 2026-10-14 to 2026-10-18 used claude.ai web chats and
-  Claude Desktop on a Team account, with Sonnet 5.5. The test notes are
+  account. Tests from 2026-10-14 to 2026-10-18 used claude.ai web chats,
+  Claude Desktop and Claude Code on an organization account on the Team plan,
+  with Sonnet 5.5. The test notes are
   private.
 - **[I]** inference or unverified. Test it before a design depends on it.
   **[I, strong]**, **[I: test it]** and other qualified **[I]** marks are still
@@ -49,7 +50,8 @@ they open an issue on gsong/claude-marketplace.
    and likely no Cowork **[I]**, so a Free design differs from the rest.
 2. **Pick the packaging.** Read [packaging.md](references/packaging.md): plugin,
    Agent Skill, Desktop Extension, custom connector or project. It also says
-   which plugin parts load in Chat, Cowork and cloud sessions.
+   which plugin parts load in Chat, Cowork and cloud sessions, and how a skill
+   finds the scripts it bundles.
 3. **Pick the route out.** For anything that reads a website, runs code or
    holds a credential, read [reach.md](references/reach.md). The short answer:
    on Free, Pro and Max, sandbox code reaches only a fixed list of package
