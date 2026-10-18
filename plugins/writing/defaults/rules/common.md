@@ -11,7 +11,9 @@ cannot trust the word.
 
 The gate reads the block below, and the matching block in each profile file.
 Each line is tab-separated fields. The kind comes first and the message last.
-`re` takes one regular expression. `maxwords` takes one number. `density` takes
+`re` takes one regular expression. `re-unquoted` is the same, but text inside
+double quotes, straight or curly, is skipped first: use it for a rule about the
+writer's own punctuation, since a quotation keeps its author's. `maxwords` takes one number. `density` takes
 a regular expression, a floor count, and a rate per thousand words: it reports
 only when both are exceeded. Lines starting with `#` are comments. Fenced code
 blocks and front matter in the draft are never checked.
@@ -22,7 +24,7 @@ is parsed second, and the last `maxwords` wins.
 ```rules
 # Punctuation
 density	(?:—|&mdash;)	4	4	em dashes are frequent here; a colon usually does the job, and a pair bracketing an aside is never right
-re	;	semicolon; use a period or a colon
+re-unquoted	;	semicolon; use a period or a colon
 # A hyphenated MM-DD date such as 10-15 is skipped on purpose. It has the same shape as a range,
 # and docs that write dates this way would trip the rule on every date.
 re	(?<![\d-])(?!(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])(?![\d-]))\d+\s*[-—]\s*\d+(?![\d-])	number range with a hyphen or em dash; use an en dash (–)

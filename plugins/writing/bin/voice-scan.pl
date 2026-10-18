@@ -15,7 +15,7 @@ binmode STDOUT, ':encoding(UTF-8)';
 my $draft_path = pop @ARGV;
 my @rule_paths = @ARGV;
 
-my (@res, @densities, $maxwords, $maxwords_msg, @malformed);
+my (@res, @res_unquoted, @densities, $maxwords, $maxwords_msg, @malformed);
 for my $rules_path (@rule_paths) {
     open my $rf, '<:encoding(UTF-8)', $rules_path or next;
     # A malformed line has to name its file now that there is more than one.
@@ -36,6 +36,13 @@ for my $rules_path (@rule_paths) {
             # A rule file is hand-edited. One bad regex must not silence the gate.
             my $re = eval { qr/$rest[0]/ };
             if (defined $re) { push @res, [ $re, $msg ]; $ok = 1 }
+        }
+        elsif (defined $msg and $kind eq 're-unquoted' and @rest == 1) {
+            # Same as `re`, but double-quoted spans are blanked first. Text
+            # inside a quotation is another author's, so only rules about the
+            # writer's own punctuation opt in.
+            my $re = eval { qr/$rest[0]/ };
+            if (defined $re) { push @res_unquoted, [ $re, $msg ]; $ok = 1 }
         }
         elsif (defined $msg and $kind eq 'maxwords' and @rest == 1) {
             $maxwords     = $rest[0] + 0;
@@ -100,6 +107,13 @@ for my $n (0 .. $#lines) {
 
     for my $rule (@res) {
         printf "line %d: %s\n", $n + 1, $rule->[1] if $line =~ $rule->[0];
+    }
+
+    # Quotes pair within one line. An unpaired quote blanks nothing, and an
+    # apostrophe never counts: only straight and curly double quotes do.
+    (my $unquoted = $line) =~ s/"[^"]*"|\x{201C}[^\x{201D}]*\x{201D}/Q/g;
+    for my $rule (@res_unquoted) {
+        printf "line %d: %s\n", $n + 1, $rule->[1] if $unquoted =~ $rule->[0];
     }
 
     # A density rule asks how often a mark appears, not whether it appears.

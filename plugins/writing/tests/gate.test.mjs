@@ -870,3 +870,50 @@ test("repo markdown: a tool other than Write, Edit or MultiEdit is ignored", () 
     null,
   );
 });
+
+// A semicolon inside a quotation is the quoted author's punctuation. The
+// shipped rule skips quoted spans; other rules still read them.
+const SEMICOLON = /line 1: semicolon/;
+
+test("quotes: a semicolon inside straight quotes is not flagged", () => {
+  const body =
+    '- **Before:** "Claude Code is a different product with different rules; its docs do not answer these questions."\n';
+  assert.equal(onWrite(draft("technical", body), SHIPPED_RULES), null);
+});
+
+test("quotes: a semicolon inside curly quotes is not flagged", () => {
+  const body = "He wrote “different rules; different docs” in the issue.\n";
+  assert.equal(onWrite(draft("technical", body), SHIPPED_RULES), null);
+});
+
+test("quotes: a bare semicolon in prose is still flagged", () => {
+  const out = onWrite(
+    draft("technical", "it works; it is fast\n"),
+    SHIPPED_RULES,
+  );
+  assert.match(out, SEMICOLON);
+});
+
+test("quotes: a semicolon outside the quote is still flagged", () => {
+  const out = onWrite(
+    draft("technical", 'He said "fine" first; then left\n'),
+    SHIPPED_RULES,
+  );
+  assert.match(out, SEMICOLON);
+});
+
+test("quotes: an apostrophe does not open a quote", () => {
+  const out = onWrite(
+    draft("technical", "it's fine; don't worry\n"),
+    SHIPPED_RULES,
+  );
+  assert.match(out, SEMICOLON);
+});
+
+test("quotes: other rules still apply inside a quote", () => {
+  const out = onWrite(
+    draft("technical", 'The docs say "a robust design"\n'),
+    SHIPPED_RULES,
+  );
+  assert.match(out, /line 1: marketing adjective/);
+});
