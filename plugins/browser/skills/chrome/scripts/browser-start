@@ -4,6 +4,10 @@
 # (chromeProfile). The profile lives at ~/.agent-browser/profiles/<chromeProfile>.
 set -euo pipefail
 
+here=$(dirname "${BASH_SOURCE[0]}")
+# shellcheck source=chrome.sh
+. "$here/chrome.sh"
+
 if [ "$(uname)" != Darwin ]; then
   echo "browser-start opens Chrome on the Mac. Run it in a host terminal. agent-browser in the container then connects to that Chrome." >&2
   exit 1
@@ -32,35 +36,22 @@ case $name in
     ;;
 esac
 profile=$HOME/.agent-browser/profiles/$name
-url=http://127.0.0.1:$port/json/version
 
 # The registry keeps /browser:setup from handing this port to another repo.
 # Chrome still starts when recording fails; ports says why on stderr.
-"$(dirname "${BASH_SOURCE[0]}")/ports" record "$port" "$name" || true
+"$here/ports" record "$port" "$name" || true
 
 # A Chrome already on the port may hold another repo's profile. Driving it
 # would act on that repo's logins, so stop and name both. Never kill it: that
 # Chrome may be mid-task for another session.
-if curl -sf --max-time 1 "$url" >/dev/null; then
-  # Chrome's helper processes carry the browser's flags too, plus --type=.
-  # pgrep cannot print the whole command line, which holds the profile.
-  # shellcheck disable=SC2009
-  chrome=$(ps -axo command= |
-    grep -E -- "--remote-debugging-port=$port( |\$)" |
-    grep -v -- ' --type=' |
-    head -n 1 || true)
-  if [ -z "$chrome" ]; then
+if chrome_answers "$port"; then
+  if ! chrome=$(chrome_on_port "$port"); then
     echo "Something answers on port $port, but no Chrome with --remote-debugging-port=$port shows in ps. Free the port, or change cdp in $sidecar." >&2
     exit 1
   fi
-  case $chrome in
-    *--user-data-dir=*)
-      holder=${chrome#*--user-data-dir=}
-      holder=${holder%% --*}
-      ;;
-    *) holder="Chrome's default profile" ;;
-  esac
-  if [ "${holder%/}" != "$profile" ]; then
+  if ! chrome_runs_profile "$chrome" "$profile"; then
+    holder=$(chrome_profile_of "$chrome")
+    [ -n "$holder" ] || holder="Chrome's default profile"
     echo "Chrome on port $port uses the profile $holder, not $profile. Quit that Chrome, or give this repo its own cdp port in $sidecar." >&2
     exit 1
   fi
@@ -68,17 +59,9 @@ if curl -sf --max-time 1 "$url" >/dev/null; then
   exit 0
 fi
 
-# agent-browser skips chrome://newtab and chrome://intro. Finding no other tab,
-# its first session opens two blank tabs and abandons one, so start Chrome on a
-# tab it uses. --no-first-run keeps a new profile off chrome://intro.
-open -na "Google Chrome" --args --remote-debugging-port="$port" --user-data-dir="$profile" --no-first-run about:blank
-wait_seconds=${CHROME_WAIT_SECONDS:-15}
-deadline=$(($(date +%s) + wait_seconds))
-until curl -sf --max-time 1 "$url" >/dev/null; do
-  if [ "$(date +%s)" -ge "$deadline" ]; then
-    echo "Chrome did not answer on port $port within $wait_seconds seconds. If a Chrome with this profile is open without the port, quit it and run browser-start again." >&2
-    exit 1
-  fi
-  sleep 0.5
-done
+chrome_open "$port" "$profile"
+if ! chrome_wait "$port"; then
+  echo "Chrome did not answer on port $port within $chrome_wait_seconds seconds. If a Chrome with this profile is open without the port, quit it and run browser-start again." >&2
+  exit 1
+fi
 echo "Chrome is open on port $port with the profile $profile."

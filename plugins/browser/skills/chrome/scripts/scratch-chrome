@@ -10,6 +10,9 @@
 # profile under ~/.agent-browser/profiles.
 set -euo pipefail
 
+# shellcheck source=chrome.sh
+. "$(dirname "${BASH_SOURCE[0]}")/chrome.sh"
+
 usage() {
   echo "usage: scratch-chrome start <scratchpad> | scratch-chrome stop <scratchpad>/chrome-*" >&2
   exit 2
@@ -40,11 +43,11 @@ start() {
   }
   local profile
   profile=$(mktemp -d "$pad/chrome-XXXXXX")
-  open -na "Google Chrome" --args --remote-debugging-port="$port" \
-    --user-data-dir="$profile" --no-first-run --no-default-browser-check about:blank
+  chrome_open "$port" "$profile" --no-default-browser-check
   # The caller never sees a profile that fails here, so stop could not reach
   # it later. Remove it now, quitting a Chrome that came up late.
-  if ! wait_for "$port"; then
+  if ! chrome_wait "$port"; then
+    echo "Chrome did not answer on port $port within $chrome_wait_seconds seconds." >&2
     quit_chrome_on "$profile"
     rm -rf -- "$profile"
     exit 1
@@ -90,14 +93,7 @@ scratch_profile() {
 # it to exit, so Chrome does not write into the directory while it goes.
 quit_chrome_on() {
   local pids
-  pids=$(ps -axo pid=,command= | awk -v flag="--user-data-dir=$1" '
-    index($0, " --type=") { next }
-    {
-      i = index($0, flag)
-      if (!i) next
-      after = substr($0, i + length(flag), 1)
-      if (after == "" || after == " ") print $1
-    }')
+  pids=$(chrome_pids_on_profile "$1")
   [ -n "$pids" ] || return 0
   # shellcheck disable=SC2086 # one PID per word
   kill $pids 2>/dev/null || true
@@ -118,31 +114,15 @@ real_dir() {
   [ -d "$1" ] && (cd -P -- "$1" && pwd)
 }
 
-answers() {
-  curl -sf --max-time 1 "http://127.0.0.1:$1/json/version" >/dev/null
-}
-
 free_port() {
   local port
   for port in $(seq 9300 9399); do
-    if ! answers "$port"; then
+    if ! chrome_answers "$port"; then
       echo "$port"
       return 0
     fi
   done
   return 1
-}
-
-wait_for() {
-  local wait_seconds=${CHROME_WAIT_SECONDS:-15}
-  local deadline=$(($(date +%s) + wait_seconds))
-  until answers "$1"; do
-    if [ "$(date +%s)" -ge "$deadline" ]; then
-      echo "Chrome did not answer on port $1 within $wait_seconds seconds." >&2
-      return 1
-    fi
-    sleep 0.5
-  done
 }
 
 main "$@"
