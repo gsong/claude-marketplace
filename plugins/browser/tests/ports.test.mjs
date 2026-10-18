@@ -48,6 +48,26 @@ test("claim skips ports something else answers on", () => {
   assert.equal(r.stdout, "10101\n");
 });
 
+test("claim skips a port where the probe times out", () => {
+  const w = world();
+  // A program that holds the port but never replies.
+  w.portTimesOut(10100);
+  const r = w.run("ports", ["claim", "people-matcher"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout, "10101\n");
+});
+
+test("claim probes the port's root, which any program on it answers", () => {
+  const w = world();
+  w.portUp(10100);
+  const r = w.run("ports", ["claim", "people-matcher"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(w.curlCalls(), [
+    "-s --max-time 1 http://127.0.0.1:10100/",
+    "-s --max-time 1 http://127.0.0.1:10101/",
+  ]);
+});
+
 test("claim gives a profile the port it already has, and records nothing", () => {
   const w = world();
   w.registryHolds("10082 people-matcher", "10100 givingpath");

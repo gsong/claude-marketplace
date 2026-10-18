@@ -48,6 +48,11 @@ run = "scripts/scan-skills.sh"
 description = "Scan the plugin hooks for network use and code fetches"
 run = "scripts/scan-hooks.py"
 
+[tasks.test]
+description = "Run the browser plugin tests"
+# A bare directory is read as one test file, so pass a glob. node expands it.
+run = "node --test 'plugins/browser/tests/*.test.mjs'"
+
 [tasks."docs:mirror"]
 description = "Mirror the public Claude doc sets into .cache/docs-mirror so doc claims can be rechecked with grep; pass --force to refetch, --host to limit"
 run = "scripts/docs-mirror.py"

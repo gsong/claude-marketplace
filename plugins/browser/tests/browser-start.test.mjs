@@ -60,6 +60,10 @@ test("opens nothing when Chrome with this profile already answers", () => {
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /already open/);
   assert.deepEqual(w.openCalls(), []);
+  // Only Chrome's DevTools endpoint counts as Chrome answering.
+  assert.deepEqual(w.curlCalls(), [
+    "-sf --max-time 1 http://127.0.0.1:10082/json/version",
+  ]);
 });
 
 test('finds its profile when the profile path contains " --"', () => {
