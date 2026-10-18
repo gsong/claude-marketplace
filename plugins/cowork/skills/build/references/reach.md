@@ -61,6 +61,14 @@ preferred browser is set at Settings > Cowork > Preferred browser. **[V]**
   runs its first call asked for "the Claude desktop app and the Claude in
   Chrome extension" instead. **[V, live 2026-10-11 to 2026-10-15]** What
   brings up that prompt is untested. **[I]**
+- **Two Chromes connected.** With Claude in Chrome connected in two Chrome
+  profiles, the first `navigate` refused to act. It told Claude to ask the
+  user, through a question card, which browser to use, then call
+  `select_browser` or `switch_browser`. The prompt had told Claude to ask no
+  questions, so Claude ran nothing. With one profile connected, the same
+  prompt ran through. **[V, live 2026-10-17]** So the user picks a browser in
+  each new chat, or keeps the extension in one Chrome profile. A skill should
+  leave Claude free to ask this question.
 - **Claude in Chrome's side panel.** It is a third surface. It loads
   `claude.ai/cic/new?surface=cic_sidepanel`, titled "Claude Cowork". It asked
   for approval before every browser step, so opening and reading one page took
