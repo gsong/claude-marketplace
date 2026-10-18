@@ -11,6 +11,9 @@ set -euo pipefail
 
 registry=$HOME/.agent-browser/ports
 
+# shellcheck source=chrome.sh
+. "$(dirname "${BASH_SOURCE[0]}")/chrome.sh"
+
 usage() {
   echo "usage: ports claim <name> | ports record <port> <name>" >&2
   exit 2
@@ -36,9 +39,10 @@ claim() {
     echo "$port"
     return 0
   fi
-  used=$(registered_ports; chrome_ports)
+  # A Chrome that a repo set up before the registry existed shows only in ps.
+  used=$(registered_ports; chrome_debug_ports)
   for port in $(seq 10100 10199); do
-    if ! grep -qx "$port" <<<"$used" && nothing_listens "$port"; then
+    if ! grep -qx "$port" <<<"$used" && port_unused "$port"; then
       record "$port" "$1"
       echo "$port"
       return 0
@@ -88,21 +92,6 @@ name_for_port() {
 
 registered_ports() {
   [ ! -f "$registry" ] || awk '{ print $1 }' "$registry"
-}
-
-# A Chrome that a repo set up before the registry existed shows only here.
-# pgrep cannot print the flags, which hold the port.
-# shellcheck disable=SC2009
-chrome_ports() {
-  ps -axo command= | grep -oE -- '--remote-debugging-port=[0-9]+' | cut -d= -f2 || true
-}
-
-# curl exits 7 only when nothing accepts the connection. Any other exit means
-# a program holds the port, even one that times out or replies without HTTP.
-nothing_listens() {
-  local status=0
-  curl -s --max-time 1 "http://127.0.0.1:$1/" >/dev/null || status=$?
-  [ "$status" -eq 7 ]
 }
 
 main "$@"

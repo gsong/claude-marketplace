@@ -3,6 +3,8 @@
 // holds agent-browser.json.
 
 import assert from "node:assert/strict";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import { CHROME, world } from "./helpers.mjs";
@@ -55,6 +57,22 @@ test("opens nothing when Chrome with this profile already answers", () => {
     `${CHROME} --remote-debugging-port=10082 --user-data-dir=${w.home}/.agent-browser/profiles/people-matcher`,
   );
   const r = w.run("browser-start");
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /already open/);
+  assert.deepEqual(w.openCalls(), []);
+});
+
+test('finds its profile when the profile path contains " --"', () => {
+  const w = world();
+  w.sidecar(SIDECAR);
+  w.portUp(10082);
+  // The profile name holds no space, so the home directory carries the " --".
+  const home = join(w.home, "Chrome --profiles");
+  mkdirSync(home);
+  w.psLists(
+    `${CHROME} --remote-debugging-port=10082 --user-data-dir=${home}/.agent-browser/profiles/people-matcher --no-first-run`,
+  );
+  const r = w.run("browser-start", [], { HOME: home });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /already open/);
   assert.deepEqual(w.openCalls(), []);
