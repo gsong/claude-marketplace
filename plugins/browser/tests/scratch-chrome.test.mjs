@@ -57,6 +57,12 @@ test("start opens Chrome on a new chrome-* profile in the scratchpad", () => {
     ],
   ]);
   assert.match(r.stdout, /^port=9301$/m);
+  // A port is free unless Chrome's DevTools endpoint answers on it.
+  assert.deepEqual(w.curlCalls(), [
+    "-sf --max-time 1 http://127.0.0.1:9300/json/version",
+    "-sf --max-time 1 http://127.0.0.1:9301/json/version",
+    "-sf --max-time 1 http://127.0.0.1:9301/json/version",
+  ]);
   assert.equal(r.stdout.match(/^profile=(.*)$/m)[1], profile);
 });
 
@@ -92,7 +98,7 @@ function fakeChrome(w, profile) {
       encoding: "utf8",
     }).stdout,
   );
-  w.psLists(
+  w.psListsWithPids(
     `${pid} ${CHROME} --remote-debugging-port=9300 --user-data-dir=${profile} --no-first-run`,
   );
   return pid;
