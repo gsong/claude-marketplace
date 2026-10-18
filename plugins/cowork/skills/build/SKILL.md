@@ -84,3 +84,26 @@ they open an issue on gsong/claude-marketplace.
 The **[I]** cells rest on untested claims: whether a standalone .mcpb loads in a
 unified Pro or Max chat, and whether .mcpb works on Free. Cover them in the
 step 6 tests before a design depends on them.
+
+## Questions the skill asks
+
+Claude asks the user through question cards. A card is a prompt, not a gate.
+Write each asking step with these rules **[V, live 2026-10-15 to 2026-10-18]**:
+
+- **State the constraints in the step that asks.** Claude builds the options
+  from that text. Without it, Claude once marked as (Recommended) an option
+  the skill could not carry out, then took it back in its next turn.
+- **Ask for exactly one (Recommended) option** on each question, when the
+  skill or a test relies on a default. Without that, Claude marked none in
+  one run.
+- **Say what `[No preference]` means.** A skipped card reaches Claude as
+  `[No preference]`. The skill says whether that means stop or go on with the
+  default. For a destructive or long step, that rule is the gate.
+- **Leave Claude free to ask** when a tool requires a question, as Claude in
+  Chrome does when two Chromes are connected (see
+  [reach.md](references/reach.md)).
+
+With the first two rules in place, a test that stops Claude after its
+questions passed on claude.ai with either browser, on Desktop with the
+built-in browser, and on Claude Code with agent-browser. It failed on Claude
+Code and claude.ai before them.
