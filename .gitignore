@@ -1,3 +1,6 @@
 # Output of `claude plugin eval`
 plugins/*/evals/results/
 .worktrees/
+
+# Local mirror of the public docs
+.cache/

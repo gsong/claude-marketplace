@@ -43,3 +43,7 @@ run = "scripts/scan-skills.sh"
 [tasks."scan:hooks"]
 description = "Scan the plugin hooks for network use and code fetches"
 run = "scripts/scan-hooks.py"
+
+[tasks."docs:mirror"]
+description = "Mirror the public Claude doc sets into .cache/docs-mirror so doc claims can be rechecked with grep; pass --force to refetch, --host to limit"
+run = "scripts/docs-mirror.py"
