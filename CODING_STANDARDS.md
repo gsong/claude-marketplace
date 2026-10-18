@@ -13,6 +13,7 @@ Reviewers apply these rules to a diff. Each one is a judgement call. A rule a sc
 - A Claude Code doc is `[I]` evidence for Cowork until a Cowork page or a live test agrees.
 - When a doc and a live test disagree, keep both side by side and mark the claim `[V, conflicting]`. Neither one overwrites the other.
 - A live claim carries its test date, such as `[V, live 2026-10-17]`, or a date range.
+- An absence claim (`[V: absence]`, "no doc says") added or changed in a diff is rechecked by grep against `mise run docs:mirror` output.
 - A design step or a Defaults row in `SKILL.md` that summarizes a reference needs no mark of its own. The reference carries it.
 
 ### Sources
