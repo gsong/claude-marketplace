@@ -71,14 +71,14 @@ they open an issue on gsong/claude-marketplace.
 
 ## Defaults
 
-| Need                                | Default on Pro or Max                                                                                       |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Teach Claude a procedure            | A plugin that holds only a skill, from a Git marketplace with **Sync automatically**                        |
-| Read a site the user signs in to    | Run from Claude Desktop; the skill tells Claude to use the browser it has, and the user signs in when asked |
-| Pull JSON from a signed-in site     | `javascript_tool` runs `fetch` in the page and trims the result there                                       |
-| Keep a record between chats         | A file in a local folder project; Desktop only, and Desktop must be open                                    |
-| Run code that needs a stored secret | A standalone Desktop Extension with `sensitive` `user_config` **[I]**                                       |
-| Anything on Free                    | A Desktop Extension **[I]**, or one custom connector                                                        |
+| Need                                | Default on Pro or Max                                                                                                                                                  |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Teach Claude a procedure            | A plugin that holds only a skill, from a Git marketplace with **Sync automatically**                                                                                   |
+| Read a site the user signs in to    | The skill tells Claude to use the browser it has, and the user signs in when asked. The built-in browser needs Claude Desktop open; Claude in Chrome needs only Chrome |
+| Pull JSON from a signed-in site     | `javascript_tool` runs `fetch` in the page and trims the result there, under 1,000 characters for Claude in Chrome                                                     |
+| Keep a record between chats         | A file in a local folder project; Desktop only, and Desktop must be open                                                                                               |
+| Run code that needs a stored secret | A standalone Desktop Extension with `sensitive` `user_config` **[I]**                                                                                                  |
+| Anything on Free                    | A Desktop Extension **[I]**, or one custom connector                                                                                                                   |
 
 The **[I]** cells rest on untested claims: whether a standalone .mcpb loads in a
 unified Pro or Max chat, and whether .mcpb works on Free. Cover them in the
