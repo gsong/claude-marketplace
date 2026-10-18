@@ -58,7 +58,8 @@ they open an issue on gsong/claude-marketplace.
    hosts, so browsers and MCP servers are the routes to other sites. Team and
    Enterprise owners can add domains to that list.
 4. **Pick where state lives.** For anything that must remember a result
-   between chats, read [state.md](references/state.md).
+   between chats, carry progress through one long run, or hand the user a
+   file, read [state.md](references/state.md).
 5. **Budget the work.** For anything that browses, fetches or runs on a
    schedule, read [usage.md](references/usage.md). Context windows are rarely
    the limit; the plan's opaque usage meter is.

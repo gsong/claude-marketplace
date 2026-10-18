@@ -1,6 +1,6 @@
-# Keeping state between chats
+# Keeping state and handing over files
 
-Researched 2026-10-11. Marks are defined in [SKILL.md](../SKILL.md#freshness).
+Researched 2026-10-11, with live findings to 2026-10-18. Marks are defined in [SKILL.md](../SKILL.md#freshness).
 
 Default: a file in a local folder project. Fallback: Claude's memory. Last
 resort: past-chat search.
@@ -16,11 +16,56 @@ resort: past-chat search.
 | Plugin data directory         | Claude Code only **[V]**                      | n/a                         | n/a                                                                                  | Ruled out                                                          |
 | The skill's own folder        | No; copied fresh into each sandbox **[V]**    | n/a                         | n/a                                                                                  | Ruled out                                                          |
 | Artifact storage              | Per artifact **[V]**                          | Yes                         | Anthropic servers; 20 MB, text only **[V]**                                          | Only the artifact's own page code reads it **[I]**                 |
+| Device folder (`device_*`)    | The folder is on the Mac **[I]**              | Yes                         | A Mac folder the user grants, mounted in a Linux VM **[V, live 2026-10-17]**         | Observed, not documented; often missing. See below                 |
 
 Sources for table claims not cited further down:
 memory on by default, https://support.claude.com/en/articles/11817273;
 Claude Docs, https://support.claude.com/en/articles/16923645-get-started-with-claude-docs;
 artifact storage, https://support.claude.com/en/articles/9487310 **[V]**
+
+## Within one run
+
+- `sessionStorage` holds a run's progress across page scripts. A page script
+  wrote to it, then the run navigated, reloaded, went to another site and came
+  back, and passed through a sign-in redirect. The value survived all of it,
+  with either browser, in web and Desktop chats. Variables on `window` did not
+  survive a navigation. **[V, live 2026-10-17]**
+- Each site has its own `sessionStorage`. Its size limit, about 5 MB in
+  browsers generally, was not tested. **[I]**
+- So a skill that drives a long job through many page scripts can keep its
+  progress there and resume after a timeout or a page change. The state never
+  passes through Claude. The long-work steps in [reach.md](reach.md) use it to
+  guard against a double start.
+
+## Handing the user a file
+
+A page script that builds a `.csv` or `.xlsx` and clicks a download link put
+the file in `~/Downloads`, with either browser, in web and Desktop chats. The
+test built the `.xlsx` with SheetJS 0.18.5 loaded from jsDelivr.
+**[V, live 2026-10-17]** Confirming the download differs by browser:
+
+- **Built-in browser.** macOS shows a save dialog for every download. Until
+  the user clicks Save, the file is a hidden temporary file named
+  `.<random>.com.anthropic.claudefordesktop.*`. Claude looked too early and
+  reported the file missing. Have the skill tell the user to click Save, and
+  Claude to check only after they say so.
+- **Claude in Chrome.** No dialog appears. Claude cannot see
+  `chrome://downloads` or `file://`, so it can confirm the file only through
+  the device tools below.
+
+## Device folders from a web chat
+
+A claude.ai web chat linked to the Mac through Devices offered
+`get_device_info`, `device_request_folder_access`, `device_bash` and
+`device_list_dir`. No doc lists them. **[V, live 2026-10-17]**
+
+- `device_request_folder_access({paths: ["~/Downloads"]})` asks the user. The
+  folder then mounts at `$HOME/mnt/Downloads` in a Linux VM, not on the Mac
+  itself.
+- Without a granted folder, `device_bash` fails with "No folders are connected
+  to this device…".
+- Tool search found these tools in only one of three Claude in Chrome runs. A
+  design can use them when they appear, but cannot depend on them.
 
 ## Local folder project
 
