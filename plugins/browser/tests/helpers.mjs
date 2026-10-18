@@ -6,7 +6,7 @@
 // processes ps lists, then reads back what open was asked to start.
 
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -36,9 +36,11 @@ const STUBS = {
   // Logs its arguments, one call per line. Knows two probes: Chrome's
   // DevTools endpoint, /json/version, and the bare port, /. Answers as the
   // test, or the open stand-in, set the port: up, or timed out (exit 28). A
-  // port with no state refuses the connection (exit 7).
+  // port with no state refuses the connection (exit 7). Each call first waits
+  // as long as the test set.
   curl: `
 echo "$*" >>"$STUB_STATE/curl.log"
+[ ! -e "$STUB_STATE/curl-delay" ] || sleep "$(cat "$STUB_STATE/curl-delay")"
 url='http://127\\.0\\.0\\.1:([0-9]+)'
 devtools="^-sf --max-time 1 $url/json/version\\$"
 bare="^-s --max-time 1 $url/\\$"
@@ -102,6 +104,11 @@ export function world() {
     portTimesOut(port) {
       writeFileSync(join(dirs.state, `port-${port}`), "timeout");
     },
+    // Each curl probe takes this long, so runs started together stay
+    // together while they probe.
+    probesTake(seconds) {
+      writeFileSync(join(dirs.state, "curl-delay"), String(seconds));
+    },
     isUp(port) {
       const file = join(dirs.state, `port-${port}`);
       return existsSync(file) && readFileSync(file, "utf8").trim() === "up";
@@ -125,6 +132,12 @@ export function world() {
         join(dirs.home, ".agent-browser", "ports"),
         lines.map((l) => `${l}\n`).join(""),
       );
+    },
+    // The directory a ports run holds while it reads and writes the registry.
+    lockDir: join(dirs.home, ".agent-browser", "ports.lock"),
+    // A lock left behind by a ports run that was killed.
+    leftOverLock() {
+      mkdirSync(this.lockDir, { recursive: true });
     },
     registry() {
       const file = join(dirs.home, ".agent-browser", "ports");
@@ -151,23 +164,59 @@ export function world() {
     // test did not set up.
     run(script, args = [], env = {}) {
       const result = spawnSync(resolve(SCRIPTS, script), args, {
-        cwd: dirs.cwd,
+        ...spawnOptions(dirs, env),
         encoding: "utf8",
-        env: {
-          ...process.env,
-          HOME: dirs.home,
-          PATH: `${dirs.bin}:${process.env.PATH}`,
-          STUB_STATE: dirs.state,
-          ...env,
-        },
       });
-      const log = join(dirs.state, "unexpected");
-      if (existsSync(log)) {
-        assert.fail(`unexpected call: ${readFileSync(log, "utf8").trim()}`);
-      }
+      failOnUnexpectedCalls(dirs.state);
       return result;
     },
+    // Starts each [script, args, env] call at once, as run() would, and
+    // resolves to their results in the same order.
+    async runTogether(...calls) {
+      const results = await Promise.all(
+        calls.map(([script, args = [], env = {}]) =>
+          exited(
+            spawn(resolve(SCRIPTS, script), args, spawnOptions(dirs, env)),
+          ),
+        ),
+      );
+      failOnUnexpectedCalls(dirs.state);
+      return results;
+    },
   };
+}
+
+function spawnOptions(dirs, env) {
+  return {
+    cwd: dirs.cwd,
+    env: {
+      ...process.env,
+      HOME: dirs.home,
+      PATH: `${dirs.bin}:${process.env.PATH}`,
+      STUB_STATE: dirs.state,
+      ...env,
+    },
+  };
+}
+
+function failOnUnexpectedCalls(state) {
+  const log = join(state, "unexpected");
+  if (existsSync(log)) {
+    assert.fail(`unexpected call: ${readFileSync(log, "utf8").trim()}`);
+  }
+}
+
+// Resolves to the child's exit status and output, in the shape spawnSync
+// returns.
+function exited(child) {
+  return new Promise((done, failed) => {
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8").on("data", (d) => (stdout += d));
+    child.stderr.setEncoding("utf8").on("data", (d) => (stderr += d));
+    child.on("error", failed);
+    child.on("close", (status) => done({ status, stdout, stderr }));
+  });
 }
 
 // Sets what ps -axo <columns> lists. The ps stand-in refuses other columns.

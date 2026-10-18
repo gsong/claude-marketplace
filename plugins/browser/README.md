@@ -38,6 +38,8 @@ Each repo needs its own port. Two repos on one port drive the same Chrome, so on
 
 The port registry, `~/.agent-browser/ports`, holds one `<port> <profile>` line per repo. Setup picks the first port in 10100-10199 that the registry does not list, no running Chrome holds, and nothing answers on. `browser-start` records its port each time it runs, so a repo set up by hand joins the registry on its next start. When the registry gives that port to another profile, `browser-start` warns and opens Chrome anyway.
 
+Each `ports` run holds the directory `~/.agent-browser/ports.lock` while it reads and writes the registry, so two runs at once cannot pick one port. A run killed outright can leave the directory behind. The next run then waits 10 seconds and fails with the `rmdir` command that removes it. Until then, each `browser-start` waits those 10 seconds before it opens Chrome.
+
 A throwaway Chrome from `scratch-chrome` takes the first port in 9300-9399 where no Chrome answers. The registry does not track these ports, so keep repo ports out of that range.
 
 ## Profile safety
