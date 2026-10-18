@@ -190,6 +190,16 @@ names, deferred loading, site approval and `javascript_tool` behaviour below.
     larger limit if it takes one" was ignored. So name `max_chars` in the
     skill. The text starts with `Title:`, `URL:` and `Source element:` lines.
     **[V, live 2026-10-16 to 2026-10-18]**
+  - The built-in browser returned a read of about 16,000 characters inline.
+    Reads of 74,264 and 118,159 characters came back as an error instead:
+    `Error: result (74,264 characters) exceeds maximum allowed tokens. Output has been saved to /root/.claude/projects/…/tool-results/…get_page_text-<n>.txt`.
+    The file holds a JSON array of `{type, text}` blocks, not plain text.
+    Claude parsed it with Python, joined the `text` fields, and recovered all
+    of the page text. This held in web and Desktop chats.
+    **[V, live 2026-10-17]** The limit falls somewhere between 16,000 and
+    74,000 characters and is probably counted in tokens. **[I]** So a skill
+    that moves bulk text through `get_page_text` should tell Claude how to
+    read that file, or keep each read under about 15,000 characters.
 - **`read_network_requests`** in the built-in browser returns a response body
   when given a `requestId`, but only for the tab's own origin, cut at 10,000
   characters. It never records request bodies. Claude in Chrome's copy has no
