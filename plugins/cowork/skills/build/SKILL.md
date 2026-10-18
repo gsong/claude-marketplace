@@ -24,8 +24,11 @@ carries a mark:
   qualifier narrows it: **[V, measured]** and **[V on two sites]** are our own
   measurements, **[V, user report]** is a public bug report, and
   **[V: absence]** means no source states the thing.
-- **[V, live]** observed in a live test on Claude Desktop 2.31226.1 with a
-  personal Pro account, 2026-10-11. The test notes are private.
+- **[V, live <date>]** observed in our own live test on that date or date
+  range. The 2026-10-11 test used Claude Desktop 2.31226.1 on a personal Pro
+  account. Tests from 2026-10-14 to 2026-10-18 used claude.ai web chats and
+  Claude Desktop on a Team account, with Sonnet 5.5. The test notes are
+  private.
 - **[I]** inference or unverified. Test it before a design depends on it.
   **[I, strong]**, **[I: test it]** and other qualified **[I]** marks are still
   inferences.

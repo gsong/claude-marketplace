@@ -30,7 +30,7 @@ Sources:
   A plain question loaded the skill with no slash command. A push reached
   Claude Desktop in under 4 minutes, with no version bump, reinstall or
   restart. The plugin menu offers only "Remove", with no manual update.
-  **[V, live]**
+  **[V, live 2026-10-11]**
 - Sharing and publishing plugins inside an organization is Team and Enterprise
   only. https://support.claude.com/en/articles/13837440-use-plugins-in-claude **[V]**
 - Skills "run in Claude's code sandbox." https://claude.com/docs/skills/overview,
@@ -62,7 +62,7 @@ From https://claude.com/docs/plugins/platform-support **[V]**:
   (`/mnt/skills/plugins/<plugin>:<skill>/`) did not exist in several runs.
   Claude found the bundled script by searching under
   `/root/.claude/plugins/synced/`. Have the skill tell Claude to confirm a
-  script's path exists, and to search for it when it is missing. **[V, live]**
+  script's path exists, and to search for it when it is missing. **[V, live 2026-10-11]**
 
 ## Unified Claude and cloud sessions
 
@@ -77,7 +77,7 @@ From https://claude.com/docs/plugins/platform-support **[V]**:
   destroyed when it ends", sharing no state with other sandboxes.
   https://support.claude.com/en/articles/14479288-claude-cowork-architecture-overview **[V]**
 - Every Claude Desktop chat in the live test ran in the cloud, linked to the
-  Mac. **[V, live]**
+  Mac. **[V, live 2026-10-11]**
 - Conflict: one page says plugin local MCP servers "work through the desktop
   app only"; the architecture page says they "don't run in cloud sessions".
   **[V, conflicting]** Whether a standalone .mcpb loads in a unified Pro or Max
