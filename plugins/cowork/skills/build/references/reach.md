@@ -25,7 +25,7 @@ Sandbox code cannot log in to an arbitrary site on a personal plan.
 - Live, a `curl` from the sandbox to a site off the list returned
   `CONNECT tunnel failed, response 403`, in both a web chat and a Desktop
   chat. The sandbox had Python 3.13, Node 22, Bun 1.4 and uv 0.11.
-  **[V, live]**
+  **[V, live 2026-10-11]**
 
 ## Routes to a signed-in site
 
@@ -42,7 +42,7 @@ https://support.claude.com/en/articles/12012173-claude-in-chrome,
 https://support.claude.com/en/articles/14128542-let-claude-use-your-computer-in-cowork. The
 preferred browser is set at Settings > Cowork > Preferred browser. **[V]**
 
-Observed in the live test **[V, live]**:
+Observed in the live test **[V, live 2026-10-11]**:
 
 - A claude.ai web chat cannot use the built-in browser, even with Desktop
   running on the same Mac. Only an `enable__mcp__remote-devices__Claude_Browser`
@@ -72,7 +72,7 @@ Source: the Claude Desktop app bundle, version 2.31226.1 built 2026-10-09,
 read statically. No public doc lists these tools. **[V for that build; I for
 other builds and rollouts]** A live test on the same build confirmed the tool
 names, deferred loading, site approval and `javascript_tool` behaviour below.
-**[V, live]**
+**[V, live 2026-10-11]**
 
 - **Tool names.** `read_page`, `computer`, `form_input`, `navigate`, `find`,
   `get_page_text`, `javascript_tool`, `read_console_messages`,
@@ -139,7 +139,7 @@ reads anything, or the model reads a login form as data.
   a site change or an outage. Report it and stop, rather than signing in again.
 - Expect sign-ins often. One test site signed out after about 10 minutes
   idle, and both test sites were signed out after Claude Desktop quit.
-  **[V, live]**
+  **[V, live 2026-10-11]**
 
 ## Credentials
 

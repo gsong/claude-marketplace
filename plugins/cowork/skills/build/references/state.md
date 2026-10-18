@@ -43,7 +43,7 @@ artifact storage, https://support.claude.com/en/articles/9487310 **[V]**
 - Manual mode ("Claude asks before it takes actions") may ask before each
   write; Auto mode does not. Deleting files always asks. Live, Claude wrote a
   file to a folder project in Manual mode with no prompt. That is one write in
-  one chat. **[V, live]**
+  one chat. **[V, live 2026-10-11]**
 - Safety guidance suggests a dedicated working folder for Claude.
   https://support.claude.com/en/articles/13364135-use-claude-cowork-safely **[V]**
 
@@ -74,7 +74,7 @@ Asked for a report "as an artifact", Claude wrote an HTML file in its sandbox
 and opened it in a file viewer beside the chat. It did not appear in the
 Artifacts list. The viewer's "More options" menu has "Publish artifact",
 "Add to project" and "Download as HTML", so publishing a page with personal
-data is one click away for the user. **[V, live]**
+data is one click away for the user. **[V, live 2026-10-11]**
 
 ## Watch list
 

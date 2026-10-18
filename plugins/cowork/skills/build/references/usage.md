@@ -43,7 +43,8 @@ On the meter, a browsing chat with 2 page loads, 4 `javascript_tool` or
 network calls and one follow-up used about 3 points of a 5-hour Pro session
 and about 1 point of the week. It ran on Sonnet 5.5 at Medium effort. A
 similar task on Opus 5.5 at Medium measured the same. Settings > Usage shows
-the week in whole percents, so that cost is 0.5 to 1.5 points. **[V, live]**
+the week in whole percents, so that cost is 0.5 to 1.5 points.
+**[V, live 2026-10-11]**
 
 ## Trimming rules
 
