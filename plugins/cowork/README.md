@@ -1,12 +1,12 @@
 # cowork
 
-Build for Claude Desktop and claude.ai: plugins, skills, Desktop Extensions and connectors, and what each plan lets them do.
+Make a Claude Code plugin also work in Cowork, on Claude Desktop and claude.ai: packaging, browsers, state, and what each plan allows.
 
 ## Skills
 
-| Skill           | Trigger                                                           | Description                                                                                                      |
-| --------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `/cowork:build` | "package this for Claude Desktop", "can a claude.ai skill browse" | Pick packaging, browser and network routes, state storage and a usage budget for something a claude.ai user runs |
+| Skill           | Trigger                                                            | Description                                                                                                                        |
+| --------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `/cowork:build` | "make this plugin work in Cowork too", "can a Cowork skill browse" | Pick packaging, browser and network routes, state storage and a usage budget for a Claude Code plugin that must also run in Cowork |
 
 The facts carry a research date and a verified or inferred mark. They change often, so the skill re-checks a source before a design depends on it.
 

@@ -1,9 +1,11 @@
 # Keeping state and handing over files
 
-Researched 2026-10-11, with live findings to 2026-10-18. Marks are defined in [SKILL.md](../SKILL.md#freshness).
+Researched 2026-10-11, with live findings to 2026-10-18 and doc claims rechecked 2026-10-18. Marks are defined in [SKILL.md](../SKILL.md#freshness).
 
-Default: a file in a local folder project. Fallback: Claude's memory. Last
-resort: past-chat search.
+Default in Cowork: a file in a local folder project. Fallback: Claude's
+memory. Last resort: past-chat search. In Claude Code, the default is a file
+under `${CLAUDE_PLUGIN_DATA}`, so a plugin for both picks its store per
+surface.
 
 | Store                         | Persists across chats?                        | Exact text?                 | Where the data sits                                                                  | Notes                                                              |
 | ----------------------------- | --------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
@@ -13,7 +15,7 @@ resort: past-chat search.
 | **Claude Docs**               | Yes **[V]**                                   | Yes                         | The user's Claude account; private unless shared **[V]**                             | A new chat cannot find a doc by name without its link **[I]**      |
 | claude.ai project knowledge   | Read-only to Claude **[V]**                   | n/a                         | Anthropic servers                                                                    | Ruled out                                                          |
 | Cowork outputs, session files | One session only **[V/I]**                    | n/a                         | n/a                                                                                  | Ruled out; cloud sandboxes are destroyed at session end            |
-| Plugin data directory         | Claude Code only **[V]**                      | n/a                         | n/a                                                                                  | Ruled out                                                          |
+| Plugin data directory         | In Claude Code only **[V]**                   | Yes                         | `~/.claude/plugins/data/<id>/` on the user's computer **[V]**                        | Kept across updates, deleted on uninstall **[V]**                  |
 | The skill's own folder        | No; copied fresh into each sandbox **[V]**    | n/a                         | n/a                                                                                  | Ruled out                                                          |
 | Artifact storage              | Per artifact **[V]**                          | Yes                         | Anthropic servers; 20 MB, text only **[V]**                                          | Only the artifact's own page code reads it **[I]**                 |
 | Device folder (`device_*`)    | The folder is on the Mac **[I]**              | Yes                         | A Mac folder the user grants, mounted in a Linux VM **[V, live 2026-10-17]**         | Observed, not documented; often missing. See below                 |
@@ -21,7 +23,8 @@ resort: past-chat search.
 Sources for table claims not cited further down:
 memory on by default, https://support.claude.com/en/articles/11817273;
 Claude Docs, https://support.claude.com/en/articles/16923645-get-started-with-claude-docs;
-artifact storage, https://support.claude.com/en/articles/9487310 **[V]**
+artifact storage, https://support.claude.com/en/articles/17153992-what-are-artifacts-and-how-do-i-use-them **[V]**;
+plugin data directory, https://code.claude.com/docs/en/plugins/manifest-reference#environment-variables **[V]**
 
 ## Within one run
 
@@ -51,7 +54,8 @@ test built the `.xlsx` with SheetJS 0.18.5 loaded from jsDelivr.
   Claude to check only after they say so.
 - **Claude in Chrome.** No dialog appears. Claude cannot see
   `chrome://downloads` or `file://`, so it can confirm the file only through
-  the device tools below.
+  the device tools below. In Claude Code, Claude can list `~/Downloads` with
+  Bash instead. **[I]**
 
 ## Device folders from a web chat
 
@@ -65,7 +69,9 @@ A claude.ai web chat linked to the Mac through Devices offered
 - Without a granted folder, `device_bash` fails with "No folders are connected
   to this device…".
 - Tool search found these tools in only one of three Claude in Chrome runs. A
-  design can use them when they appear, but cannot depend on them.
+  design can use them when they appear, but cannot depend on them. Public bug
+  reports describe sessions that start without them.
+  https://github.com/anthropics/claude-code/issues/94819 **[V, user report]**
 
 ## Local folder project
 
@@ -105,6 +111,11 @@ A claude.ai web chat linked to the Mac through Devices offered
   history, financial account numbers and immigration status are never saved.
   **[V]** No size limit is stated. **[V: absence]**
 - No doc says a skill may write memory, and none forbids it. **[I]**
+- Claude Code's memory is separate: auto memory is files on the user's
+  computer, "not shared across machines or cloud environments".
+  https://code.claude.com/docs/en/memory **[V]** Its docs never mention
+  claude.ai memory, so a skill cannot count on that memory in Claude Code.
+  **[I]**
 
 ## Past-chat search
 

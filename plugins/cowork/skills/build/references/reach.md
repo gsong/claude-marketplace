@@ -1,6 +1,6 @@
 # Reaching websites, running code, holding credentials
 
-Researched 2026-10-11, with live findings to 2026-10-18. Marks are defined in [SKILL.md](../SKILL.md#freshness).
+Researched 2026-10-11, with live findings to 2026-10-18 and doc claims rechecked 2026-10-18. Marks are defined in [SKILL.md](../SKILL.md#freshness).
 
 ## Code sandbox egress
 
@@ -26,6 +26,13 @@ Sandbox code cannot log in to an arbitrary site on a personal plan.
   `CONNECT tunnel failed, response 403`, in both a web chat and a Desktop
   chat. The sandbox had Python 3.13, Node 22, Bun 1.4 and uv 0.11.
   **[V, live 2026-10-11]**
+- In Claude Code, "Skills have the same network access as any other program
+  on the user's computer." The Bash sandbox is off by default; when on, it
+  blocks the network outside an allowlist that starts empty.
+  https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview#runtime-environment-constraints,
+  https://code.claude.com/docs/en/sandboxing **[V]** So a direct `curl` that
+  works in Claude Code can fail in Cowork. **[I]** Use a browser instead:
+  Claude in Chrome works in both.
 
 ## Routes to a signed-in site
 
@@ -47,12 +54,19 @@ preferred browser is set at Settings > Cowork > Preferred browser. **[V]**
 - **Desktop chat.** It used the built-in browser in two runs with Claude in
   Chrome turned on, even when told "Use Claude in Chrome, not the built-in
   browser". A skill cannot count on picking the browser from Desktop.
-  **[V, live 2026-10-16 to 2026-10-18]**
+  **[V, live 2026-10-16 to 2026-10-18]** The help center says "Claude uses
+  your preferred browser for web tasks unless you ask it to use the other
+  one."
+  https://support.claude.com/en/articles/16607400-use-the-built-in-browser-in-claude-cowork
+  **[V, conflicting]**
 - **Web chat, built-in browser.** It works while Claude Desktop runs on the
   same Mac. The chat shows the Mac as a connected device, and the tools carry
   `Claude_Browser` in their names. With Desktop quit, the device shows "Asleep
   or app closed", and the chat falls back to Claude in Chrome.
-  **[V, live 2026-10-15]** On 2026-10-11 a web chat got only an
+  **[V, live 2026-10-15]** The help center agrees: "If your preferred browser
+  isn't available, Claude tells you and continues with the other one."
+  https://support.claude.com/en/articles/16607400-use-the-built-in-browser-in-claude-cowork
+  **[V]** On 2026-10-11 a web chat got only an
   `enable__mcp__remote-devices__Claude_Browser` stub that loaded no tools.
   **[V, live 2026-10-11]**
 - **Web chat, Claude in Chrome.** It needs Chrome with the extension, not
@@ -60,7 +74,14 @@ preferred browser is set at Settings > Cowork > Preferred browser. **[V]**
   on by default and needs no Devices link. **[V, live 2026-10-16]** In earlier
   runs its first call asked for "the Claude desktop app and the Claude in
   Chrome extension" instead. **[V, live 2026-10-11 to 2026-10-15]** What
-  brings up that prompt is untested. **[I]**
+  brings up that prompt is untested. **[I]** The help center disagrees with
+  itself. One article says the session "needs to be connected to a desktop,
+  but the app doesn't have to be open"; two others say driving Chrome from
+  another app or device needs "the Claude Desktop app open and connected".
+  https://support.claude.com/en/articles/16607400-use-the-built-in-browser-in-claude-cowork,
+  https://support.claude.com/en/articles/12012173-get-started-with-claude-in-chrome,
+  https://support.claude.com/en/articles/15520349-use-claude-cowork-on-web-desktop-and-mobile
+  **[V, conflicting]**
 - **Two Chromes connected.** With Claude in Chrome connected in two Chrome
   profiles, the first `navigate` refused to act. It told Claude to ask the
   user, through a question card, which browser to use, then call
@@ -68,12 +89,17 @@ preferred browser is set at Settings > Cowork > Preferred browser. **[V]**
   questions, so Claude ran nothing. With one profile connected, the same
   prompt ran through. **[V, live 2026-10-17]** So the user picks a browser in
   each new chat, or keeps the extension in one Chrome profile. A skill should
-  leave Claude free to ask this question.
-- **Claude in Chrome's side panel.** It is a third surface. It loads
-  `claude.ai/cic/new?surface=cic_sidepanel`, titled "Claude Cowork". It asked
-  for approval before every browser step, so opening and reading one page took
-  eight prompts. Run multi-step skills from a chat tab.
-  **[V, live 2026-10-16]**
+  leave Claude free to ask this question. Claude Code documents the same
+  prompt (see [Claude Code's browsers](#claude-codes-browsers)).
+- **Claude in Chrome's side panel.** It is a third place to run Claude. It
+  loads `claude.ai/cic/new?surface=cic_sidepanel`, titled "Claude Cowork". It
+  asked for approval before every browser step, so opening and reading one
+  page took eight prompts. Run multi-step skills from a chat tab.
+  **[V, live 2026-10-16]** The help center says the side panel "starts in
+  'Automatically approve' mode" and keeps a changed mode "for future
+  sessions".
+  https://support.claude.com/en/articles/12012173-get-started-with-claude-in-chrome
+  **[V, conflicting]**
 
 ### The built-in browser pane
 
@@ -81,26 +107,78 @@ Observed **[V, live 2026-10-11]**:
 
 - The pane did not offer to save a password after a manual sign-in.
 - After quitting and reopening Claude Desktop, both test sites were signed
-  out.
+  out. The help center says "Claude remembers your logins across Cowork
+  sessions".
+  https://support.claude.com/en/articles/16607400-use-the-built-in-browser-in-claude-cowork
+  **[V, conflicting]**
 - The pane shows one page at a time. Asking for two sign-ins in one message
   failed, because only the site left in the pane could be signed in to. Ask
   for one site at a time, with that site's login page showing.
 
-Safety: Claude asks before acting on a site the first time, and some high-risk
-sites are blocked; the categories are not listed.
-https://support.claude.com/en/articles/13364135-use-claude-cowork-safely **[V]**
+Safety: Claude asks before acting on a site the first time. Claude in Chrome
+cannot open "Adult content websites" or "Known pirated content sites", and it
+"asks for permission before accessing financial sites". The built-in browser
+runs the same safeguards.
+https://support.claude.com/en/articles/12902428-use-claude-in-chrome-safely,
+https://support.claude.com/en/articles/16607400-use-the-built-in-browser-in-claude-cowork
+**[V]**
 
 **A skill can direct either browser.** The browser tools are ordinary tools in
 the same session, and skills load where those tools live. No doc says so
 outright. **[I]** Write the skill browser-agnostic ("use the browser available
-to you"), because the user's surface, not the skill, decides which browser
+to you"), because the user's setup, not the skill, decides which browser
 Claude gets.
+
+### Claude Code's browsers
+
+Claude Code reaches a signed-in site through Claude in Chrome or a browser CLI
+such as agent-browser.
+
+- **Claude in Chrome.** The user starts `claude --chrome`, runs `/chrome`, or
+  turns on **Enabled by default**, and signs in with `/login`. It works in
+  Chrome and Edge, and Claude Code also finds the extension in Brave, Arc,
+  Vivaldi and Opera. The help center says other Chromium browsers are not
+  supported. https://code.claude.com/docs/en/chrome,
+  https://support.claude.com/en/articles/12012173-get-started-with-claude-in-chrome
+  **[V, conflicting]**
+  - With two browsers connected, Claude asks the user to pick one and keeps
+    that choice; `/chrome` > **Select browser…** switches it.
+  - The site prompt offers to allow all actions on the site for the session.
+    Site permissions come from the extension.
+  - Tool names differ from Cowork's, such as `tabs_context_mcp` for
+    `tabs_context`. `/mcp` > `claude-in-chrome` > **View tools** lists them.
+    So a skill that runs in both names the action, such as "read the page as
+    text", not the exact tool.
+
+  Source: https://code.claude.com/docs/en/chrome **[V]**
+
+- **Large results.** Claude Code saves an MCP tool result to a file when it
+  passes 25,000 tokens, or 50,000 characters for text, and gives Claude the
+  path. The file sits in the session's `tool-results` directory.
+  https://code.claude.com/docs/en/mcp#mcp-output-limits-and-warnings **[V]**
+- **Built-in browser.** It exists only in Desktop's Code tab. It uses a clean
+  profile with none of the user's saved logins. **Always allow** saves a site
+  approval on the device until the user revokes it in Settings.
+  https://code.claude.com/docs/en/desktop#browse-external-sites **[V]** The
+  page for Desktop on third-party providers adds that Code sessions clear
+  cookies when the app quits unless **Keep cookies** is set.
+  https://claude.com/docs/third-party/claude-desktop/browser **[V/I]**
+- **agent-browser** is a CLI Claude runs through Bash, so Bash's rules should
+  govern it. Permission rules apply, its network is open while the Bash
+  sandbox is off (the default), and output over about 30,000 characters goes
+  to a file with a short preview.
+  https://code.claude.com/docs/en/permissions,
+  https://code.claude.com/docs/en/sandboxing,
+  https://code.claude.com/docs/en/tools-reference#output-limits
+  **[I, strong]** No Anthropic doc mentions agent-browser itself.
+  **[V: absence]**
 
 ## Browser tools in detail
 
 Source: the Claude Desktop app bundle, version 2.31226.1 built 2026-10-09,
-read statically. No public doc lists these tools. **[V for that build; I for
-other builds and rollouts]** A live test on the same build confirmed the tool
+read statically. No public doc lists these tools; Claude Code's docs name a
+few of Claude in Chrome's (see [Claude Code's browsers](#claude-codes-browsers)).
+**[V for that build; I for other builds and rollouts]** A live test on the same build confirmed the tool
 names, deferred loading, site approval and `javascript_tool` behaviour below.
 **[V, live 2026-10-11]**
 
@@ -123,7 +201,9 @@ names, deferred loading, site approval and `javascript_tool` behaviour below.
 - **Site approval.** The dialog offers "once" or "always". "Once" asks again
   on the next page load. "Always" held across fresh chats, granted "on this
   computer, until the person removes it in Settings". Have the skill tell the
-  user to choose "always".
+  user to choose "always". The docs agree: "**Always allow** saves the site
+  on the device until the user revokes it in **Settings**."
+  https://claude.com/docs/third-party/claude-desktop/browser **[V]**
   - In a web chat, the built-in browser refused a site it had not been
     granted. The error said "The person hasn't allowed the browser pane to use
     <url> yet" and told Claude to call `Claude_Browser__request_access`, with
@@ -132,7 +212,8 @@ names, deferred loading, site approval and `javascript_tool` behaviour below.
     **[V, live 2026-10-16 to 2026-10-18]**
   - Claude in Chrome offers "Always allow for <host>" when it opens a site,
     but only "Allow once" when it creates its browser window, in every chat.
-    **[V, live 2026-10-16]**
+    **[V, live 2026-10-16]** Claude Code's prompt differs (see
+    [Claude Code's browsers](#claude-codes-browsers)).
 - **`javascript_tool`** runs code in the page's main world through CDP
   `Runtime.evaluate`, with REPL semantics: the last expression is returned as
   JSON. A same-origin `fetch` therefore sends the page's cookies, so it can
@@ -204,8 +285,10 @@ names, deferred loading, site approval and `javascript_tool` behaviour below.
     The file holds a JSON array of `{type, text}` blocks, not plain text.
     Claude parsed it with Python, joined the `text` fields, and recovered all
     of the page text. This held in web and Desktop chats.
-    **[V, live 2026-10-17]** The limit falls somewhere between 16,000 and
-    74,000 characters and is probably counted in tokens. **[I]** So a skill
+    **[V, live 2026-10-17]** The path and the wording match Claude Code's
+    documented limit for MCP results: 25,000 tokens, or 50,000 characters for
+    text (see [Claude Code's browsers](#claude-codes-browsers)). That this is
+    the limit the built-in browser hit is **[I]**. So a skill
     that moves bulk text through `get_page_text` should tell Claude how to
     read that file, or keep each read under about 15,000 characters.
 - **`read_network_requests`** in the built-in browser returns a response body
@@ -215,9 +298,11 @@ names, deferred loading, site approval and `javascript_tool` behaviour below.
   body of about 8,400 characters came back whole, but the listing said 151
   earlier requests had been dropped from the tab's buffer. Read a body soon
   after the page loads.
-- **Check the tool exists.** Anthropic's own built-in-browser skill omits
-  `javascript_tool`, so treat it as undocumented. A skill that relies on it
-  should name a fallback, such as reading pages as text.
+- **Check the tool exists.** No doc names `javascript_tool`. One page, for
+  Claude Desktop on third-party providers, says the built-in browser can "run
+  JavaScript on a page". https://claude.com/docs/third-party/claude-desktop/browser
+  **[V/I]** Anthropic's own built-in-browser skill omits the tool. A skill that
+  relies on it should name a fallback, such as reading pages as text.
 
 Live test for the tool list, pasted into a fresh Desktop chat:
 `List the exact names of every browser tool you have. Do not call any of them.`
@@ -245,7 +330,8 @@ reads anything, or the model reads a login form as data.
   a site change or an outage. Report it and stop, rather than signing in again.
 - Expect sign-ins often. One test site signed out after about 10 minutes
   idle, and both test sites were signed out after Claude Desktop quit.
-  **[V, live 2026-10-11]**
+  **[V, live 2026-10-11]** The docs say logins persist; see
+  [The built-in browser pane](#the-built-in-browser-pane).
 
 ## Credentials
 
@@ -254,8 +340,13 @@ reads anything, or the model reads a login form as data.
   https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop **[V]**
   Values reach the server as `${user_config.KEY}` in `env` or `args`; prefer
   `env` for secrets. https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md **[V]**
-- Keep `${user_config.*}` out of a plugin's MCP config; Cowork skips such
-  servers (see [packaging.md](packaging.md)).
+- In Claude Code, a plugin `userConfig` option marked `sensitive` goes to the
+  system's secure credential store, and Claude Code prompts for it when the
+  plugin is enabled.
+  https://code.claude.com/docs/en/plugins/manifest-reference#user-configuration
+  **[V]** Cowork skips an MCP server that references such an option without a
+  default, so in Cowork the same server needs the standalone .mcpb route (see
+  [packaging.md](packaging.md)).
 - Remote connectors prefer OAuth. API-key request headers are beta, limited to
   some organizations, and stored server-side.
   https://claude.com/docs/connectors/custom/add-unlisted **[V]**
