@@ -514,6 +514,42 @@ test("gh api heredoc that is not JSON is linted as raw text", () => {
   assertDeny(lint(bash(command)), /\[heredoc 1\]\nline 1: the word techword/);
 });
 
+test("a heredoc that feeds another program is not linted", () => {
+  const dir = tempDir();
+  writeFileSync(join(dir, "body.md"), "A techword.\n");
+  const command = [
+    "python3 - <<'EOF'",
+    "a = 1  # banned",
+    "EOF",
+    "gh pr create --title t --body-file body.md",
+  ].join("\n");
+  const out = lint(bash(command, { cwd: dir }));
+  assertDeny(out, /\[--body-file body\.md\]\nline 1: the word techword/);
+  assert.doesNotMatch(out.permissionDecisionReason, /heredoc|banned/);
+});
+
+test("a heredoc piped into gh is linted", () => {
+  const command = [
+    "cat <<'EOF' | gh api repos/o/r/issues/7/comments --input -",
+    JSON.stringify({ body: "A techword." }),
+    "EOF",
+  ].join("\n");
+  assertDeny(
+    lint(bash(command)),
+    /\[heredoc 1 \$\.body\]\nline 1: the word techword/,
+  );
+});
+
+test("a heredoc in a group piped into gh is linted", () => {
+  for (const [open, close] of [
+    ["(cat <<'EOF'", ") | gh issue comment 1 --body-file -"],
+    ["{ cat <<'EOF'", "} | gh issue comment 1 --body-file -"],
+  ]) {
+    const command = [open, "A techword.", "EOF", close].join("\n");
+    assertDeny(lint(bash(command)), /\[heredoc 1\]\nline 1: the word techword/);
+  }
+});
+
 test("gh api --input file reads its JSON body strings", () => {
   const dir = tempDir();
   writeFileSync(

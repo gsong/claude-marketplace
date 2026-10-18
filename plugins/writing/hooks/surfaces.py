@@ -10,6 +10,7 @@ Stdlib only: both callers run as `uv run --script` with no dependencies, and a
 hook that has to resolve packages before it can answer is a hook that times out.
 """
 
+import itertools
 import json
 import re
 import shlex
@@ -191,19 +192,22 @@ def _gh(tool_input: dict, cwd: Path) -> Extract:
 
     texts: list[Text] = []
     target = ""
-    for args in _gh_invocations(tokens):
+    fed: set[int] = set()
+    for args, feeds in _gh_invocations(tokens):
         found = _gh_pr_issue(args, cwd) if args[0] in {"pr", "issue"} else _gh_api(args, cwd)
         if found is None:
             continue
         texts += found.texts
         target = target or found.target
+        fed |= feeds
     if not target:
         return Extract()
 
-    # A heredoc feeds whichever gh call reads stdin or wraps it in $(cat ...).
-    # There is almost always one gh call per command, so it gets them all.
+    # Only a heredoc that a send reads is text about to go out. One that feeds
+    # python3 or a file in the same command is code or data.
     for index, body in enumerate(heredocs):
-        texts += _json_or_raw(f"heredoc {index + 1}", body)
+        if index in fed:
+            texts += _json_or_raw(f"heredoc {index + 1}", body)
     return Extract(texts, target)
 
 
@@ -222,17 +226,20 @@ GH_API_VALUE_FLAGS = {
 }
 GH_API_PATH_SEGMENTS = {"comments", "reviews", "replies", "issues", "pulls"}
 SHELL_OPERATORS = {"&&", "||", ";", "|", "&", "(", ")", ";;", "|&"}
+PIPES = {"|", "|&"}
 COMMAND_PREFIXES = {"exec", "command", "then", "do", "else", "time", "env"}
 ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 REDIRECTS = {"<", ">", ">>", "2>", "&>", ">&", "2>&1"}
-HEREDOC_PLACEHOLDER = "__WRITING_HEREDOC__"
+# A heredoc operator becomes __WRITING_HEREDOC_<n>__, n its index in the bodies.
+HEREDOC_PLACEHOLDER_RE = re.compile(r"__WRITING_HEREDOC_(\d+)__")
 HEREDOC_RE = re.compile(r"(?<!<)<<(?!<)(-?)[ \t]*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\2")
 
 
 def _split_heredocs(command: str) -> tuple[str, list[str]]:
     """Pull heredoc bodies out of a command. shlex cannot parse them, and the
     body is exactly the text that is about to be sent. The operator is left as a
-    placeholder so a `--body "$(cat <<EOF ...)"` value is known to be one."""
+    numbered placeholder, so a gh call can tell which heredocs it reads, and a
+    `--body "$(cat <<EOF ...)"` value is known to be one."""
     lines = command.split("\n")
     kept, bodies = [], []
     i = 0
@@ -240,7 +247,7 @@ def _split_heredocs(command: str) -> tuple[str, list[str]]:
         line = lines[i]
         i += 1
         operators = HEREDOC_RE.findall(line)
-        kept.append(HEREDOC_RE.sub(f" {HEREDOC_PLACEHOLDER} ", line))
+        kept.append(_number_heredocs(line, len(bodies)))
         for dash, _, delimiter in operators:
             body = []
             while i < len(lines):
@@ -251,6 +258,13 @@ def _split_heredocs(command: str) -> tuple[str, list[str]]:
                 body.append(candidate)
             bodies.append("\n".join(body))
     return "\n".join(kept), bodies
+
+
+def _number_heredocs(line: str, first: int) -> str:
+    """Swap each heredoc operator in a line for its placeholder, counting from
+    `first`, the number of bodies already pulled out."""
+    numbers = itertools.count(first)
+    return HEREDOC_RE.sub(lambda _: _placeholder(next(numbers)), line)
 
 
 def _split_lines(command: str) -> str:
@@ -284,8 +298,10 @@ def _split_lines(command: str) -> str:
     return "".join(out)
 
 
-def _gh_invocations(tokens: list[str]) -> list[list[str]]:
-    """Every `gh ...` call in the token stream, cut at the next shell operator."""
+def _gh_invocations(tokens: list[str]) -> list[tuple[list[str], set[int]]]:
+    """Every `gh ...` call in the token stream, cut at the next shell operator,
+    with the heredocs it reads. A heredoc reaches gh as its stdin, inside one of
+    its arguments, or from a command piped into it."""
     calls = []
     for index, token in enumerate(tokens):
         if token != "gh" and not token.endswith("/gh"):
@@ -294,7 +310,7 @@ def _gh_invocations(tokens: list[str]) -> list[list[str]]:
         before = tokens[index - 1] if index else ";"
         if before not in SHELL_OPERATORS | COMMAND_PREFIXES and not ASSIGNMENT_RE.match(before):
             continue
-        args = []
+        args, feeds = [], set()
         rest = iter(tokens[index + 1 :])
         for arg in rest:
             if arg in SHELL_OPERATORS:
@@ -303,11 +319,38 @@ def _gh_invocations(tokens: list[str]) -> list[list[str]]:
             if arg in REDIRECTS:
                 next(rest, None)
                 continue
-            if arg != HEREDOC_PLACEHOLDER:
+            feeds |= _heredoc_numbers(arg)
+            if not HEREDOC_PLACEHOLDER_RE.fullmatch(arg):
                 args.append(arg)
+        feeds |= _piped_heredocs(tokens[:index])
         if args and args[0] in {"pr", "issue", "api"}:
-            calls.append(args)
+            calls.append((args, feeds))
     return calls
+
+
+def _piped_heredocs(before: list[str]) -> set[int]:
+    """The heredocs in the commands piped into a call, read back from it to the
+    previous shell operator. A `( ... )` or `{ ...; }` group is one command in
+    the pipe, so a `;` inside it does not end the walk."""
+    numbers: set[int] = set()
+    depth = 0
+    for token in reversed(before):
+        if token in {")", "}"}:
+            depth += 1
+        elif token in {"(", "{"} and depth:
+            depth -= 1
+        elif not depth and token in SHELL_OPERATORS - PIPES:
+            break
+        numbers |= _heredoc_numbers(token)
+    return numbers
+
+
+def _heredoc_numbers(token: str) -> set[int]:
+    return {int(n) for n in HEREDOC_PLACEHOLDER_RE.findall(token)}
+
+
+def _placeholder(number: int) -> str:
+    return f" __WRITING_HEREDOC_{number}__ "
 
 
 def _gh_pr_issue(args: list[str], cwd: Path) -> Extract | None:
@@ -398,7 +441,7 @@ def _pr_number(arg: str) -> str:
 def _inline_body(label: str, value: str) -> list[Text]:
     # `--body "$(cat <<EOF ...)"` carries a heredoc, which is read on its own.
     # Any other substitution is text the shell has not produced yet.
-    if HEREDOC_PLACEHOLDER in value or value.lstrip().startswith("$("):
+    if HEREDOC_PLACEHOLDER_RE.search(value) or value.lstrip().startswith("$("):
         return []
     return _strings((label, value))
 
