@@ -65,10 +65,27 @@ they open an issue on gsong/claude-marketplace.
    the limit; the plan's opaque usage meter is.
 6. **List the live tests.** Collect every claim the design depends on that is
    marked **[I]** in any form, **[V/I]** or **[V, conflicting]**. Write each as
-   a prompt the user pastes into a fresh chat, with a "Pass if" line, and ask
-   them to record their Claude Desktop version (Claude > About). The step is
-   done when every such dependency has a test or the user has accepted the
-   risk.
+   a prompt the user pastes into a fresh chat, with a "Pass if" line. Ask the
+   user to record the surface (Desktop, web chat or Claude Code), the browser,
+   and their Claude Desktop version (Claude > About), because a transcript
+   does not show which app ran. Write each test with these rules
+   **[V, live 2026-10-16 to 2026-10-18]**:
+   - **Base "Pass if" on what the page computed.** Claude misreports what it
+     read. Given a result cut at 1,000 characters, it reported the length the
+     script meant to return. Given a cut page read, it quoted the total from
+     the truncation note. Once, it retyped a 4,000-character script with an
+     edit, though a later run of 21 sends kept it intact. So have the page
+     script measure its own input, or hash its own source and return
+     `stopped` on a mismatch, and check that value.
+   - **Time Desktop tests from the chat's timestamps,** or tell the user to
+     answer every card and prompt at once. On Desktop, a prompt waiting on
+     the user looks the same as Claude working. One timed run sat 8 minutes
+     on an unclicked prompt.
+   - **Keep each prompt short enough to paste as a message.** A long prompt
+     pasted into Desktop becomes an attachment.
+
+   The step is done when every such dependency has a test or the user has
+   accepted the risk.
 
 ## Defaults
 
