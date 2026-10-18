@@ -1,6 +1,6 @@
 # Packaging and where each part runs
 
-Researched 2026-10-11. Marks are defined in [SKILL.md](../SKILL.md#freshness).
+Researched 2026-10-11, with live findings to 2026-10-18. Marks are defined in [SKILL.md](../SKILL.md#freshness).
 
 ## Mechanisms
 
@@ -58,11 +58,42 @@ From https://claude.com/docs/plugins/platform-support **[V]**:
   into the code sandbox. Only `${CLAUDE_SKILL_DIR}` and `${CLAUDE_PLUGIN_ROOT}`
   are documented for Cowork; `${CLAUDE_PLUGIN_DATA}` is Claude Code only.
   https://claude.com/docs/skills/how-to **[V]**
-- In Claude Desktop, the skill's announced base folder
-  (`/mnt/skills/plugins/<plugin>:<skill>/`) did not exist in several runs.
-  Claude found the bundled script by searching under
-  `/root/.claude/plugins/synced/`. Have the skill tell Claude to confirm a
-  script's path exists, and to search for it when it is missing. **[V, live 2026-10-11]**
+- Documented is not the same as expanded. In claude.ai and Desktop chats,
+  `${CLAUDE_SKILL_DIR}` reached Claude as literal text; Claude Code substitutes
+  it. **[V/I]**: probe notes report it, but the run records were not
+  rechecked. `${CLAUDE_PLUGIN_ROOT}` probably
+  stays literal too, and neither was tested in Cowork. **[I]**
+
+### Find the skill's own folder
+
+The Skill tool prints the folder when it loads a skill:
+`Base directory for this skill: <path>`. The path has moved:
+`/mnt/skills/plugins/<plugin>:<skill>/` in web chats on 2026-10-14, and
+`/mnt/skills/plugin-files/<plugin>/skills/<skill>` on claude.ai and Desktop on
+2026-10-17. The printed folder was missing in a Desktop chat on 2026-10-11 and
+in web chats on 2026-10-14. On 2026-10-17 and 2026-10-18 it existed and
+held the skill's files on claude.ai, Desktop and Claude Code.
+**[V, live 2026-10-11 to 2026-10-18]**
+
+So have the skill read the path from that line, never build it. Then have
+Claude try these in order, each as its own command, until one finds the files:
+
+1. `ls "<base directory>"`, with the path the Skill tool printed.
+2. `ls -dt ~/.claude/plugins/synced/*/<plugin>*/skills/<skill> 2>/dev/null | head -1`
+3. `find` for a file the skill bundles, then the file-read tool.
+
+Why each detail matters **[V, live 2026-10-17 to 2026-10-18]**:
+
+- Step 1 runs alone. Joined to step 2, the glob reads outside the plugin's
+  folder, so Claude Code stopped Claude's first call on an Allow prompt.
+- The synced folder is named `<org id>_<user id>`, so the full path differs per
+  account. Glob it.
+- The organization sync keeps older copies of a plugin beside the current one,
+  in folders with a `~gN` suffix; `manifest.json` lists them under `staleDirs`.
+  `head -1` alone picked an old copy. `ls -dt` sorts newest first and picked
+  the current copy, on one Mac. That it always does is **[I]**.
+- In Claude Code, zsh aborts the whole command when a glob matches nothing.
+  Separate commands let step 3 still run.
 
 ## Unified Claude and cloud sessions
 
