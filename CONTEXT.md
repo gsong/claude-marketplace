@@ -21,6 +21,15 @@ The CI check that runs Cisco skill-scanner on each skill directory, together wit
 **Hook scan**:
 The CI check that reads each plugin hook command, and the code files it names, for network use and downloads.
 
+### Cowork plugin
+
+**Surface**:
+Where a plugin runs: Claude Code or Cowork. A plugin in this marketplace always targets Claude Code, and the `cowork` plugin covers making it also run in Cowork.
+_Avoid_: platform
+
+**Cowork**:
+The surface that runs in Claude Desktop and on claude.ai. A plugin built for Cowork targets both apps at once. Claude Code in Desktop's Code tab is Claude Code, not Cowork.
+
 ### Clef
 
 **Clef**:
