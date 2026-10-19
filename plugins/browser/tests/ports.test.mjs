@@ -113,7 +113,15 @@ test("two claims at once get different ports, and both are recorded", async () =
   );
 });
 
-for (const name of ["", ".", "..", "a/b", "../x", "two words"]) {
+for (const name of [
+  "",
+  ".",
+  "..",
+  "a/b",
+  "../x",
+  "two words",
+  "People-Matcher",
+]) {
   test(`claim refuses the profile name ${JSON.stringify(name)}`, () => {
     const w = world();
     const r = w.run("ports", ["claim", name]);
@@ -122,6 +130,14 @@ for (const name of ["", ".", "..", "a/b", "../x", "two words"]) {
     assert.deepEqual(w.registry(), []);
   });
 }
+
+test("record refuses a profile name with capitals", () => {
+  const w = world();
+  const r = w.run("ports", ["record", "10100", "People-Matcher"]);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /lowercase/);
+  assert.deepEqual(w.registry(), []);
+});
 
 test("claim refuses to run anywhere but macOS", () => {
   const w = world();

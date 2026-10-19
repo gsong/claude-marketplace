@@ -1,7 +1,7 @@
 // Shared by the script suites. Not a test file: CI runs *.test.mjs only.
 //
 // Each test runs a script as a subprocess with stand-ins for the commands
-// that touch the Mac: uname, curl, ps and open. The stand-ins read and write
+// that touch the Mac: uname, curl, ps and open, plus mise. The stand-ins read and write
 // a state directory, so a test decides which ports answer and which Chrome
 // processes ps lists, then reads back what open was asked to start.
 
@@ -12,8 +12,10 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   realpathSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -69,6 +71,21 @@ esac`,
 [ -e "$STUB_STATE/ps" ] || exit 0
 [ "$2" = "$(cat "$STUB_STATE/ps-columns")" ] || unexpected "$@"
 cat "$STUB_STATE/ps"`,
+  // Knows one call: the question setup asks about the browser:start task. It
+  // answers with the task the test set, fails with the message the test set,
+  // or, by default, finds no task, as real mise does.
+  mise: `
+[ "$*" = "tasks info browser:start --json" ] || unexpected "$@"
+if [ -e "$STUB_STATE/mise-error" ]; then
+  cat "$STUB_STATE/mise-error" >&2
+  exit 1
+fi
+if [ -e "$STUB_STATE/mise-task" ]; then
+  cat "$STUB_STATE/mise-task"
+  exit 0
+fi
+echo "mise ERROR Task not found: browser:start, use \\\`mise tasks ls --all --hidden\\\` to list all tasks" >&2
+exit 1`,
   // Logs its arguments, one per line, with a blank line after each call.
   // When the test allows it, Chrome comes up on the port it was given.
   open: `
@@ -125,6 +142,35 @@ export function world() {
     },
     chromeStartsOnOpen() {
       writeFileSync(join(dirs.state, "open-starts"), "");
+    },
+    // mise finds a browser:start task, defined in the file at source.
+    miseHasTask(source) {
+      writeFileSync(
+        join(dirs.state, "mise-task"),
+        JSON.stringify({ name: "browser:start", source }),
+      );
+    },
+    // mise fails with this message, as it does for an untrusted mise.toml.
+    miseFails(message) {
+      writeFileSync(join(dirs.state, "mise-error"), `${message}\n`);
+    },
+    // A PATH on which the command is missing, stand-in and real one alike.
+    // Each PATH directory that holds the command becomes a copy, made of
+    // links to everything else in it.
+    pathWithout(command) {
+      const path = [dirs.bin, ...process.env.PATH.split(":")];
+      return path
+        .map((dir, i) => {
+          if (!existsSync(join(dir, command))) return dir;
+          const copy = join(root, `path-${i}`);
+          mkdirSync(copy, { recursive: true });
+          for (const name of readdirSync(dir)) {
+            if (name !== command)
+              symlinkSync(join(dir, name), join(copy, name));
+          }
+          return copy;
+        })
+        .join(":");
     },
     // The command lines ps -axo command= lists.
     psLists(...lines) {

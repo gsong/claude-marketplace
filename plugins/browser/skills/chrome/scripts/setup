@@ -1,0 +1,305 @@
+#!/usr/bin/env bash
+# Sets up the current checkout for the chrome skill's persistent mode. It
+# writes agent-browser.json, appends the browser:start task to mise.toml, and
+# merges the plugin entries into .claude/settings.json, all at the repo root.
+#
+#   setup [--share | --name <name>] [--unignore | --keep-ignored]
+#         [--replace-task | --keep-task]
+#
+# Each flag answers a question an earlier run stopped on. Setup runs every
+# check before it writes anything, so a run that exits non-zero has changed
+# no file and claimed no port.
+#
+# On success it prints key=value lines on stdout: port=, profile=,
+# agent_browser_json=, ignored=, mise_toml= and settings_json=. Each file key
+# says what setup did to the file: wrote, merged or kept. ignored= is yes when
+# git ignores agent-browser.json. When setup changed a rule so that git
+# commits the file, unignored= says how. When it deleted a file task that
+# defined browser:start, deleted_task= names the file.
+#
+# Each case where the skill must stop or ask exits with its own status, with
+# the message for the user on stderr:
+#
+#   3   the container: run setup in a Claude session on the Mac
+#   4   not inside a git repo
+#   5   jq is missing
+#   6   mise is missing, or it failed, such as on an untrusted mise.toml
+#   7   --name gave a name that fails the name rule
+#   8   ask: the profile name is in use. Rerun with --share to use it, or
+#       with --name to take another
+#   9   agent-browser.json exists but fails a check: it names no cdp port, a
+#       bad chromeProfile, or a port the registry gives another profile
+#   10  ask: git ignores agent-browser.json. Rerun with --unignore or
+#       --keep-ignored
+#   11  ask: a file task, not a .toml, defines browser:start. Rerun with
+#       --replace-task or --keep-task
+#   12  .claude/settings.json is not a JSON object setup can merge into
+#   13  ports could not claim or record the port: its message says why
+set -euo pipefail
+
+here=$(dirname "${BASH_SOURCE[0]}")
+# shellcheck source=chrome.sh
+. "$here/chrome.sh"
+
+sidecar=agent-browser.json
+settings=.claude/settings.json
+
+main() {
+  parse_args "$@"
+  check
+  take_port
+  write
+  report
+}
+
+usage() {
+  echo "usage: setup [--share | --name <name>] [--unignore | --keep-ignored] [--replace-task | --keep-task]" >&2
+  exit 2
+}
+
+stop() {
+  echo "$2" >&2
+  exit "$1"
+}
+
+parse_args() {
+  share= named= name_flag= ignore_answer= task_answer=
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --share) [ -z "$named" ] || usage; share=1 ;;
+      --name)
+        [ $# -ge 2 ] && [ -z "$share$named" ] || usage
+        named=1 name_flag=$2
+        shift
+        ;;
+      --unignore | --keep-ignored)
+        [ -z "$ignore_answer" ] || usage
+        ignore_answer=$1
+        ;;
+      --replace-task | --keep-task)
+        [ -z "$task_answer" ] || usage
+        task_answer=$1
+        ;;
+      *) usage ;;
+    esac
+    shift
+  done
+}
+
+# Runs every check and question, in order, and leaves the plan for write.
+check() {
+  in_container && stop 3 "Setup reads the Mac's port registry and Chrome processes, and $container_rule. Run /browser:setup in a Claude session on the Mac."
+  root=$(git rev-parse --show-toplevel 2>/dev/null) || stop 4 "$PWD is not inside a git repo. Run setup from the checkout of the repo to set up."
+  cd "$root"
+  need_jq || exit 5
+  command -v mise >/dev/null || stop 6 "mise is missing. Install it from https://mise.jdx.dev, then run setup again."
+  local task_source
+  task_source=$(task_source) || exit 6
+
+  if [ -f "$sidecar" ]; then
+    check_sidecar
+  else
+    pick_name
+  fi
+  check_ignored
+  check_task "$task_source"
+  merged_settings=$(merge_settings) || stop 12 "$settings is not a JSON object with object values for extraKnownMarketplaces and enabledPlugins, so setup cannot merge into it. Fix the file, then run setup again."
+}
+
+# An existing agent-browser.json stays as it is, so it must already work.
+check_sidecar() {
+  read_sidecar "$sidecar" || stop 9 "Fix $sidecar, then run setup again. Setup never rewrites an existing $sidecar."
+  local holder
+  holder=$(name_for_port "$sidecar_port")
+  if [ -n "$holder" ] && [ "$holder" != "$sidecar_name" ]; then
+    stop 9 "$sidecar names port $sidecar_port, but $registry gives that port to the profile $holder. Two repos on one port drive the same Chrome. Give this repo its own cdp port in $sidecar, then run setup again."
+  fi
+  port=$sidecar_port name=$sidecar_name
+}
+
+# Picks the profile name: the one --name gave, or one made from the main
+# checkout's directory, so every worktree of the repo gets the same name.
+pick_name() {
+  if [ -n "$named" ]; then
+    check_name "$name_flag" || stop 7 "\"$name_flag\" is not a profile name. $name_rule"
+    name=$name_flag
+  else
+    name=$(derived_name)
+  fi
+  [ -z "$share" ] || return 0
+  if [ -d "$HOME/.agent-browser/profiles/$name" ] || [ -n "$(port_for_name "$name")" ]; then
+    stop 8 "The profile name \"$name\" is in use: ~/.agent-browser/profiles/$name exists, or $registry lists it. The registry does not record which repo holds a name. It may be this repo's other worktree, an earlier setup of this repo, or another repo with the same directory name. Rerun setup with --share to use that profile, with its port and logins, or with --name <name> to take another name."
+  fi
+}
+
+# Lowercases the main checkout's directory name, and turns each run of other
+# characters into one "-". The result always passes check_name.
+derived_name() {
+  local common
+  common=$(git rev-parse --path-format=absolute --git-common-dir)
+  basename "$(dirname "$common")" | LC_ALL=C tr '[:upper:]' '[:lower:]' |
+    LC_ALL=C sed 's/[^abcdefghijklmnopqrstuvwxyz0123456789._-][^abcdefghijklmnopqrstuvwxyz0123456789._-]*/-/g'
+}
+
+# An ignored agent-browser.json never reaches teammates or the container, and
+# git add -A skips it without a word. check-ignore works before the file
+# exists.
+check_ignored() {
+  ignored=no
+  git check-ignore -q "$sidecar" || return 0
+  local rule
+  rule=$(git check-ignore -v "$sidecar")
+  case $ignore_answer in
+    --keep-ignored) ignored=yes ;;
+    --unignore) ignore_rule=$rule ;;
+    *) stop 10 "Git ignores $sidecar, by this rule: ${rule%%$'\t'*}. An ignored $sidecar never reaches teammates or the container. Rerun setup with --unignore to change the rule, or with --keep-ignored to keep this setup on this Mac." ;;
+  esac
+}
+
+# Prints the file that defines browser:start, or nothing when no task does.
+# Fails, with mise's message, when mise fails for another reason.
+task_source() {
+  local info errors status=0
+  errors=$(mktemp)
+  info=$(mise tasks info browser:start --json 2>"$errors") || status=$?
+  if [ "$status" -ne 0 ]; then
+    if grep -q 'Task not found' "$errors"; then
+      rm -f "$errors"
+      return 0
+    fi
+    { echo "mise failed:"; cat "$errors"; } >&2
+    rm -f "$errors"
+    return 1
+  fi
+  rm -f "$errors"
+  jq -r '.source // empty' <<<"$info"
+}
+
+# Decides whether to append the task block. A .toml in the repo already
+# defines the task. A file task in the repo defines it too, and appending
+# would leave two definitions, so that is a question.
+check_task() {
+  append_task=1 delete_task=
+  case $1 in
+    "$root"/*.toml) append_task= ;;
+    "$root"/*)
+      case $task_answer in
+        --keep-task) append_task= ;;
+        --replace-task) delete_task=$1 ;;
+        *) stop 11 "The file ${1#"$root"/} defines the browser:start task. Rerun setup with --replace-task to delete it and append the plugin's task to mise.toml, or with --keep-task to keep it." ;;
+      esac
+      ;;
+  esac
+}
+
+# Prints .claude/settings.json with the plugin entries merged in. A known
+# gsong-marketplace keeps its entry as it is.
+merge_settings() {
+  local current='{}'
+  [ ! -f "$settings" ] || current=$(cat "$settings")
+  jq '
+    if type != "object" then error("not an object") else . end
+    | .extraKnownMarketplaces["gsong-marketplace"] //= {
+        source: { source: "github", repo: "gsong/claude-marketplace" },
+        autoUpdate: true
+      }
+    | .enabledPlugins["browser@gsong-marketplace"] = true
+  ' <<<"$current" 2>/dev/null
+}
+
+take_port() {
+  if [ -n "${port:-}" ]; then
+    "$here/ports" record "$port" "$name" || exit 13
+  else
+    port=$("$here/ports" claim "$name") || exit 13
+  fi
+}
+
+write() {
+  if [ -f "$sidecar" ]; then
+    sidecar_did=kept
+  else
+    write_sidecar "$sidecar" "$port" "$name"
+    sidecar_did=wrote
+  fi
+  [ -z "${ignore_rule:-}" ] || unignore
+  write_task
+  write_settings
+}
+
+# Deletes a .gitignore line that names only agent-browser.json. For any other
+# rule, appends a negation to the root .gitignore.
+unignore() {
+  local source=${ignore_rule%%:*} rest=${ignore_rule#*:}
+  local line=${rest%%:*} pattern=${rest#*:}
+  pattern=${pattern%%$'\t'*}
+  case $source:$pattern in
+    .gitignore:agent-browser.json | .gitignore:/agent-browser.json)
+      awk -v n="$line" 'NR != n' .gitignore >.gitignore.$$
+      mv -f .gitignore.$$ .gitignore
+      unignored="deleted the line $pattern from .gitignore"
+      ;;
+    *)
+      append_line .gitignore '!/agent-browser.json'
+      unignored="appended !/agent-browser.json to .gitignore"
+      ;;
+  esac
+}
+
+write_task() {
+  mise_did=kept
+  if [ -n "$delete_task" ]; then
+    rm -f -- "$delete_task"
+  fi
+  [ -n "$append_task$delete_task" ] || return 0
+  if [ -f mise.toml ]; then mise_did=merged; else mise_did=wrote; fi
+  [ ! -s mise.toml ] || append_line mise.toml ''
+  append_line mise.toml "$task_block"
+}
+
+write_settings() {
+  if [ ! -f "$settings" ]; then
+    mkdir -p "$(dirname "$settings")"
+    settings_did=wrote
+  elif [ "$merged_settings" = "$(jq . "$settings")" ]; then
+    settings_did=kept
+    return 0
+  else
+    settings_did=merged
+  fi
+  echo "$merged_settings" >"$settings"
+}
+
+report() {
+  echo "port=$port"
+  echo "profile=$name"
+  echo "agent_browser_json=$sidecar_did"
+  echo "ignored=$ignored"
+  echo "mise_toml=$mise_did"
+  echo "settings_json=$settings_did"
+  [ -z "${unignored:-}" ] || echo "unignored=$unignored"
+  [ -z "$delete_task" ] || echo "deleted_task=${delete_task#"$root"/}"
+}
+
+# Appends a line to the file, first ending the file's last line when it has
+# no newline.
+append_line() {
+  if [ -s "$1" ] && [ -n "$(tail -c 1 "$1")" ]; then echo >>"$1"; fi
+  printf '%s\n' "$2" >>"$1"
+}
+
+# The plugin cache path holds the version, so the task runs the newest
+# installed copy.
+task_block=$(
+  cat <<'TOML'
+[tasks."browser:start"]
+description = "Open this repo's Chrome for agent-browser"
+run = '''
+dir=$(ls -d "$HOME"/.claude/plugins/cache/gsong-marketplace/browser/*/ 2>/dev/null | sort -V | tail -1)
+[ -n "$dir" ] || { echo "Install browser@gsong-marketplace first" >&2; exit 1; }
+exec "$dir/skills/chrome/scripts/browser-start"
+'''
+TOML
+)
+
+main "$@"

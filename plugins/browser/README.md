@@ -27,9 +27,9 @@
 
 ## Set up a repo
 
-Run `/browser:setup` in a Claude session on the Mac. It writes three files at the repo root, and merges into a file that already exists:
+Run `/browser:setup` in a Claude session on the Mac. It runs the `setup` script, which checks everything before it writes anything. It writes three files at the repo root, and merges into a file that already exists:
 
-- `agent-browser.json` names the port Chrome listens on (`cdp`) and the profile directory (`chromeProfile`). Chrome keeps the profile's cookies in `~/.agent-browser/profiles/<chromeProfile>`, so the logins outlive each session. Setup leaves an existing `agent-browser.json` as it is.
+- `agent-browser.json` names the port Chrome listens on (`cdp`) and the profile directory (`chromeProfile`). Chrome keeps the profile's cookies in `~/.agent-browser/profiles/<chromeProfile>`, so the logins outlive each session. A profile name holds only lowercase letters, digits, `.`, `_` and `-`. Setup leaves an existing `agent-browser.json` as it is.
 - `mise.toml` gets a `browser:start` task, so you can start Chrome from a terminal on the Mac.
 - `.claude/settings.json` gets the marketplace and enables the plugin, so teammates get it when they trust the repo.
 
@@ -62,6 +62,8 @@ The tests in `tests/` check the last two, against stand-ins for `ps`, `curl`, an
 - macOS with Google Chrome.
 - agent-browser 0.38 or later, installed globally or pinned in the repo's `package.json`. Older versions may spawn their own headless Chrome when nothing answers on the port.
 - `curl`.
+- `jq`. macOS 15 and later ship it as `/usr/bin/jq`.
+- [mise](https://mise.jdx.dev), for `/browser:setup` and the `browser:start` task.
 
 ## Installation
 

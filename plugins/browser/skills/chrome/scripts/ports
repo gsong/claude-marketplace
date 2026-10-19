@@ -5,19 +5,19 @@
 #   ports claim <name>          prints a free port for the profile and records it
 #   ports record <port> <name>  records the port a repo's Chrome runs on
 #
-# The setup skill runs claim for a new repo. browser-start runs record, so a
-# repo set up by hand joins the registry the next time its Chrome starts.
+# setup runs claim for a new repo, and record for a repo that already has
+# agent-browser.json. browser-start runs record, so a repo set up by hand
+# joins the registry the next time its Chrome starts.
 set -euo pipefail
 
-registry=$HOME/.agent-browser/ports
+# shellcheck source=chrome.sh
+. "$(dirname "${BASH_SOURCE[0]}")/chrome.sh"
+
 # A run holds this directory while it reads and writes the registry. mkdir
 # makes it or fails in one step, and macOS has no flock.
 lock_dir=$registry.lock
 # How long a run waits for another run's lock, in seconds.
 lock_wait_seconds=${PORTS_LOCK_WAIT_SECONDS:-10}
-
-# shellcheck source=chrome.sh
-. "$(dirname "${BASH_SOURCE[0]}")/chrome.sh"
 
 usage() {
   echo "usage: ports claim <name> | ports record <port> <name>" >&2
@@ -37,7 +37,7 @@ claim() {
     echo "ports claim reads the Mac's Chrome processes and registry, and $container_rule. Run it on the Mac, with AGENT_BROWSER_CDP unset." >&2
     exit 1
   fi
-  check_name "$1"
+  need_name "$1"
   lock
   local used port
   port=$(port_for_name "$1")
@@ -61,7 +61,7 @@ claim() {
 # Takes the lock, then gives the port. claim calls give itself, because it
 # already holds the lock.
 record() {
-  check_name "$2"
+  need_name "$2"
   lock
   give "$1" "$2"
 }
@@ -100,23 +100,11 @@ lock() {
   trap 'exit 1' HUP INT TERM
 }
 
-# The name becomes a directory under ~/.agent-browser/profiles, so it holds no
-# slash. It is also a field in a registry line, so it holds no space.
-check_name() {
-  case $1 in
-    "" | . | .. | */* | *[[:space:]]*)
-      echo "\"$1\" is not a profile name. Give one directory name under ~/.agent-browser/profiles, such as \"people-matcher\"." >&2
-      exit 1
-      ;;
-  esac
-}
-
-port_for_name() {
-  [ ! -f "$registry" ] || awk -v name="$1" '$2 == name { print $1; exit }' "$registry"
-}
-
-name_for_port() {
-  [ ! -f "$registry" ] || awk -v port="$1" '$1 == port { print $2; exit }' "$registry"
+# Stops the run when the name fails check_name.
+need_name() {
+  check_name "$1" && return 0
+  echo "\"$1\" is not a profile name. $name_rule" >&2
+  exit 1
 }
 
 registered_ports() {

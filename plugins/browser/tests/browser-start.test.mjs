@@ -151,6 +151,16 @@ for (const [what, json, key] of [
     '{ "cdp": 10082, "chromeProfile": "people matcher" }',
     /chromeProfile/,
   ],
+  [
+    "a profile name with capitals",
+    '{ "cdp": 10082, "chromeProfile": "People-Matcher" }',
+    /chromeProfile/,
+  ],
+  [
+    "text that is not JSON",
+    "cdp: 10082\nchromeProfile: people-matcher\n",
+    /JSON/,
+  ],
 ]) {
   test(`stops when agent-browser.json has ${what}`, () => {
     const w = world();
@@ -162,6 +172,28 @@ for (const [what, json, key] of [
     assert.deepEqual(w.openCalls(), []);
   });
 }
+
+test("reads agent-browser.json written on one line", () => {
+  const w = world();
+  w.sidecar(
+    '{"cdp":"10082","contentBoundary":true,"chromeProfile":"people-matcher"}',
+  );
+  w.chromeStartsOnOpen();
+  const r = w.run("browser-start");
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(w.isUp(10082));
+  assert.deepEqual(w.registry(), ["10082 people-matcher"]);
+});
+
+test("stops when jq is missing, and opens nothing", () => {
+  const w = world();
+  w.sidecar(SIDECAR);
+  w.chromeStartsOnOpen();
+  const r = w.run("browser-start", [], { PATH: w.pathWithout("jq") });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /jq/);
+  assert.deepEqual(w.openCalls(), []);
+});
 
 test("reads a cdp port written as a number", () => {
   const w = world();
