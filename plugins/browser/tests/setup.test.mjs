@@ -326,14 +326,18 @@ test("appends the task when only a file outside the repo defines it", () => {
 test("asks when a file task defines browser:start", () => {
   const w = repo();
   write(w, "mise-tasks/browser/start", "#!/bin/sh\necho hi\n");
-  w.miseHasTask(join(w.cwd, "mise-tasks", "browser", "start"));
+  w.miseHasTask(join(w.cwd, "mise-tasks", "browser", "start"), {
+    fileTask: true,
+  });
   stops(w, 11, /mise-tasks\/browser\/start/);
 });
 
 test("--replace-task deletes the file task and appends the block", () => {
   const w = repo();
   write(w, "mise-tasks/browser/start", "#!/bin/sh\necho hi\n");
-  w.miseHasTask(join(w.cwd, "mise-tasks", "browser", "start"));
+  w.miseHasTask(join(w.cwd, "mise-tasks", "browser", "start"), {
+    fileTask: true,
+  });
   const r = setup(w, ["--replace-task"]);
   assert.equal(r.status, 0, r.stderr);
   assert.equal(output(r).mise_toml, "wrote");
@@ -345,7 +349,9 @@ test("--replace-task deletes the file task and appends the block", () => {
 test("--keep-task keeps the file task, and appends nothing", () => {
   const w = repo();
   write(w, "mise-tasks/browser/start", "#!/bin/sh\necho hi\n");
-  w.miseHasTask(join(w.cwd, "mise-tasks", "browser", "start"));
+  w.miseHasTask(join(w.cwd, "mise-tasks", "browser", "start"), {
+    fileTask: true,
+  });
   const r = setup(w, ["--keep-task"]);
   assert.equal(r.status, 0, r.stderr);
   assert.equal(output(r).mise_toml, "kept");
@@ -455,3 +461,42 @@ for (const args of [
     stops(w, 2, /usage/, args);
   });
 }
+
+test("asks about a file task even when its name ends in .toml", () => {
+  const w = repo();
+  write(w, "mise-tasks/browser/start.toml", "#!/bin/sh\necho hi\n");
+  w.miseHasTask(join(w.cwd, "mise-tasks", "browser", "start.toml"), {
+    fileTask: true,
+  });
+  stops(w, 11, /mise-tasks\/browser\/start\.toml/);
+});
+
+test("--unignore also appends a negation when another rule still ignores the file", () => {
+  const w = repo();
+  // The repo's rule wins, so git names it first. The global rule shows only
+  // once the repo's line is gone.
+  write(w, "../home/.config/git/ignore", "agent-browser.json\n");
+  write(w, ".gitignore", "agent-browser.json\n");
+  const r = setup(w, ["--unignore"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(read(w, ".gitignore"), "!/agent-browser.json\n");
+  const check = spawnSync("git", ["check-ignore", "-q", "agent-browser.json"], {
+    cwd: w.cwd,
+    env: { ...process.env, XDG_CONFIG_HOME: join(w.home, ".config") },
+  });
+  assert.equal(check.status, 1);
+});
+
+test("stops on a bad --name even when agent-browser.json exists", () => {
+  const w = repo();
+  write(w, "agent-browser.json", '{ "cdp": "10082", "chromeProfile": "repo" }');
+  stops(w, 7, /lowercase/, ["--name", "Repo"]);
+});
+
+test("stops on a broken .claude/settings.json before it asks anything", () => {
+  const w = repo();
+  w.registryHolds("10100 repo");
+  write(w, ".gitignore", "agent-browser.json\n");
+  write(w, ".claude/settings.json", "{");
+  stops(w, 12, /settings\.json/);
+});

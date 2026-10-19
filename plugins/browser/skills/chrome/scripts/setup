@@ -63,7 +63,7 @@ stop() {
 }
 
 parse_args() {
-  share= named= name_flag= ignore_answer= task_answer=
+  share='' named='' name_flag='' ignore_answer='' task_answer=''
   while [ $# -gt 0 ]; do
     case $1 in
       --share) [ -z "$named" ] || usage; share=1 ;;
@@ -93,8 +93,13 @@ check() {
   cd "$root"
   need_jq || exit 5
   command -v mise >/dev/null || stop 6 "mise is missing. Install it from https://mise.jdx.dev, then run setup again."
-  local task_source
-  task_source=$(task_source) || exit 6
+  local task
+  task=$(task_info) || exit 6
+  if [ -n "$named" ] && ! check_name "$name_flag"; then
+    stop 7 "\"$name_flag\" is not a profile name. $name_rule"
+  fi
+  # Before the questions, so the user never answers one only to hit this.
+  merged_settings=$(merge_settings) || stop 12 "$settings is not a JSON object with object values for extraKnownMarketplaces and enabledPlugins, so setup cannot merge into it. Fix the file, then run setup again."
 
   if [ -f "$sidecar" ]; then
     check_sidecar
@@ -102,8 +107,7 @@ check() {
     pick_name
   fi
   check_ignored
-  check_task "$task_source"
-  merged_settings=$(merge_settings) || stop 12 "$settings is not a JSON object with object values for extraKnownMarketplaces and enabledPlugins, so setup cannot merge into it. Fix the file, then run setup again."
+  check_task "$task"
 }
 
 # An existing agent-browser.json stays as it is, so it must already work.
@@ -121,7 +125,6 @@ check_sidecar() {
 # checkout's directory, so every worktree of the repo gets the same name.
 pick_name() {
   if [ -n "$named" ]; then
-    check_name "$name_flag" || stop 7 "\"$name_flag\" is not a profile name. $name_rule"
     name=$name_flag
   else
     name=$(derived_name)
@@ -156,9 +159,9 @@ check_ignored() {
   esac
 }
 
-# Prints the file that defines browser:start, or nothing when no task does.
-# Fails, with mise's message, when mise fails for another reason.
-task_source() {
+# Prints mise's JSON for the browser:start task, or nothing when no task
+# exists. Fails, with mise's message, when mise fails for another reason.
+task_info() {
   local info errors status=0
   errors=$(mktemp)
   info=$(mise tasks info browser:start --json 2>"$errors") || status=$?
@@ -172,23 +175,29 @@ task_source() {
     return 1
   fi
   rm -f "$errors"
-  jq -r '.source // empty' <<<"$info"
+  echo "$info"
 }
 
-# Decides whether to append the task block. A .toml in the repo already
-# defines the task. A file task in the repo defines it too, and appending
-# would leave two definitions, so that is a question.
+# Decides whether to append the task block, from mise's JSON for the task. A
+# config file in the repo, such as mise.toml, already defines the task. A file
+# task in the repo defines it too, and appending would leave two definitions,
+# so that is a question. mise names a file task's script in file, and gives
+# null there for a task in a config file.
 check_task() {
-  append_task=1 delete_task=
-  case $1 in
-    "$root"/*.toml) append_task= ;;
-    "$root"/*)
-      case $task_answer in
-        --keep-task) append_task= ;;
-        --replace-task) delete_task=$1 ;;
-        *) stop 11 "The file ${1#"$root"/} defines the browser:start task. Rerun setup with --replace-task to delete it and append the plugin's task to mise.toml, or with --keep-task to keep it." ;;
-      esac
-      ;;
+  append_task=1 delete_task=''
+  [ -n "$1" ] || return 0
+  local source file
+  source=$(jq -r '.source // empty' <<<"$1")
+  file=$(jq -r '.file // empty' <<<"$1")
+  case $source in "$root"/*) ;; *) return 0 ;; esac
+  if [ -z "$file" ]; then
+    append_task=''
+    return 0
+  fi
+  case $task_answer in
+    --keep-task) append_task='' ;;
+    --replace-task) delete_task=$file ;;
+    *) stop 11 "The file ${file#"$root"/} defines the browser:start task. Rerun setup with --replace-task to delete it and append the plugin's task to mise.toml, or with --keep-task to keep it." ;;
   esac
 }
 
@@ -228,7 +237,8 @@ write() {
 }
 
 # Deletes a .gitignore line that names only agent-browser.json. For any other
-# rule, appends a negation to the root .gitignore.
+# rule, or when another rule still ignores the file once the line is gone,
+# appends a negation to the root .gitignore.
 unignore() {
   local source=${ignore_rule%%:*} rest=${ignore_rule#*:}
   local line=${rest%%:*} pattern=${rest#*:}
@@ -238,6 +248,9 @@ unignore() {
       awk -v n="$line" 'NR != n' .gitignore >.gitignore.$$
       mv -f .gitignore.$$ .gitignore
       unignored="deleted the line $pattern from .gitignore"
+      git check-ignore -q "$sidecar" || return 0
+      append_line .gitignore '!/agent-browser.json'
+      unignored="$unignored, and appended !/agent-browser.json for another rule"
       ;;
     *)
       append_line .gitignore '!/agent-browser.json'

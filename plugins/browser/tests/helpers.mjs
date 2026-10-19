@@ -143,11 +143,17 @@ export function world() {
     chromeStartsOnOpen() {
       writeFileSync(join(dirs.state, "open-starts"), "");
     },
-    // mise finds a browser:start task, defined in the file at source.
-    miseHasTask(source) {
+    // mise finds a browser:start task, defined in the file at source. A
+    // file task is a script of its own; any other task sits in a config
+    // file. mise gives a file task's path as file too, and null otherwise.
+    miseHasTask(source, { fileTask = false } = {}) {
       writeFileSync(
         join(dirs.state, "mise-task"),
-        JSON.stringify({ name: "browser:start", source }),
+        JSON.stringify({
+          name: "browser:start",
+          source,
+          file: fileTask ? source : null,
+        }),
       );
     },
     // mise fails with this message, as it does for an untrusted mise.toml.
