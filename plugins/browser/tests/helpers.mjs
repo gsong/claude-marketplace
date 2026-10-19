@@ -37,10 +37,16 @@ const STUBS = {
   // DevTools endpoint, /json/version, and the bare port, /. Answers as the
   // test, or the open stand-in, set the port: up, or timed out (exit 28). A
   // port with no state refuses the connection (exit 7). Each call first waits
-  // as long as the test set.
+  // as long as the test set. From the container, it also knows the probe of
+  // the Mac's Chrome at $AGENT_BROWSER_CDP, which answers when the test says.
   curl: `
 echo "$*" >>"$STUB_STATE/curl.log"
 [ ! -e "$STUB_STATE/curl-delay" ] || sleep "$(cat "$STUB_STATE/curl-delay")"
+if [ -n "\${AGENT_BROWSER_CDP:-}" ] && [ "$*" = "-sf --max-time 1 $AGENT_BROWSER_CDP/json/version" ]; then
+  [ -e "$STUB_STATE/mac-chrome" ] || exit 7
+  echo '{"Browser": "Chrome"}'
+  exit 0
+fi
 url='http://127\\.0\\.0\\.1:([0-9]+)'
 devtools="^-sf --max-time 1 $url/json/version\\$"
 bare="^-s --max-time 1 $url/\\$"
@@ -104,6 +110,10 @@ export function world() {
     portTimesOut(port) {
       writeFileSync(join(dirs.state, `port-${port}`), "timeout");
     },
+    // The Chrome a human runs on the Mac answers at $AGENT_BROWSER_CDP.
+    macChromeAnswers() {
+      writeFileSync(join(dirs.state, "mac-chrome"), "");
+    },
     // Each curl probe takes this long, so runs started together stay
     // together while they probe.
     probesTake(seconds) {
@@ -162,9 +172,11 @@ export function world() {
     // Runs a script by its name in the scripts directory, or by its full
     // path. Fails the test when the script called a stand-in in a way the
     // test did not set up.
-    run(script, args = [], env = {}) {
+    // Runs from the test's repo directory, or from opts.cwd.
+    run(script, args = [], env = {}, opts = {}) {
       const result = spawnSync(resolve(SCRIPTS, script), args, {
         ...spawnOptions(dirs, env),
+        ...opts,
         encoding: "utf8",
       });
       failOnUnexpectedCalls(dirs.state);
@@ -186,11 +198,14 @@ export function world() {
   };
 }
 
+// The scripts read AGENT_BROWSER_CDP to tell the container from the Mac, so
+// a test sets it or leaves it unset, whatever the shell running the tests has.
 function spawnOptions(dirs, env) {
+  const { AGENT_BROWSER_CDP: _, ...inherited } = process.env;
   return {
     cwd: dirs.cwd,
     env: {
-      ...process.env,
+      ...inherited,
       HOME: dirs.home,
       PATH: `${dirs.bin}:${process.env.PATH}`,
       STUB_STATE: dirs.state,

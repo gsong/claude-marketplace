@@ -8,8 +8,8 @@ here=$(dirname "${BASH_SOURCE[0]}")
 # shellcheck source=chrome.sh
 . "$here/chrome.sh"
 
-if [ "$(uname)" != Darwin ]; then
-  echo "browser-start opens Chrome on the Mac. Run it in a host terminal. agent-browser in the container then connects to that Chrome." >&2
+if in_container; then
+  echo "browser-start opens Chrome on the Mac, and this session counts as the container: AGENT_BROWSER_CDP is set, or the OS is not macOS. Run it in a host terminal on the Mac, with AGENT_BROWSER_CDP unset. agent-browser in the container then connects to that Chrome." >&2
   exit 1
 fi
 

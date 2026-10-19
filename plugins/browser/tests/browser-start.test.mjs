@@ -21,6 +21,18 @@ test("refuses to run anywhere but macOS, and opens nothing", () => {
   assert.deepEqual(w.openCalls(), []);
 });
 
+test("refuses to run on the Mac when AGENT_BROWSER_CDP is set, and opens nothing", () => {
+  const w = world();
+  w.sidecar(SIDECAR);
+  w.chromeStartsOnOpen();
+  const r = w.run("browser-start", [], {
+    AGENT_BROWSER_CDP: "http://host.docker.internal:10082",
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /AGENT_BROWSER_CDP/);
+  assert.deepEqual(w.openCalls(), []);
+});
+
 test("opens Chrome on the sidecar's port and profile, then waits for it", () => {
   const w = world();
   w.sidecar(SIDECAR);

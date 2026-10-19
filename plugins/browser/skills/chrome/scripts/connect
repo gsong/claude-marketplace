@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# Picks the chrome skill's mode, starts or reaches Chrome, and prints the
+# agent-browser command prefix that drives it.
+#
+#   connect <scratchpad>
+#
+# Prints key=value lines on stdout: mode=, root=, prefix=, and in scratch mode
+# port= and profile=, which scratch-chrome start prints.
+#
+# Each case where the skill must stop exits with its own status, with the
+# message for the user on stderr:
+#
+#   3  the container, and no agent-browser.json: run /browser:setup on the Mac
+#   4  the container, and AGENT_BROWSER_CDP is empty: it holds no Mac address
+#   5  the container, and the Mac's Chrome does not answer: the user runs
+#      mise run browser:start on the Mac, then the skill runs connect again
+#   6  on the Mac, browser-start failed, such as when another repo's Chrome
+#      holds the port: its message says why
+#   7  on the Mac, scratch-chrome start failed: its message says why
+set -euo pipefail
+
+here=$(dirname "${BASH_SOURCE[0]}")
+# shellcheck source=chrome.sh
+. "$here/chrome.sh"
+
+main() {
+  [ $# -eq 1 ] || usage
+  local root
+  if in_container; then
+    root=$(sidecar_dir) || stop 3 "This session counts as the container: AGENT_BROWSER_CDP is set, or the OS is not macOS. The container reaches a repo's Chrome on the Mac, and no agent-browser.json names one. Run /browser:setup in a Claude session on the Mac, then commit agent-browser.json."
+    cd "$root"
+    remote
+  elif root=$(sidecar_dir); then
+    cd "$root"
+    persistent
+  else
+    root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$PWD
+    scratch "$1"
+  fi
+  echo "root=$root"
+}
+
+usage() {
+  echo "usage: connect <scratchpad>" >&2
+  exit 2
+}
+
+stop() {
+  echo "$2" >&2
+  exit "$1"
+}
+
+# AGENT_BROWSER_CDP overrides the port in agent-browser.json, so the prefix
+# names the file only for its other settings.
+remote() {
+  [ -n "${AGENT_BROWSER_CDP:-}" ] || stop 4 "AGENT_BROWSER_CDP is empty, so the container could not resolve the Mac's address, and cannot reach its Chrome."
+  cdp_answers "$AGENT_BROWSER_CDP" || stop 5 "The Mac's Chrome does not answer at $AGENT_BROWSER_CDP. Run mise run browser:start in a terminal on the Mac, from the repo root."
+  echo "mode=remote"
+  echo "prefix=$(binary) $(config_flag)"
+}
+
+persistent() {
+  # browser-start reports on stdout, which carries only key=value lines here.
+  "$here/browser-start" >&2 || exit 6
+  echo "mode=persistent"
+  echo "prefix=$(binary) $(config_flag)"
+}
+
+scratch() {
+  local started port
+  started=$("$here/scratch-chrome" start "$1") || exit 7
+  port=$(sed -n 's/^port=//p' <<<"$started")
+  echo "mode=scratch"
+  echo "prefix=$(binary) --cdp $port"
+  echo "$started"
+}
+
+# Prints the flag that points agent-browser at the repo's agent-browser.json
+# from any directory. agent-browser itself reads ./agent-browser.json only.
+# The path is quoted for the shell, since the skill pastes the prefix into
+# commands.
+config_flag() {
+  printf -- '--config %q\n' "$root/agent-browser.json"
+}
+
+# Prints the agent-browser command to run: the repo's pinned copy through pnpm
+# when package.json lists it in dependencies or devDependencies, else the
+# global one. pnpm runs on node, so without node only the global one can run.
+binary() {
+  if [ -f "$root/package.json" ] && command -v node >/dev/null &&
+    node -e "$listed" "$root/package.json" 2>/dev/null; then
+    echo "pnpm exec agent-browser"
+  else
+    echo "agent-browser"
+  fi
+}
+
+# node code that succeeds when the package.json at argv[1] lists agent-browser
+# in dependencies or devDependencies.
+listed='
+const pkg = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+const lists = ["dependencies", "devDependencies"].some((key) =>
+  Object.hasOwn(pkg[key] ?? {}, "agent-browser"),
+);
+process.exit(lists ? 0 : 1);
+'
+
+# Prints the nearest directory, from the current one upward, that holds
+# agent-browser.json. A workspace of nested clones keeps one at its top, above
+# each clone's own git root. Fails when no directory holds one.
+sidecar_dir() {
+  local dir=$PWD
+  while [ ! -f "$dir/agent-browser.json" ]; do
+    [ "$dir" != / ] || return 1
+    dir=$(dirname "$dir")
+  done
+  echo "$dir"
+}
+
+main "$@"
