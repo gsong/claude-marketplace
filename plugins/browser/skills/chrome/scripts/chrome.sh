@@ -1,9 +1,76 @@
 # shellcheck shell=bash
-# Answers the Chrome questions that browser-start, scratch-chrome and ports
-# share. Each script sources this file and keeps only its own decisions.
+# Answers the Chrome questions that browser-start, scratch-chrome, ports and
+# setup share. Each script sources this file and keeps only its own decisions.
 
 # How long chrome_wait waits for Chrome to answer, in seconds.
 chrome_wait_seconds=${CHROME_WAIT_SECONDS:-15}
+
+# The port registry: one "<port> <chromeProfile>" line per repo. ports keeps
+# it, and setup reads it before it claims a port.
+registry=$HOME/.agent-browser/ports
+
+# Says what check_name allows, for a message.
+# shellcheck disable=SC2034 # the scripts that source this file read it
+name_rule='A profile name holds only lowercase letters, digits, ".", "_" and "-", such as "people-matcher".'
+
+# Succeeds when the name may name a profile. The name becomes a directory
+# under ~/.agent-browser/profiles, so it is neither . nor .. and holds no
+# slash. It is a field in a registry line, so it holds no space. It holds no
+# capitals, because the Mac's disk ignores case: MyRepo and myrepo would share
+# one profile directory, but get two registry lines and two ports.
+check_name() {
+  case $1 in
+    "" | . | .. | *[!abcdefghijklmnopqrstuvwxyz0123456789._-]*) return 1 ;;
+  esac
+}
+
+# Prints the port the registry gives the profile, or nothing.
+port_for_name() {
+  [ ! -f "$registry" ] || awk -v name="$1" '$2 == name { print $1; exit }' "$registry"
+}
+
+# Prints the profile the registry gives the port to, or nothing.
+name_for_port() {
+  [ ! -f "$registry" ] || awk -v port="$1" '$1 == port { print $2; exit }' "$registry"
+}
+
+# Fails, with a message, when jq is missing. jq reads and writes every JSON
+# file the scripts touch.
+need_jq() {
+  command -v jq >/dev/null && return 0
+  echo "jq is missing. macOS 15 and later ship it as /usr/bin/jq. On an older Mac, install it, such as with: brew install jq" >&2
+  return 1
+}
+
+# Reads agent-browser.json, the file at $1, into sidecar_port and
+# sidecar_name. cdp may be a string or a number. Fails, with the reason on
+# stderr, when the file is not a JSON object, names no cdp port, or names a
+# chromeProfile that fails check_name.
+read_sidecar() {
+  need_jq || return 1
+  if ! sidecar_port=$(jq -r '.cdp // "" | tostring' "$1" 2>/dev/null); then
+    echo "$1 is not a JSON object." >&2
+    return 1
+  fi
+  sidecar_name=$(jq -r '.chromeProfile // "" | tostring' "$1")
+  case $sidecar_port in
+    "" | *[!0123456789]*)
+      echo "$1 names no cdp port." >&2
+      return 1
+      ;;
+  esac
+  if ! check_name "$sidecar_name"; then
+    echo "$1 needs a chromeProfile that names one directory under ~/.agent-browser/profiles. $name_rule" >&2
+    return 1
+  fi
+}
+
+# Writes agent-browser.json, the file at $1, for the port $2 and the profile
+# $3. agent-browser reads contentBoundary; the scripts read the other two.
+write_sidecar() {
+  jq -n --arg cdp "$2" --arg name "$3" \
+    '{cdp: $cdp, contentBoundary: true, chromeProfile: $name}' >"$1"
+}
 
 # Succeeds when the session runs in the container, not on the Mac: when
 # AGENT_BROWSER_CDP is set, even to nothing, or the OS is not macOS. The
