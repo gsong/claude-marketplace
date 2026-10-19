@@ -13,6 +13,10 @@ in_container() {
   [ -n "${AGENT_BROWSER_CDP+set}" ] || [ "$(uname)" != Darwin ]
 }
 
+# Says why in_container counts the session as the container, for a message.
+# shellcheck disable=SC2034 # the scripts that source this file read it
+container_rule="this session counts as the container: AGENT_BROWSER_CDP is set, or the OS is not macOS"
+
 # Succeeds when Chrome's DevTools endpoint answers on the port.
 chrome_answers() {
   cdp_answers "http://127.0.0.1:$1"

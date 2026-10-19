@@ -27,7 +27,7 @@ main() {
   [ $# -eq 1 ] || usage
   local root
   if in_container; then
-    root=$(sidecar_dir) || stop 3 "This session counts as the container: AGENT_BROWSER_CDP is set, or the OS is not macOS. The container reaches a repo's Chrome on the Mac, and no agent-browser.json names one. Run /browser:setup in a Claude session on the Mac, then commit agent-browser.json."
+    root=$(sidecar_dir) || stop 3 "Found no agent-browser.json, and $container_rule. The container only reaches a Chrome on the Mac that agent-browser.json names. Run /browser:setup in a Claude session on the Mac, then commit agent-browser.json."
     cd "$root"
     remote
   elif root=$(sidecar_dir); then
