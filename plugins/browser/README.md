@@ -11,14 +11,19 @@
 
 ## Modes
 
-`/browser:chrome` picks a mode from two facts: where the session runs, and whether an `agent-browser.json` sits in the current directory or one above it. The nearest one wins, so a session inside a nested clone uses its workspace's file. The skill treats a session as the container when `AGENT_BROWSER_CDP` is set or the OS is not macOS.
+`/browser:chrome` runs the `connect` script, which picks one of three modes from two facts:
 
-| Where     | `agent-browser.json` | What the skill does                                                                                 |
-| --------- | -------------------- | --------------------------------------------------------------------------------------------------- |
-| Mac       | yes                  | Runs `browser-start`, then drives the repo's persistent profile                                     |
-| Mac       | no                   | Starts Chrome on a throwaway profile in the session scratchpad, and deletes it when done            |
-| Container | yes                  | Probes `$AGENT_BROWSER_CDP`. If Chrome is down, asks you to run `mise run browser:start` on the Mac |
-| Container | no                   | Stops, and asks you to run `/browser:setup` in a session on the Mac                                 |
+- **Where the session runs.** It counts as the container when `AGENT_BROWSER_CDP` is set or the OS is not macOS. Otherwise it runs on the Mac. So a Mac session with `AGENT_BROWSER_CDP` set counts as the container, and `browser-start`, `scratch-chrome` and `ports claim` refuse to run there.
+- **Whether the repo has `agent-browser.json`.** `connect` looks in the current directory and each one above it, and the nearest file wins. So a session inside a nested clone uses its workspace's file.
+
+| Where     | `agent-browser.json` | Mode                                                                                                                         |
+| --------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Mac       | yes                  | Persistent: runs `browser-start`, then drives the repo's persistent profile                                                  |
+| Mac       | no                   | Scratch: starts Chrome on a throwaway profile in the session scratchpad, and deletes it when done                            |
+| Container | yes                  | Remote: reaches the Mac's Chrome at `$AGENT_BROWSER_CDP`. If it is down, asks you to run `mise run browser:start` on the Mac |
+| Container | no                   | Stops, and asks you to run `/browser:setup` in a session on the Mac                                                          |
+
+`connect` prints the mode and the exact `agent-browser` command for it. That command uses `pnpm exec agent-browser` when the repo's `package.json` lists `agent-browser` in `dependencies` or `devDependencies`, and the global `agent-browser` otherwise.
 
 ## Set up a repo
 
@@ -55,7 +60,7 @@ The tests in `tests/` check the last two, against stand-ins for `ps`, `curl`, an
 ## Prerequisites
 
 - macOS with Google Chrome.
-- agent-browser 0.38 or later, installed globally or pinned in the repo's `package.json`. When `package.json` lists it, the skill runs `pnpm exec agent-browser`. Older versions may spawn their own headless Chrome when nothing answers on the port.
+- agent-browser 0.38 or later, installed globally or pinned in the repo's `package.json`. Older versions may spawn their own headless Chrome when nothing answers on the port.
 - `curl`.
 
 ## Installation

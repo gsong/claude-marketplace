@@ -33,8 +33,8 @@ main() {
 }
 
 claim() {
-  if [ "$(uname)" != Darwin ]; then
-    echo "ports claim reads the Mac's Chrome processes and registry. Run it on the Mac." >&2
+  if in_container; then
+    echo "ports claim reads the Mac's Chrome processes and registry, and this session counts as the container: AGENT_BROWSER_CDP is set, or the OS is not macOS. Run it on the Mac, with AGENT_BROWSER_CDP unset." >&2
     exit 1
   fi
   check_name "$1"

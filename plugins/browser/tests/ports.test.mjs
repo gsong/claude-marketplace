@@ -133,6 +133,16 @@ test("claim refuses to run anywhere but macOS", () => {
   assert.deepEqual(w.registry(), []);
 });
 
+test("claim refuses to run on the Mac when AGENT_BROWSER_CDP is set", () => {
+  const w = world();
+  const r = w.run("ports", ["claim", "people-matcher"], {
+    AGENT_BROWSER_CDP: "http://host.docker.internal:10082",
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /AGENT_BROWSER_CDP/);
+  assert.deepEqual(w.registry(), []);
+});
+
 test("records made at once all reach the registry", async () => {
   const w = world();
   w.registryHolds("10100 givingpath");

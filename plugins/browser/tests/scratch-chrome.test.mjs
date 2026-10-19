@@ -33,6 +33,19 @@ test("start refuses to run anywhere but macOS", () => {
   assert.deepEqual(w.openCalls(), []);
 });
 
+test("start refuses to run on the Mac when AGENT_BROWSER_CDP is set", () => {
+  const w = world();
+  const pad = scratchpad(w);
+  w.chromeStartsOnOpen();
+  const r = w.run("scratch-chrome", ["start", pad], {
+    AGENT_BROWSER_CDP: "http://host.docker.internal:10082",
+  });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /AGENT_BROWSER_CDP/);
+  assert.deepEqual(readdirSync(pad), []);
+  assert.deepEqual(w.openCalls(), []);
+});
+
 test("start opens Chrome on a new chrome-* profile in the scratchpad", () => {
   const w = world();
   const pad = scratchpad(w);

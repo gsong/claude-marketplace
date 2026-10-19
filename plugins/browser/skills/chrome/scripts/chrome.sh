@@ -5,9 +5,23 @@
 # How long chrome_wait waits for Chrome to answer, in seconds.
 chrome_wait_seconds=${CHROME_WAIT_SECONDS:-15}
 
+# Succeeds when the session runs in the container, not on the Mac: when
+# AGENT_BROWSER_CDP is set, even to nothing, or the OS is not macOS. The
+# container reaches the Mac's Chrome through AGENT_BROWSER_CDP, and never
+# launches Chrome itself.
+in_container() {
+  [ -n "${AGENT_BROWSER_CDP+set}" ] || [ "$(uname)" != Darwin ]
+}
+
 # Succeeds when Chrome's DevTools endpoint answers on the port.
 chrome_answers() {
-  curl -sf --max-time 1 "http://127.0.0.1:$1/json/version" >/dev/null
+  cdp_answers "http://127.0.0.1:$1"
+}
+
+# Succeeds when Chrome's DevTools endpoint answers at the base URL, such as
+# http://host.docker.internal:10082.
+cdp_answers() {
+  curl -sf --max-time 1 "$1/json/version" >/dev/null
 }
 
 # Succeeds when no program at all holds the port. curl exits 7 only when
