@@ -107,11 +107,17 @@ All sessions share the profile's cookies and storage, so a sign-in or sign-out i
 
 `snapshot -i` answers "is X on the page", "did the form submit", and "what does this list hold". For details the tree omits, use `get text`, `get value`, `get html` or `eval`, which all return text.
 
+agent-browser drops an `eval` that runs longer than 25 to 30 seconds, and no flag lifts the limit:
+
+- Keep each `eval` under 20 seconds. For longer work, start the script in the background on `window`, return at once, and poll with later short evals.
+- Write async scripts as `(async () => { ... })()`. Top-level `await` fails.
+- A timed-out script may still be running in the page, and may have run more than once. Check the page's state before you retry.
+
 Take a screenshot only to check layout or styling, to debug a click that the tree says should land, or because the user asked. Each image stays in context, and one over 2000px on a side breaks later requests that carry several images. So scope it to an element, `agent-browser screenshot @eN <path>`, and fall back to `--full` with `--screenshot-format jpeg --screenshot-quality 80` only when the whole page matters. Put the path before any flag. Read the file with the `Read` tool.
 
 ## Act like a user
 
-Click, type, and use the app's keyboard shortcuts, the way a person would. Fall back to `open <url>` only when a click fails to navigate, such as a link that skips client-side routing. Fall back to `eval` only when `click @eN` fails, such as on an element outside the viewport.
+Click, type, and use the app's keyboard shortcuts, the way a person would. Fall back to `open <url>` only when a click fails to navigate, such as a link that skips client-side routing. Fall back to `eval` only when `click @eN` fails, such as on an element outside the viewport, and keep it under 20 seconds (see "Snapshot first").
 
 When an element resists, read the app's source if you have it. `onKeyDown` handlers show the keyboard shortcuts, `onClick` handlers show which element a click expects, and the component tree shows when focus depends on context.
 
