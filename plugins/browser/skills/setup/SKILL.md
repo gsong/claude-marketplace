@@ -31,7 +31,7 @@ The other non-zero statuses stop setup. Show the user the message, and add what 
 - **3:** the session runs in the container. Tell the user to run `/browser:setup` in a Claude session on the Mac. The container cannot see the Mac's port registry or Chrome processes.
 - **4:** the session is not inside a git repo. Ask which checkout to set up.
 - **5:** jq is missing. The user installs it, such as with `brew install jq`.
-- **6:** mise is missing, or it failed. An untrusted `mise.toml` is the usual failure: the user runs `mise trust` in the repo after reading the file.
+- **6:** mise is missing, or it failed. An untrusted `mise.toml` is the usual failure: the user runs `mise trust` in the repo after reading the file. When mise is missing, the user installs it from https://mise.jdx.dev. Setup prints that link but never contacts the site.
 - **7:** the `--name` the user picked breaks the name rule. Ask for another name.
 - **9:** the existing `agent-browser.json` needs a fix that the message names. Setup never rewrites the file, so the user fixes it.
 - **12:** `.claude/settings.json` does not parse, or holds the wrong shape. The user fixes it.
