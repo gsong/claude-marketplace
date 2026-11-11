@@ -1,7 +1,7 @@
 {
   "name": "cloudflare",
   "description": "Change and read a Cloudflare account from Claude Code: wrangler first, then the API with a token kept in 1Password",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "George Song"
   },
