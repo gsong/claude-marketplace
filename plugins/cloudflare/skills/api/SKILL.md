@@ -8,7 +8,7 @@ description: Cloudflare account work, done without handing steps to the user. Pi
 Do the Cloudflare work yourself, through the first tool on this list that can do it:
 
 1. **wrangler**, for everything it covers: Workers, D1, KV, R2, Queues, Pages, secrets, deploys. Run it the way the repo does, such as `pnpm exec wrangler` when `package.json` lists it.
-2. **cf-api**, the Cloudflare API with a full-access token, for everything else. wrangler's login grants no Access, Zero Trust or DNS scopes, so those go here.
+2. **cf-api**, the Cloudflare API at `https://api.cloudflare.com/client/v4` with a full-access token, for everything else. wrangler's login grants no Access, Zero Trust or DNS scopes, so those go here.
 3. **The Cloudflare MCP server**, only when the API cannot do the job.
 4. **The dashboard**, through `/browser:chrome`, only when no API exists, such as checking out a paid plan.
 
@@ -34,6 +34,7 @@ It prints Cloudflare's JSON response. Read `success` and `errors` from it. The e
 - **4:** 1Password could not read the token. Ask the user to unlock 1Password, then retry.
 - **5:** PATH holds `{account}` and the token reaches several accounts. Set `CF_ACCOUNT_ID`, after asking the user which account when the task does not say.
 - **6:** a command it needs is missing. The message names it.
+- **7:** curl could not reach `api.cloudflare.com`. Check the network, then retry.
 
 The token stays secret. cf-api passes it to curl on stdin and caches it in the macOS Keychain, so 1Password prompts once, not on every call. A cached token Cloudflare rejects is dropped and read again from 1Password. `cf-api --forget` clears the cache.
 

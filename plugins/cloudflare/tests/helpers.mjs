@@ -37,6 +37,10 @@ const STUBS = {
   // "<method> <url>", or 200 with an empty result.
   curl: `
 tok=$(sed -n 's/^header = "Authorization: Bearer \\(.*\\)"$/\\1/p')
+if [ -e "$STUB_STATE/curl-fails" ]; then
+  echo "curl: (6) Could not resolve host: api.cloudflare.com" >&2
+  exit 6
+fi
 method=GET url= status_fmt=
 while [ $# -gt 0 ]; do
   case $1 in
@@ -146,6 +150,10 @@ export function world() {
       const all = JSON.parse(readFileSync(file, "utf8"));
       all[ref] = value;
       writeFileSync(file, JSON.stringify(all));
+    },
+    // curl cannot reach Cloudflare, as when DNS fails.
+    curlFails() {
+      writeFileSync(join(dirs.state, "curl-fails"), "");
     },
     opCreateFails() {
       writeFileSync(join(dirs.state, "op-fails"), "");
