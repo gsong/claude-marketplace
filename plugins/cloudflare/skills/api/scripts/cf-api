@@ -164,8 +164,9 @@ account_id() {
 call_api() {
   local tok="$1" method="$2" path="$3" body="$4"
   local args=(-sS -K - -X "$method" "${API}${path}" -w $'\n%{http_code}')
+  # --data-raw, so a body starting with @ is sent as text, never read as a file.
   if [[ -n "$body" ]]; then
-    args+=(-H "Content-Type: application/json" --data "$body")
+    args+=(-H "Content-Type: application/json" --data-raw "$body")
   fi
   printf 'header = "Authorization: Bearer %s"\n' "$tok" | curl "${args[@]}"
 }

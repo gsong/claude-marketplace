@@ -42,7 +42,9 @@ while [ $# -gt 0 ]; do
   case $1 in
     -X) method=$2; shift ;;
     -w) status_fmt=1; shift ;;
-    -H|--data) shift ;;
+    -H) shift ;;
+    --data-raw) echo "$2" >>"$STUB_STATE/curl-bodies"; shift ;;
+    --data|-d|--data-binary) unexpected "$1 $2" ;;
     https://*) url=$1 ;;
   esac
   shift
@@ -162,6 +164,7 @@ export function world() {
       return read("keychain") || null;
     },
     curlCalls: () => lines("curl.log"),
+    curlBodies: () => lines("curl-bodies"),
     opCalls: () => lines("op.log"),
     securityCalls: () => lines("security.log"),
     opCreated() {
