@@ -60,6 +60,18 @@ Build software with Clef, Cloudflare's decision model, run locally through Ollam
 
 **Requires:** Ollama with `clef` or `clef-flash`, or Workers AI. See the [plugin README](plugins/clef/README.md#prerequisites).
 
+### cloudflare
+
+Change and read a Cloudflare account from Claude Code: wrangler first, then the API with a token kept in 1Password.
+
+```
+/plugin install cloudflare@gsong-marketplace
+```
+
+**Skills:** `/cloudflare:api`, `/cloudflare:setup`
+
+**Requires:** macOS for the Keychain cache, curl, jq, the 1Password CLI, and the browser plugin for setup. See the [plugin README](plugins/cloudflare/README.md#prerequisites).
+
 ### codex-tools
 
 OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi-round consensus discussions via the codex plugin.

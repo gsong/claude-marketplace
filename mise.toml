@@ -30,8 +30,8 @@ run = "git ls-files -z '*.py' | xargs -0 ruff check"
 
 [tasks."lint:shellcheck"]
 description = "Lint the shell scripts"
-# The browser scripts have no extension: a mise task runs them by name.
-run = "git ls-files -z '*.sh' 'plugins/browser/skills/chrome/scripts/*' | xargs -0 shellcheck"
+# The browser and cloudflare scripts have no extension: they run by name.
+run = "git ls-files -z '*.sh' 'plugins/browser/skills/chrome/scripts/*' 'plugins/cloudflare/skills/*/scripts/*' | xargs -0 shellcheck"
 
 [tasks."lint:zizmor"]
 description = "Audit the GitHub Actions workflows"
@@ -49,9 +49,9 @@ description = "Scan the plugin hooks for network use and code fetches"
 run = "scripts/scan-hooks.py"
 
 [tasks.test]
-description = "Run the browser plugin tests"
+description = "Run the browser and cloudflare plugin tests"
 # A bare directory is read as one test file, so pass a glob. node expands it.
-run = "node --test 'plugins/browser/tests/*.test.mjs'"
+run = "node --test 'plugins/browser/tests/*.test.mjs' 'plugins/cloudflare/tests/*.test.mjs'"
 
 [tasks."docs:mirror"]
 description = "Mirror the public Claude doc sets into .cache/docs-mirror so doc claims can be rechecked with grep; pass --force to refetch, --host to limit"

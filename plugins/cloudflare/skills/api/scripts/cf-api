@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+# Calls the Cloudflare API with the token /cloudflare:setup saved.
+#
+# Usage: cf-api METHOD PATH [JSON_BODY]
+#        cf-api --forget
+#   PATH starts with /, as in Cloudflare's API reference. {account} in PATH
+#   becomes the account ID.
+#
+# Prints the response body on stdout. Exit statuses:
+#   0  Cloudflare answered with a 2xx status.
+#   1  Cloudflare answered with an error status. The body is still printed.
+#   2  The arguments were wrong.
+#   3  No token: the config file is missing, or names no token_ref.
+#   4  1Password could not read the token.
+#   5  PATH holds {account}, and no single account ID was found.
+#   6  A command the script needs is missing.
+#
+# The token comes from, in order: $CLOUDFLARE_API_TOKEN, the Keychain cache,
+# and 1Password at the token_ref the config file names. A token read from
+# 1Password is cached in the Keychain, so later calls do not prompt. When
+# Cloudflare rejects a cached token, the script drops the cache, reads
+# 1Password again, and retries once. The token never appears on a command
+# line, where ps could show it: curl and security read it on stdin.
+set -euo pipefail
+
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/cloudflare-api/config"
+KEYCHAIN_SERVICE="cloudflare-api-token"
+API="https://api.cloudflare.com/client/v4"
+
+main() {
+  if [[ "${1:-}" == "--forget" ]]; then
+    need security
+    forget_token
+    echo "Cleared the cached Cloudflare token." >&2
+    return
+  fi
+  if [[ $# -lt 2 || $# -gt 3 ]]; then
+    echo "usage: cf-api METHOD PATH [JSON_BODY] | cf-api --forget" >&2
+    exit 2
+  fi
+  need curl
+
+  local method="$1" path="$2" body="${3:-}"
+  local tok source
+  # token() runs in a subshell, so it leaves where the token came from in
+  # SOURCE_FILE. A failed token() exits the script with its status.
+  tok="$(token)"
+  source="$(cat "$SOURCE_FILE")"
+
+  if [[ "$path" == *"{account}"* ]]; then
+    local account
+    account="$(account_id "$tok")"
+    path="${path//\{account\}/$account}"
+  fi
+
+  local response
+  response="$(call_api "$tok" "$method" "$path" "$body")"
+  if [[ "$source" == keychain ]] && is_auth_failure "$response"; then
+    forget_token
+    tok="$(token)"
+    response="$(call_api "$tok" "$method" "$path" "$body")"
+  fi
+
+  local status="${response##*$'\n'}"
+  printf '%s\n' "${response%$'\n'*}"
+  [[ "$status" == 2* ]] || exit 1
+}
+
+# Prints the token, and records where it came from: env, keychain or
+# 1password.
+token() {
+  if [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+    record_source env
+    printf '%s' "$CLOUDFLARE_API_TOKEN"
+    return
+  fi
+  need security
+  local cached
+  if cached="$(security find-generic-password -s "$KEYCHAIN_SERVICE" -a "$USER" -w 2>/dev/null)" && [[ -n "$cached" ]]; then
+    record_source keychain
+    printf '%s' "$cached"
+    return
+  fi
+
+  local ref
+  # token() itself runs under $(...), where set -e is off, so exit by hand.
+  ref="$(token_ref)" || exit
+  need op
+  local fresh
+  if ! fresh="$(op read "$ref" 2>/dev/null)" || [[ -z "$fresh" ]]; then
+    echo "1Password could not read $ref. Sign in to 1Password, or run /cloudflare:setup again." >&2
+    exit 4
+  fi
+  cache_token "$fresh"
+  record_source 1password
+  printf '%s' "$fresh"
+}
+
+# The 1Password reference in the config file's token_ref= line.
+token_ref() {
+  local ref=""
+  if [[ -f "$CONFIG" ]]; then
+    ref="$(sed -n 's/^token_ref=//p' "$CONFIG" | tail -n 1)"
+  fi
+  if [[ -z "$ref" ]]; then
+    echo "No Cloudflare token is set up: $CONFIG names no token_ref. Run /cloudflare:setup." >&2
+    exit 3
+  fi
+  printf '%s' "$ref"
+}
+
+# Stores the token in the Keychain. security reads the command on stdin,
+# so the token stays off its command line. The token holds only letters,
+# digits, _ and -, so it needs no quoting; anything else is not cached.
+cache_token() {
+  local tok="$1"
+  [[ "$tok" =~ ^[A-Za-z0-9_-]+$ ]] || return 0
+  printf 'add-generic-password -U -s %s -a %s -w %s\n' \
+    "$KEYCHAIN_SERVICE" "$USER" "$tok" | security -i >/dev/null 2>&1 || true
+}
+
+forget_token() {
+  security delete-generic-password -s "$KEYCHAIN_SERVICE" -a "$USER" >/dev/null 2>&1 || true
+}
+
+# The account ID for {account}: $CF_ACCOUNT_ID, else the account_id in the
+# nearest Wrangler config, else the only account the token reaches.
+account_id() {
+  if [[ -n "${CF_ACCOUNT_ID:-}" ]]; then
+    printf '%s' "$CF_ACCOUNT_ID"
+    return
+  fi
+  local dir="$PWD" file id
+  while :; do
+    for file in wrangler.jsonc wrangler.json wrangler.toml; do
+      if [[ -f "$dir/$file" ]]; then
+        id="$(grep -oE '"?account_id"?[[:space:]]*[:=][[:space:]]*"[0-9a-f]{32}"' "$dir/$file" |
+          grep -oE '[0-9a-f]{32}' | head -n 1 || true)"
+        if [[ -n "$id" ]]; then
+          printf '%s' "$id"
+          return
+        fi
+      fi
+    done
+    [[ "$dir" != / ]] || break
+    dir="$(dirname "$dir")"
+  done
+
+  need jq
+  local response ids count
+  response="$(call_api "$1" GET /accounts "")"
+  ids="$(printf '%s' "${response%$'\n'*}" | jq -r '.result[]?.id' 2>/dev/null || true)"
+  count="$(printf '%s' "$ids" | grep -c . || true)"
+  if [[ "$count" == 1 ]]; then
+    printf '%s' "$ids"
+    return
+  fi
+  echo "PATH holds {account}, but the token reaches $count accounts and no Wrangler config names one. Set CF_ACCOUNT_ID." >&2
+  exit 5
+}
+
+# Prints the response body, then a newline and the HTTP status code.
+# curl reads the Authorization header from stdin, as a config line.
+call_api() {
+  local tok="$1" method="$2" path="$3" body="$4"
+  local args=(-sS -K - -X "$method" "${API}${path}" -w $'\n%{http_code}')
+  if [[ -n "$body" ]]; then
+    args+=(-H "Content-Type: application/json" --data "$body")
+  fi
+  printf 'header = "Authorization: Bearer %s"\n' "$tok" | curl "${args[@]}"
+}
+
+# True when Cloudflare rejected the token itself. It answers a bad token
+# with 400, 401 or 403 and one of these error codes, so the status alone
+# can't tell a bad token from a bad request.
+is_auth_failure() {
+  local response="$1"
+  local status="${response##*$'\n'}"
+  [[ "$status" =~ ^40[013]$ ]] &&
+    grep -qE '"code": ?(1000|9103|9106|9109|10000)[,}]' <<<"${response%$'\n'*}"
+}
+
+record_source() {
+  printf '%s' "$1" >"$SOURCE_FILE"
+}
+
+need() {
+  command -v "$1" >/dev/null 2>&1 && return
+  echo "cf-api needs $1, which is not on PATH." >&2
+  exit 6
+}
+
+SOURCE_FILE="$(mktemp)"
+trap 'rm -f "$SOURCE_FILE"' EXIT
+
+main "$@"
