@@ -104,6 +104,15 @@ test("sends the method and body it was given", () => {
   const r = w.run(CF_API, ["PUT", "/zones/z", '{"a":1}']);
   assert.equal(r.status, 0, r.stderr);
   assert.match(w.curlCalls()[0], new RegExp(`^PUT ${API}/zones/z `));
+  assert.deepEqual(w.curlBodies(), ['{"a":1}']);
+});
+
+// curl --data reads the file a leading @ names. --data-raw sends it as text.
+test("sends a body starting with @ as text, not as a file", () => {
+  const w = setUp();
+  const r = w.run(CF_API, ["POST", "/zones", "@/etc/passwd"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(w.curlBodies(), ["@/etc/passwd"]);
 });
 
 test("exits 2 on wrong arguments", () => {
