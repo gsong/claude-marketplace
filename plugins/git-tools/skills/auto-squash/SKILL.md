@@ -2,6 +2,7 @@
 name: "auto-squash"
 description: "Classifies each uncommitted change to its originating branch commit, creates fixup commits, makes new commits for changes that match no commit, and runs an autosquash rebase. Use when the user asks to fold uncommitted changes into earlier commits, fix up their commits, or clean up their branch."
 argument-hint: "[base-branch]"
+disable-model-invocation: true
 ---
 
 # Smart fixup and auto-squash
