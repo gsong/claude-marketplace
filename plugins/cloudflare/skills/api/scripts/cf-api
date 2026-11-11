@@ -14,6 +14,7 @@
 #   4  1Password could not read the token.
 #   5  PATH holds {account}, and no single account ID was found.
 #   6  A command the script needs is missing.
+#   7  curl could not reach api.cloudflare.com.
 #
 # The token comes from, in order: $CLOUDFLARE_API_TOKEN, the Keychain cache,
 # and 1Password at the token_ref the config file names. A token read from
@@ -41,24 +42,18 @@ main() {
   need curl
 
   local method="$1" path="$2" body="${3:-}"
-  local tok source
+  local tok token_source
   # token() runs in a subshell, so it leaves where the token came from in
   # SOURCE_FILE. A failed token() exits the script with its status.
   tok="$(token)"
-  source="$(cat "$SOURCE_FILE")"
-
-  if [[ "$path" == *"{account}"* ]]; then
-    local account
-    account="$(account_id "$tok")"
-    path="${path//\{account\}/$account}"
-  fi
+  token_source="$(cat "$SOURCE_FILE")"
 
   local response
-  response="$(call_api "$tok" "$method" "$path" "$body")"
-  if [[ "$source" == keychain ]] && is_auth_failure "$response"; then
+  response="$(request "$tok" "$method" "$path" "$body")"
+  if [[ "$token_source" == keychain ]] && is_auth_failure "$response"; then
     forget_token
     tok="$(token)"
-    response="$(call_api "$tok" "$method" "$path" "$body")"
+    response="$(request "$tok" "$method" "$path" "$body")"
   fi
 
   local status="${response##*$'\n'}"
@@ -123,9 +118,31 @@ forget_token() {
   security delete-generic-password -s "$KEYCHAIN_SERVICE" -a "$USER" >/dev/null 2>&1 || true
 }
 
-# The account ID for {account}: $CF_ACCOUNT_ID, else the account_id in the
-# nearest Wrangler config, else the only account the token reaches.
-account_id() {
+# Resolves {account} in PATH, then calls the API, printing what call_api
+# prints. When Cloudflare rejects the token during the account lookup, it
+# prints that answer instead, so main can retry with a fresh token. It runs
+# under $(...), where set -e is off, so it exits by hand.
+request() {
+  local tok="$1" method="$2" path="$3" body="$4"
+  if [[ "$path" == *"{account}"* ]]; then
+    local account accounts
+    account="$(configured_account_id)"
+    if [[ -z "$account" ]]; then
+      accounts="$(call_api "$tok" GET /accounts "")" || exit
+      if is_auth_failure "$accounts"; then
+        printf '%s' "$accounts"
+        return
+      fi
+      account="$(only_account "$accounts")" || exit
+    fi
+    path="${path//\{account\}/$account}"
+  fi
+  call_api "$tok" "$method" "$path" "$body"
+}
+
+# The account ID that $CF_ACCOUNT_ID or the nearest Wrangler config names,
+# or nothing.
+configured_account_id() {
   if [[ -n "${CF_ACCOUNT_ID:-}" ]]; then
     printf '%s' "$CF_ACCOUNT_ID"
     return
@@ -145,10 +162,13 @@ account_id() {
     [[ "$dir" != / ]] || break
     dir="$(dirname "$dir")"
   done
+}
 
+# The only account ID in a GET /accounts answer. Exits 5 unless there is
+# exactly one.
+only_account() {
   need jq
-  local response ids count
-  response="$(call_api "$1" GET /accounts "")"
+  local response="$1" ids count
   ids="$(printf '%s' "${response%$'\n'*}" | jq -r '.result[]?.id' 2>/dev/null || true)"
   count="$(printf '%s' "$ids" | grep -c . || true)"
   if [[ "$count" == 1 ]]; then
@@ -160,7 +180,8 @@ account_id() {
 }
 
 # Prints the response body, then a newline and the HTTP status code.
-# curl reads the Authorization header from stdin, as a config line.
+# curl reads the Authorization header from stdin, as a config line. Exits 7
+# when curl gets no answer, so curl's own codes never pass for cf-api's.
 call_api() {
   local tok="$1" method="$2" path="$3" body="$4"
   local args=(-sS -K - -X "$method" "${API}${path}" -w $'\n%{http_code}')
@@ -168,7 +189,12 @@ call_api() {
   if [[ -n "$body" ]]; then
     args+=(-H "Content-Type: application/json" --data-raw "$body")
   fi
-  printf 'header = "Authorization: Bearer %s"\n' "$tok" | curl "${args[@]}"
+  local code=0
+  printf 'header = "Authorization: Bearer %s"\n' "$tok" | curl "${args[@]}" || code=$?
+  if [[ "$code" != 0 ]]; then
+    echo "cf-api could not reach api.cloudflare.com: curl exited $code." >&2
+    exit 7
+  fi
 }
 
 # True when Cloudflare rejected the token itself. It answers a bad token

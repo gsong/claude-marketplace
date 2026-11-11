@@ -172,6 +172,43 @@ test("{account} falls back to the only account the token reaches", () => {
   assert.match(w.curlCalls()[1], new RegExp(`/accounts/${ACCOUNT}/access/`));
 });
 
+test("retries a rejected cached token when it looks up {account}", () => {
+  const w = setUp();
+  w.cache(STALE);
+  w.replies(`GET ${API}/accounts`, 200, {
+    success: true,
+    result: [{ id: ACCOUNT }],
+  });
+  const r = w.run(CF_API, ["GET", "/accounts/{account}/access/apps"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(w.cached(), GOOD);
+  assert.deepEqual(
+    w.curlCalls().map((c) => c.split(" ").slice(1).join(" ")),
+    [
+      `${API}/accounts ${STALE}`,
+      `${API}/accounts ${GOOD}`,
+      `${API}/accounts/${ACCOUNT}/access/apps ${GOOD}`,
+    ],
+  );
+});
+
+test("prints Cloudflare's answer when a fresh token cannot look up {account}", () => {
+  const w = setUp();
+  w.acceptsTokens(); // Cloudflare rejects every token.
+  const r = w.run(CF_API, ["GET", "/accounts/{account}/access/apps"]);
+  assert.equal(r.status, 1);
+  assert.equal(w.curlCalls().length, 1);
+  assert.match(JSON.parse(r.stdout).errors[0].message, /Authentication/);
+});
+
+test("exits 7 when curl cannot reach Cloudflare", () => {
+  const w = setUp();
+  w.curlFails();
+  const r = w.run(CF_API, ["GET", "/zones"]);
+  assert.equal(r.status, 7);
+  assert.match(r.stderr, /could not reach api\.cloudflare\.com/);
+});
+
 test("exits 5 when the token reaches several accounts", () => {
   const w = setUp();
   w.replies(`GET ${API}/accounts`, 200, {
