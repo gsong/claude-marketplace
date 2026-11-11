@@ -11,13 +11,13 @@
 
 ## How the token is kept
 
-`/cloudflare:setup` creates one user API token with every Read & Write account and zone permission. Claude reads it off the dashboard page and pipes it to `save-token`, so it never enters the conversation. `save-token` checks it with Cloudflare, stores it as a 1Password API Credential item, and writes the item's reference to `~/.config/cloudflare-api/config`:
+`/cloudflare:setup` creates one user API token with every Read & Write account and zone permission. Claude reads it off the dashboard page and pipes it to `save-token`, so it never enters the conversation. `save-token` checks it with Cloudflare's API at `api.cloudflare.com`, stores it as a 1Password API Credential item, and writes the item's reference to `~/.config/cloudflare-api/config`:
 
 ```
 token_ref=op://<vault>/<item id>/credential
 ```
 
-`cf-api` takes the token from the first of these that has one:
+`cf-api` sends every request to `https://api.cloudflare.com/client/v4`, and no other host. It takes the token from the first of these that has one:
 
 1. `CLOUDFLARE_API_TOKEN`, when set.
 2. The macOS Keychain, under the service `cloudflare-api-token`.

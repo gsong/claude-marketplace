@@ -41,7 +41,7 @@ agent-browser eval '(() => { const t = document.body.innerText; const i = t.inde
 
 Use the `agent-browser` prefix that `/browser:chrome` printed. When the page wording differs, adjust the anchor text in the `eval`, never the step that pipes.
 
-`save-token` checks the token with Cloudflare, creates an API Credential item in the vault, and writes the reference to `~/.config/cloudflare-api/config`. On exit 0 it prints `key=value` lines. On any other exit, show the user its message:
+`save-token` checks the token with Cloudflare at `https://api.cloudflare.com/client/v4/user/tokens/verify`, creates an API Credential item in the vault, and writes the reference to `~/.config/cloudflare-api/config`. On exit 0 it prints `key=value` lines. On any other exit, show the user its message:
 
 - **2:** the flags were wrong.
 - **3:** the `eval` found no token. Snapshot the page, fix the anchor, and pipe again while the page still shows the token.
