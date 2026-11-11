@@ -12,9 +12,7 @@
       "name": "ai-docs",
       "source": "./plugins/ai-docs",
       "description": "Full lifecycle AI documentation for Claude Code projects: bootstrap, lookup, update, check, and audit",
-      "author": {
-        "name": "George Song"
-      },
+      "author": { "name": "George Song" },
       "category": "productivity",
       "keywords": ["docs", "documentation", "ai"]
     },
@@ -22,9 +20,7 @@
       "name": "ai-memory",
       "source": "./plugins/ai-memory",
       "description": "Session memory and project instruction management for Claude Code",
-      "author": {
-        "name": "George Song"
-      },
+      "author": { "name": "George Song" },
       "category": "productivity",
       "keywords": ["memory", "session", "instructions"]
     },
@@ -32,9 +28,7 @@
       "name": "browser",
       "source": "./plugins/browser",
       "description": "Drive a real Google Chrome with agent-browser, on a repo's persistent profile or a throwaway one",
-      "author": {
-        "name": "George Song"
-      },
+      "author": { "name": "George Song" },
       "category": "development",
       "keywords": ["browser", "chrome", "agent-browser", "cdp"]
     },
@@ -42,9 +36,7 @@
       "name": "clef",
       "source": "./plugins/clef",
       "description": "Build software with Clef, Cloudflare's decision model, run locally through Ollama or on Workers AI",
-      "author": {
-        "name": "George Song"
-      },
+      "author": { "name": "George Song" },
       "category": "development",
       "keywords": ["clef", "cloudflare", "ollama", "decision", "typesafe"]
     },
@@ -52,9 +44,7 @@
       "name": "cloudflare",
       "source": "./plugins/cloudflare",
       "description": "Change and read a Cloudflare account from Claude Code: wrangler first, then the API with a token kept in 1Password",
-      "author": {
-        "name": "George Song"
-      },
+      "author": { "name": "George Song" },
       "category": "development",
       "keywords": ["cloudflare", "wrangler", "api", "access", "zero-trust"]
     },
@@ -62,9 +52,7 @@
       "name": "codex-tools",
       "source": "./plugins/codex-tools",
       "description": "OpenAI Codex CLI integration for parallel PR reviews, task delegation, and multi-round consensus discussions via the codex plugin",
-      "author": {
-        "name": "George Song"
-      },
+      "author": { "name": "George Song" },
       "category": "development",
       "keywords": ["codex", "openai", "review", "delegation"]
     },
@@ -72,9 +60,7 @@
       "name": "cowork",
       "source": "./plugins/cowork",
       "description": "Make a Claude Code plugin also work in Cowork, on Claude Desktop and claude.ai: packaging, browsers, state, and what each plan allows",
-      "author": {
-        "name": "George Song"
-      },
+      "author": { "name": "George Song" },
       "category": "development",
       "keywords": [
         "claude.ai",
@@ -90,9 +76,7 @@
       "name": "gh-tools",
       "source": "./plugins/gh-tools",
       "description": "GitHub CLI PR review, triage, comment posting, review replies, and project management skills",
-      "author": {
-        "name": "George Song"
-      },
+      "author": { "name": "George Song" },
       "category": "development",
       "keywords": ["github", "gh", "pr", "review", "project"]
     },
@@ -100,9 +84,7 @@
       "name": "git-tools",
       "source": "./plugins/git-tools",
       "description": "Git commit, worktree, and auto-squash skills",
-      "author": {
-        "name": "George Song"
-      },
+      "author": { "name": "George Song" },
       "category": "development",
       "keywords": ["git", "commit", "worktree", "auto-squash"]
     },
@@ -110,9 +92,7 @@
       "name": "repo-maintenance",
       "source": "./plugins/repo-maintenance",
       "description": "Dependency upgrades and CI/CD security auditing for project repositories",
-      "author": {
-        "name": "George Song"
-      },
+      "author": { "name": "George Song" },
       "category": "development",
       "keywords": [
         "dependencies",
@@ -129,9 +109,7 @@
       "name": "utilities",
       "source": "./plugins/utilities",
       "description": "General-purpose utilities for Claude Code",
-      "author": {
-        "name": "George Song"
-      },
+      "author": { "name": "George Song" },
       "category": "productivity",
       "keywords": ["date", "utilities"]
     },
@@ -139,9 +117,7 @@
       "name": "writing",
       "source": "./plugins/writing",
       "description": "Keep text an audience reads in your voice: a drafting pipeline, a send-time lint, a draft gate, and correction capture",
-      "author": {
-        "name": "George Song"
-      },
+      "author": { "name": "George Song" },
       "category": "productivity",
       "keywords": ["writing", "voice", "style", "lint", "drafts"]
     }
