@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# Saves a Cloudflare API token, read on stdin, to 1Password, and points
+# cf-api at it.
+#
+# Usage: save-token --vault VAULT [--title TITLE] <token
+#
+# Checks the token with Cloudflare first, then creates a 1Password API
+# Credential item in VAULT, then writes token_ref= to the cf-api config.
+# The token never appears on a command line or in the output: 1Password
+# reads it from a template file that only the user can read, deleted on exit.
+#
+# On success prints key=value lines: item, vault, token_ref, config, and
+# replaced when the config named another token before.
+#
+# Exit statuses:
+#   0  Saved.
+#   2  The arguments were wrong.
+#   3  stdin held no token, or not a token's shape.
+#   4  Cloudflare did not report the token as active.
+#   5  1Password could not create the item.
+#   6  A command the script needs is missing.
+set -euo pipefail
+
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/cloudflare-api/config"
+VERIFY_URL="https://api.cloudflare.com/client/v4/user/tokens/verify"
+KEYCHAIN_SERVICE="cloudflare-api-token"
+template=""
+
+main() {
+  local vault="" title="Cloudflare API token (Claude Code)"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --vault) vault="${2:-}"; shift 2 || usage ;;
+      --title) title="${2:-}"; shift 2 || usage ;;
+      *) usage ;;
+    esac
+  done
+  [[ -n "$vault" && -n "$title" ]] || usage
+  need curl
+  need jq
+  need op
+
+  local tok
+  tok="$(tr -d '[:space:]')"
+  if [[ ! "$tok" =~ ^[A-Za-z0-9_-]{40,}$ ]]; then
+    echo "stdin held no Cloudflare API token: expected 40 or more letters, digits, _ or -." >&2
+    exit 3
+  fi
+
+  local status
+  status="$(printf 'header = "Authorization: Bearer %s"\n' "$tok" |
+    curl -sS -K - "$VERIFY_URL" | jq -r '.result.status // empty' 2>/dev/null || true)"
+  if [[ "$status" != active ]]; then
+    echo "Cloudflare did not report the token as active (status: ${status:-none}). Nothing was saved." >&2
+    exit 4
+  fi
+
+  local item
+  template="$(umask 077 && mktemp)"
+  printf '%s' "$tok" | jq -Rn --arg title "$title" '{
+    title: $title,
+    category: "API_CREDENTIAL",
+    fields: [{id: "credential", type: "CONCEALED", label: "credential", value: input}]
+  }' >"$template"
+  if ! item="$(op item create --vault "$vault" --template "$template" --format json 2>/dev/null |
+    jq -r '.id // empty')" || [[ -z "$item" ]]; then
+    echo "1Password could not create the item in vault \"$vault\". Check that the vault exists and 1Password is signed in." >&2
+    exit 5
+  fi
+  rm -f "$template"
+
+  local ref="op://${vault}/${item}/credential" previous=""
+  if [[ -f "$CONFIG" ]]; then
+    previous="$(sed -n 's/^token_ref=//p' "$CONFIG" | tail -n 1)"
+  fi
+  mkdir -p "$(dirname "$CONFIG")"
+  printf 'token_ref=%s\n' "$ref" >"$CONFIG"
+  # The cached token belongs to the old ref. cf-api refills the cache.
+  if command -v security >/dev/null 2>&1; then
+    security delete-generic-password -s "$KEYCHAIN_SERVICE" -a "$USER" >/dev/null 2>&1 || true
+  fi
+
+  echo "item=$item"
+  echo "vault=$vault"
+  echo "token_ref=$ref"
+  echo "config=$CONFIG"
+  if [[ -n "$previous" && "$previous" != "$ref" ]]; then
+    echo "replaced=$previous"
+  fi
+}
+
+usage() {
+  echo "usage: save-token --vault VAULT [--title TITLE] <token" >&2
+  exit 2
+}
+
+need() {
+  command -v "$1" >/dev/null 2>&1 && return
+  echo "save-token needs $1, which is not on PATH." >&2
+  exit 6
+}
+
+trap '[[ -z "$template" ]] || rm -f "$template"' EXIT
+
+main "$@"
