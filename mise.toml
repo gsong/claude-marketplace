@@ -40,8 +40,9 @@ run = "zizmor .github/workflows"
 [tasks."scan:skills"]
 description = "Scan the skills for security risks; pass a path to also write SARIF"
 # The tool is declared here, so only this task installs it. uv installs the
-# published wheel. Building from the sdist needs a Go toolchain.
-tools = { "pipx:cisco-ai-skill-scanner" = { version = "2.2.0", uvx_args = "--no-build" } }
+# published wheel. Building from the sdist needs a Go toolchain. The wheels
+# cover Python 3.11 to 3.14 only, so pin 3.14 for machines that default to 3.15.
+tools = { "pipx:cisco-ai-skill-scanner" = { version = "2.2.0", uvx_args = "--no-build --python 3.14" } }
 run = "scripts/scan-skills.sh"
 
 [tasks."scan:hooks"]
