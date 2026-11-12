@@ -46,7 +46,7 @@ Drive a real Google Chrome with agent-browser, on a repo's persistent profile or
 
 **Skills:** `/browser:chrome`, `/browser:setup`
 
-**Requires:** macOS with Google Chrome, agent-browser 0.38 or later, and curl. See the [plugin README](plugins/browser/README.md#prerequisites).
+**Requires:** macOS with Google Chrome, agent-browser 0.38 or later, curl, jq, and mise. See the [plugin README](plugins/browser/README.md#prerequisites).
 
 ### clef
 
