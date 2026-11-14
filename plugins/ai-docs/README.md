@@ -74,8 +74,14 @@ Each skill embeds the resources it needs at load time, so one edit changes every
 | [`docs-ai-readme-format.md`](resources/docs-ai-readme-format.md)     | `init`, `audit`           |
 | [`project-analysis-prompt.md`](resources/project-analysis-prompt.md) | `init`, `audit`           |
 
+## Prerequisites
+
+- `git`. The verification stamp and the staleness checks read commit history.
+- `jq`, for the `UserPromptSubmit` hook. Without it the hook stays silent.
+
 ## Installation
 
 ```
+/plugin marketplace add gsong/claude-marketplace
 /plugin install ai-docs@gsong-marketplace
 ```

@@ -36,7 +36,7 @@ Repo markdown means any `.md` or `.markdown` file outside `ai-swap/`. The gate s
 
 1. `$WRITING_LINE_RULES`
 2. `~/.claude/writing-line/rules/`
-3. The plugin’s own `defaults/rules/`
+3. The plugin's own `defaults/rules/`
 
 The first directory found replaces the others whole. Files never merge across directories. That way you can always tell where a rule came from.
 
@@ -48,7 +48,7 @@ The first directory found replaces the others whole. Files never merge across di
 
 The defaults are generic. To write in your own voice, give the plugin your own rules directory:
 
-1. Copy the plugin’s `defaults/rules/` to `~/.claude/writing-line/rules/`.
+1. Copy the plugin's `defaults/rules/` to `~/.claude/writing-line/rules/`.
 2. Edit the four files. `common.md` applies to every profile. `comms.md`, `technical.md`, and `mixed.md` each hold one audience.
 3. Put voice notes, terms, and exemplars in `~/.claude/writing-line/references/`.
 
