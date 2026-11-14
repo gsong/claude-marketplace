@@ -106,6 +106,14 @@
       ]
     },
     {
+      "name": "typescript7-lsp",
+      "source": "./plugins/typescript7-lsp",
+      "description": "TypeScript 7 code intelligence through the language server built into tsc",
+      "author": { "name": "George Song" },
+      "category": "development",
+      "keywords": ["typescript", "lsp", "tsgo"]
+    },
+    {
       "name": "utilities",
       "source": "./plugins/utilities",
       "description": "General-purpose utilities for Claude Code",

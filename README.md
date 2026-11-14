@@ -131,6 +131,18 @@ Dependency upgrades and CI/CD security auditing for project repositories.
 
 **Requires:** pnpm, mise, zizmor, gh CLI, and Node.js with npx (runs actions-up), each for the skills that use it. See the [plugin README](plugins/repo-maintenance/README.md#prerequisites).
 
+### typescript7-lsp
+
+TypeScript 7 code intelligence through the language server built into `tsc`. Use it in place of the official `typescript-lsp`, which cannot start against TypeScript 7.
+
+```
+/plugin install typescript7-lsp@gsong-marketplace
+```
+
+**LSP:** `tsc --lsp --stdio` for `.ts`, `.tsx`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs`, `.cjs`
+
+**Requires:** TypeScript 7 or later as the first `tsc` on `PATH`. See the [plugin README](plugins/typescript7-lsp/README.md#prerequisites).
+
 ### utilities
 
 General-purpose utilities for Claude Code.
