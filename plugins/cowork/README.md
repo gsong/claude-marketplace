@@ -10,6 +10,10 @@ Make a Claude Code plugin also work in Cowork, on Claude Desktop and claude.ai: 
 
 The facts carry a research date and a verified or inferred mark. They change often, so the skill re-checks a source before a design depends on it.
 
+## Prerequisites
+
+None. `/cowork:build` reads its own reference files and checks sources on the web.
+
 ## Installation
 
 ```

@@ -1,5 +1,7 @@
 # browser
 
+Drive a real Google Chrome with agent-browser, on a repo's persistent profile or a throwaway one.
+
 `/browser:chrome` drives a real Google Chrome with [agent-browser](https://github.com/vercel-labs/agent-browser). agent-browser attaches to Chrome over CDP, Chrome's remote debugging port. Google sign-ins accept a Chrome started this way. They reject a Chrome that agent-browser launches by itself, because that one reports `navigator.webdriver=true`.
 
 ## Skills
@@ -62,6 +64,8 @@ The tests in `tests/` check the last two, against stand-ins for `ps`, `curl`, an
 - macOS with Google Chrome.
 - agent-browser 0.38 or later, installed globally or pinned in the repo's `package.json`. Older versions may spawn their own headless Chrome when nothing answers on the port.
 - `curl`.
+- `git`, for `/browser:setup`, which finds the repo root and checks the ignore rules.
+- Node.js, optional. Without it `connect` cannot tell whether the repo pins agent-browser, so it uses the global one.
 - `jq`. macOS 15 and later ship it as `/usr/bin/jq`.
 - [mise](https://mise.jdx.dev), for `/browser:setup` and the `browser:start` task.
 

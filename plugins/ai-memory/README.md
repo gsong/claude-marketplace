@@ -11,6 +11,10 @@ Session memory and project instruction management for Claude Code.
 
 `save` uses `/utilities:date` (from the `utilities` plugin) when installed; otherwise it falls back to plain `date`.
 
+## Prerequisites
+
+- `git`. `save` reads the repo's status, diff, and log, and checks whether `ai-swap/` is ignored.
+
 ## Installation
 
 ```

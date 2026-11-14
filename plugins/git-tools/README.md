@@ -1,6 +1,6 @@
 # git-tools
 
-Git workflow skills for Claude Code.
+Git commit, worktree, and auto-squash skills.
 
 ## Skills
 
@@ -12,7 +12,10 @@ Git workflow skills for Claude Code.
 
 ## Prerequisites
 
-- [pnpm](https://pnpm.io/) — fallback for dependency installation in worktrees when no lockfile is present (projects with a lockfile use the package manager it indicates)
+- [git](https://git-scm.com/), for all three skills.
+- [pnpm](https://pnpm.io/): the install fallback in worktrees when `package.json` has no lockfile. A project with a lockfile uses the package manager it names (pnpm, npm, yarn, or bun), so that tool must be installed.
+- [mise](https://mise.jdx.dev/), only to trust a `mise.toml` in a new worktree.
+- [direnv](https://direnv.net/), only to allow an `.envrc` in a new worktree.
 
 ## Installation
 

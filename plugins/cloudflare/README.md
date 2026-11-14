@@ -1,5 +1,7 @@
 # cloudflare
 
+Change and read a Cloudflare account from Claude Code: wrangler first, then the API with a token kept in 1Password.
+
 `/cloudflare:api` lets Claude change and read a Cloudflare account on its own. It uses wrangler for what wrangler covers, and the Cloudflare API for the rest. wrangler's login can't grant Access, Zero Trust or DNS permissions. Without the API, those jobs fall back to clicking through the dashboard.
 
 ## Skills
@@ -57,7 +59,8 @@ Run them with `mise run test`.
 - macOS, for the Keychain cache. Without `security`, set `CLOUDFLARE_API_TOKEN` instead.
 - curl and jq. macOS 15 and later ship jq as `/usr/bin/jq`.
 - The 1Password CLI, `op`, signed in.
-- The `browser` plugin, for `/cloudflare:setup`'s dashboard steps.
+- The `browser` plugin, which provides `agent-browser` and `/browser:chrome` for `/cloudflare:setup`'s dashboard steps. Install it from this marketplace.
+- wrangler, for the work `/cloudflare:api` hands to it first. `cf-api` does not need it.
 
 ## Installation
 

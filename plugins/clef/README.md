@@ -11,7 +11,7 @@ Build software with Clef, Cloudflare's decision model, run locally through Ollam
 ## Prerequisites
 
 - [Ollama](https://ollama.com/) with `clef` or `clef-flash` pulled, for local Clef. This is the default.
-- Or a Cloudflare account with [Workers AI](https://developers.cloudflare.com/workers-ai/models/clef/), for Clef in the cloud.
+- Or a Cloudflare account with [Workers AI](https://developers.cloudflare.com/workers-ai/models/clef/), for Clef in the cloud. Calls need a Cloudflare API token, kept server-side.
 
 ## Installation
 
