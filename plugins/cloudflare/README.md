@@ -1,7 +1,5 @@
 # cloudflare
 
-Change and read a Cloudflare account from Claude Code: wrangler first, then the API with a token kept in 1Password.
-
 `/cloudflare:api` lets Claude change and read a Cloudflare account on its own. It uses wrangler for what wrangler covers, and the Cloudflare API for the rest. wrangler's login can't grant Access, Zero Trust or DNS permissions. Without the API, those jobs fall back to clicking through the dashboard.
 
 ## Skills

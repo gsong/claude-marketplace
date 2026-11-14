@@ -1,7 +1,5 @@
 # browser
 
-Drive a real Google Chrome with agent-browser, on a repo's persistent profile or a throwaway one.
-
 `/browser:chrome` drives a real Google Chrome with [agent-browser](https://github.com/vercel-labs/agent-browser). agent-browser attaches to Chrome over CDP, Chrome's remote debugging port. Google sign-ins accept a Chrome started this way. They reject a Chrome that agent-browser launches by itself, because that one reports `navigator.webdriver=true`.
 
 ## Skills
