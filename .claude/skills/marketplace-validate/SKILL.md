@@ -24,7 +24,7 @@ Spawn **one Agent per plugin** in a single message, so they run in parallel. Use
 
 Done when every plugin in the working list has returned a report.
 
-## Phase 3 — Registry, Root README, and Security Scan
+## Phase 3 — Registry, Root README, and Security Scans
 
 Run these checks yourself. Each ends with its **Fix**, as in `plugin-checks.md`.
 
@@ -46,11 +46,14 @@ The `## Plugins` section is a table with one row per plugin: the plugin name, li
 9. **Link**: each row links to `plugins/{PLUGIN_NAME}/README.md`. **Fix:** rewrite the link.
 10. **Description**: the "What it does" cell matches the `plugin.json` `description`, with a trailing period. **Fix:** copy the `plugin.json` value.
 
-### Security scan
+### Security scans
+
+CI runs both scans and blocks a merge on either one, so run both.
 
 11. **Skill scan**: run `mise run scan:skills` once for the whole repo. The task installs the scanner on first run. Skip this check when mise is not installed or the scanner install fails, and say so in the report. Report each high or critical finding with its rule, skill, and file. **Fix: ask.** The user decides whether to fix the skill or add a suppression with a reason to `skill-scanner-policy.yaml`.
+12. **Hook scan**: run `mise run scan:hooks` once for the whole repo. It prints one `path:line: rule: text` line per finding and exits 1 when there is any. Skip this check when mise or uv is not installed, and say so in the report. Report each finding with its rule and `path:line`. **Fix: ask.** The user decides whether to change the hook or change the rule in `scripts/scan-hooks.py`. The hook scan has no suppression file.
 
-Done when checks 1–10 have a verdict for every plugin and check 11 has a verdict for the repo.
+Done when checks 1–10 have a verdict for every plugin and checks 11–12 have a verdict for the repo.
 
 ## Phase 4 — Report
 
@@ -80,10 +83,12 @@ Root README
 [✓] Every plugin has a row
 ...
 
-Security Scan
-─────────────
+Security Scans
+──────────────
 [ ] High PIPELINE_TAINT_FLOW: example-plugin/example-skill — scripts/install.sh:12
-[✓] No high or critical findings
+[✓] No high or critical skill findings
+[ ] network-tool: plugins/example-plugin/hooks/run.sh:8
+[✓] No hook findings
 
 Summary: X issues found across Y plugins
 ```
