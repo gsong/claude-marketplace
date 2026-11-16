@@ -39,7 +39,7 @@ agent-browser eval '(() => { const t = document.body.innerText; const i = t.inde
   "${CLAUDE_PLUGIN_ROOT}/skills/setup/scripts/save-token" --vault "<vault>" --title "<token name>"
 ```
 
-Use the `agent-browser` prefix that `/browser:chrome` printed. When the page wording differs, adjust the anchor text in the `eval`, never the step that pipes.
+Use the `agent-browser` prefix that `/browser:chrome` printed, and add `--session <name>` as on every `/browser:chrome` command, so the `eval` reads the tab that shows the token. When the page wording differs, adjust the anchor text in the `eval`, never the step that pipes.
 
 `save-token` checks the token with Cloudflare at `https://api.cloudflare.com/client/v4/user/tokens/verify`, creates an API Credential item in the vault, and writes the reference to `~/.config/cloudflare-api/config`. On exit 0 it prints `key=value` lines. On any other exit, show the user its message:
 
