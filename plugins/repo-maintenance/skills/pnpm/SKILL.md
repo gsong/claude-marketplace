@@ -20,8 +20,8 @@ If the user specified a version (via `$ARGUMENTS` or in their request — e.g., 
 Check these sources in order — stop at the first match:
 
 1. **package.json**: Read the root `package.json` and extract the version from the `packageManager` field (e.g., `"pnpm@9.15.0"` → `9.15.0`)
-2. **mise.toml**: Use Grep to search for `pnpm\s*=\s*"` in `mise.toml` or `.mise.toml` and extract the version
-3. **GitHub Actions**: Use Grep to search `.github/workflows/` for `version:` lines near `pnpm` context (e.g., under `Setup pnpm` steps)
+2. **mise.toml**: Search for `pnpm\s*=\s*"` in `mise.toml` or `.mise.toml` and extract the version
+3. **GitHub Actions**: Search `.github/workflows/` for `version:` lines near `pnpm` context (e.g., under `Setup pnpm` steps)
 
 If no current version is found, abort: "Could not detect pnpm version in this repo."
 
@@ -60,7 +60,7 @@ This returns a JSON object mapping version strings to ISO 8601 release timestamp
 
 **Find references:**
 
-Use Grep to search the entire repo for the current version string in pnpm-related contexts. Run multiple targeted searches:
+Search the entire repo for the current version string in pnpm-related contexts. Run multiple targeted searches:
 
 1. Search for `pnpm@{current_version}` — catches package.json `packageManager`, Dockerfiles, Docker Compose files, CI scripts
 2. Search for `pnpm = "{current_version}"` — catches mise.toml
