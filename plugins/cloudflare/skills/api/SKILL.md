@@ -32,7 +32,7 @@ It prints Cloudflare's JSON response. Read `success` and `errors` from it. The e
 - **2:** the arguments were wrong.
 - **3:** no token is set up. Run `/cloudflare:setup`.
 - **4:** 1Password could not read the token. Ask the user to unlock 1Password, then retry.
-- **5:** PATH holds `{account}` and the token reaches several accounts. Set `CF_ACCOUNT_ID`, after asking the user which account when the task does not say.
+- **5:** PATH holds `{account}`, and cf-api found no single account: the token reaches several, or the account lookup returned none. The message gives the count. Set `CF_ACCOUNT_ID`, after asking the user which account when the task does not say.
 - **6:** a command it needs is missing. The message names it.
 - **7:** curl could not reach `api.cloudflare.com`. Check the network, then retry.
 
