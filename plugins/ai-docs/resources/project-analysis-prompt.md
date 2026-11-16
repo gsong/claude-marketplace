@@ -40,11 +40,9 @@ Check for:
 - Cargo workspaces (`[workspace]` in root `Cargo.toml`)
 - Go workspaces (`go.work`)
 
-### 4. Assess Complexity
+### 4. Size the Recommendation
 
-- **Simple** (≤3 patterns detected): 3-5 docs recommended
-- **Medium** (4-7 patterns): 5-8 docs recommended
-- **Complex** (8+ patterns or monorepo): 8-12 docs recommended
+Recommend one doc per area a developer would look up on its own, and let the code set the count rather than a quota. In a monorepo, size the set to the one docs directory being built. A workspace's docs cover that workspace. A root docs directory covers only cross-cutting topics such as the build graph, the deploy pipeline, and shared conventions.
 
 ### 5. Output Format
 
