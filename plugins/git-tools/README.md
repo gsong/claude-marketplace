@@ -4,11 +4,11 @@ Git commit, worktree, and auto-squash skills.
 
 ## Skills
 
-| Skill         | Trigger                                                                                                   | Description                                    |
-| ------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `commit`      | "commit my changes", `/git-tools:commit`                                                                  | Commit changes with conventional commit format |
-| `worktree`    | "spin up a worktree", "work on X in parallel", `/git-tools:worktree`                                      | Create git worktrees with intelligent setup    |
-| `auto-squash` | "fold these into my earlier commits", "fix up my commits", "clean up my branch", `/git-tools:auto-squash` | Distribute uncommitted changes via smart fixup |
+| Skill         | Invoked by                                                           | Description                                    |
+| ------------- | -------------------------------------------------------------------- | ---------------------------------------------- |
+| `commit`      | "commit my changes", `/git-tools:commit`                             | Commit changes with conventional commit format |
+| `worktree`    | "spin up a worktree", "work on X in parallel", `/git-tools:worktree` | Create git worktrees with intelligent setup    |
+| `auto-squash` | you, `/git-tools:auto-squash [base-branch]`                          | Distribute uncommitted changes via smart fixup |
 
 ## Prerequisites
 
