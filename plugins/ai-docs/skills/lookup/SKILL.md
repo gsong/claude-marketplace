@@ -38,7 +38,7 @@ For each doc read:
 
    > **Resource fallback:** If the above is empty, the shell pre-exec didn't run. Read the file with the Read tool at `${CLAUDE_SKILL_DIR}/../../resources/staleness-baseline.md` (resolve `${CLAUDE_SKILL_DIR}` to an absolute path first).
 
-3. If git is unavailable (no commits, shallow clone): skip the git check, note "staleness detection unavailable (no git history)"
+3. If that check fails (not a git repository, or no commits yet): skip the git check, note "staleness detection unavailable (no git history)"
 
 ### 5. Supplement with Code Search
 
