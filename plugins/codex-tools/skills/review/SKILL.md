@@ -81,30 +81,22 @@ if [ ! -f "${CLAUDE_PLUGIN_ROOT}/scripts/validate-findings.py" ]; then
 fi
 ```
 
-### Step 2: Parallel Agent Dispatch
+### Step 2: Parallel Codex Runs
 
-Launch **3 parallel agents** (using the Agent tool, `subagent_type: "general-purpose"`). Pass each agent:
-
-- The resolved companion script path from Step 1.6
-- The base ref from Step 1.5
-- The PR context block
-- Its agent-specific focus text
-
-Each agent:
+Start the 3 reviews in parallel, one per agent role below: in one message, make 3 Bash calls with `run_in_background: true`. Each call:
 
 1. Writes its full focus text (PR context block + agent-specific focus) to a temp file
-2. Invokes adversarial-review via Bash using the companion script path:
+2. Invokes adversarial-review with the companion script path from Step 1.6 and the base ref from Step 1.5, saving the output to its own file:
 
 ```bash
-node "<companion-path>" adversarial-review --base <base-ref> --wait --json -- "$(cat <temp-file>)"
+node "<companion-path>" adversarial-review --base <base-ref> --wait --json -- "$(cat <temp-file>)" > <output-file>
 ```
 
 - `--wait` ensures foreground execution (no interactive prompts)
 - `--json` prints the structured result. The rendered report omits each finding’s `confidence`, which the sort step needs.
 - `--` separates flags from focus text to prevent misparse
 
-3. Reads the `result` object from the JSON output. It holds `verdict`, `summary`, `findings` and `next_steps`. If `result` is null, Codex output did not parse: return `parseError` and `rawOutput` instead of findings.
-4. Returns the parsed findings
+When a run finishes, read the `result` object from its output file. It holds `verdict`, `summary`, `findings` and `next_steps`. If `result` is null, Codex output did not parse: keep that run's `parseError` and `rawOutput` instead of findings.
 
 **The 3 agent roles and focus text:**
 
@@ -128,9 +120,9 @@ Prepend the PR context block, then:
 
 ### Step 3: Result Aggregation
 
-After all 3 agents return:
+After all 3 runs finish:
 
-1. **Collect** — each agent returns the `result` object: `verdict`, `summary`, `findings[]`, and `next_steps[]`. The mapping table in step 5 names every finding field. If an agent returned `parseError` instead, report that agent's `parseError` and `rawOutput` to the user, and aggregate the other agents' findings.
+1. **Collect** — each agent role yields the `result` object: `verdict`, `summary`, `findings[]`, and `next_steps[]`. The mapping table in step 5 names every finding field. If an agent returned `parseError` instead, report that agent's `parseError` and `rawOutput` to the user, and aggregate the other agents' findings.
 
 2. **Deduplicate** — if two agents flag the same file + overlapping line range, merge into one finding. A merged finding keeps the higher-severity body and carries one `source_detail` entry per agent that flagged it.
 3. **Overall verdict** — `needs-attention` if any agent returns `needs-attention`; `approve` only if all three approve.
@@ -234,4 +226,3 @@ using 3 parallel Codex adversarial reviews.
 - The review reads code; builds and type checks are out of scope
 - **The skill ends at Step 4.** Fixing is gh-tools:triage's job.
 - **Each agent's prompt is the PR context block plus its focus text.** Codex reads the source itself via the companion script's read-only sandbox; only the PR context is out of its reach.
-- Make a todo list first to track progress through the steps
