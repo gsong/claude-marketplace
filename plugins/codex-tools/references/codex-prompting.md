@@ -24,7 +24,7 @@ If the user's request already specifies these, use them; only ask for what's mis
 
 ## Build a self-contained prompt
 
-**Codex can only access project files in the working directory.** It has no access to external tools, MCP servers, or APIs (Linear, Slack, GitHub issues, Jira, etc.). You MUST inline all relevant external context into the prompt itself.
+**Codex can only access project files in the working directory.** It has no access to external tools, MCP servers, or APIs (Linear, Slack, GitHub issues, Jira, etc.). Inline all relevant external context into the prompt itself.
 
 Before dispatching, gather and embed any context Codex will need:
 
