@@ -63,7 +63,7 @@ Execution order: launch the Review A agent **first** — it runs in the backgrou
 
 Every review sub-agent prompt (both reviews, including the sub-agents the mattpocock skill spawns) receives this preamble at the top:
 
-> **CRITICAL: Do NOT post comments, reviews, or any content to the GitHub PR. Do NOT use `gh pr comment`, `gh api` to create reviews, or any other mechanism to write to the PR. Do NOT write to any files. Your ONLY job is to analyze the code and return your findings as text output.**
+> Post nothing to the GitHub PR: no `gh pr comment`, no `gh api` call that creates a review, no other write to the PR. Write no files. Return your findings as text. The orchestrator collects them, and the user decides later what reaches the PR.
 
 ### Review focus areas
 
@@ -122,7 +122,7 @@ Launch one agent (Agent tool) to write the final report and structured JSON. Pas
 
 Include ALL of the following in the agent's prompt:
 
-1. A synthesis-specific preamble: **"CRITICAL: Do NOT post comments, reviews, or any content to the GitHub PR. Do NOT use `gh pr comment`, `gh api` to create reviews, or any other mechanism to write to the PR. Do NOT run any `gh` commands. You MUST write output files under `ai-swap/` as instructed below — that is your primary job."**
+1. A synthesis-specific preamble: "Post nothing to the GitHub PR and run no `gh` commands. The orchestrator has already fetched everything you need. Your job is to write the output files under `ai-swap/` described below."
 2. PR number: $ARGUMENTS
 3. Head SHA, repo name, and full PR diff (from Phase 1)
 4. Full text output from Review A (feature-dev:code-reviewer findings)
@@ -224,7 +224,7 @@ Set `agent` and `agent_label` to whichever reviewer produced the finding:
 
 #### Hard gate
 
-> **You MUST write `findings-gh-review.json` before completing. After writing it, confirm it was written by reading it back with the Read tool. Run the schema validator and confirm it passes. Do not return until the file exists and is valid.**
+> Return only once `findings-gh-review.json` exists and the schema validator passes on it.
 
 Wait for the synthesis agent to complete before proceeding.
 
