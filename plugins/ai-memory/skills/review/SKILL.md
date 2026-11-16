@@ -14,7 +14,7 @@ Analyze the project-level CLAUDE.md file for effectiveness and token efficiency.
 
 ## What Earns Its Place
 
-An instruction earns its tokens when it changes what the agent does: a convention the code does not show, a workflow that differs from defaults, a gotcha, or a must-not-violate rule (mark those **CRITICAL**, a convention this skill recommends). It does not when it is a cache of what the code or config already answers, a no-op the model does by default or the global CLAUDE.md already says, stale, or an example longer than its point. Keep each instruction unambiguous, actionable, and scannable: bullets, not paragraphs.
+An instruction earns its tokens when it changes what the agent does: a convention the code does not show, a workflow that differs from defaults, a gotcha, or a must-not-violate rule (stated plainly, with its reason beside it, not in capitals). It does not when it is a cache of what the code or config already answers, a no-op the model does by default or the global CLAUDE.md already says, stale, or an example longer than its point. Keep each instruction unambiguous and actionable, with the reason that justifies it; bullets suit reference lists, and a rule that needs its "because" can stay a sentence.
 
 ## Output Format
 
