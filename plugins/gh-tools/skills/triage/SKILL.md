@@ -16,7 +16,7 @@ Triage decides each finding itself from its investigation. It asks the user only
 
 `$ARGUMENTS` is a PR number. The review directory is `ai-swap/pr-review-$ARGUMENTS/`.
 
-1. Delete `ai-swap/pr-review-$ARGUMENTS/triage-state.json` if it exists (`rm -f`). Older versions of this skill left it as a checkpoint. This version does not use it.
+1. Delete `ai-swap/pr-review-$ARGUMENTS/triage-state.json` if it exists (`rm -f`). It is a leftover checkpoint that nothing reads.
 2. Glob for `findings-*.json` in the directory (this matches `findings-gh-review.json`, `findings-codex.json`, etc. but NOT `findings.json` which is triage's own output).
 3. If no `findings-*.json` files are found, stop with: "No source findings found. Run `/gh-tools:review $ARGUMENTS` and/or `/codex-tools:review $ARGUMENTS` first."
 4. If a previous `findings.json` exists in the directory, ask the user (via AskUserQuestion): "Previous triage output found. Start fresh from source findings, or abort so you can use the existing curated output?" Options: "Start fresh" (rebuild from source files), "Abort" (stop triage, keep existing findings.json). If abort, stop.
@@ -91,7 +91,7 @@ Each agent receives this prompt (fill in finding-specific values):
 
 ---
 
-You are an investigation agent. Deeply investigate this code review finding and determine if it is valid.
+You are investigating one code review finding. Decide whether it holds at the current code, and back the verdict with evidence.
 
 **Finding:** {title, if present, otherwise first 80 chars of body}
 **File:** {path}
@@ -103,17 +103,9 @@ You are an investigation agent. Deeply investigate this code review finding and 
 
 **Instructions:**
 
-1. **Read the code:** Read the referenced file and lines. Understand the surrounding context.
+Read the flagged lines and the code they touch: imports, callers, callees and types. Run `git log --oneline -10 -- {path}` and `git blame -L {start_line},{line} {path}` (skip blame when the finding has no line range) to see whether this PR introduced the issue or a later commit already fixed it. Check whether tests cover the flagged behavior.
 
-2. **Trace related code:** Follow imports, callers, callees, and type definitions relevant to the issue. Understand the full picture.
-
-3. **Check git history:** Run `git log --oneline -10 -- {path}` and `git blame -L {start_line},{line} {path}` (skip blame if no line range). Look for recent changes that might have addressed or introduced the issue.
-
-4. **Check test coverage:** Search for test files related to this code. Check if the flagged behavior has test coverage.
-
-5. **Check if already addressed:** Compare the current code against the finding description. Has it been fixed since the review was generated?
-
-6. **Return your findings as JSON** (ONLY the JSON object, no other text). Do not wrap in markdown code fences:
+Return only this JSON object, with no code fence:
 
 {"verdict": "valid | false-positive | already-addressed | pre-existing | unclear", "confidence": 0-100, "evidence": "Key findings with code snippets, git blame output, test references", "recommended_action": "keep | remove | reword", "suggested_body": "Proposed revised comment body text, or null", "suggested_severity": "must-fix | should-fix | nit, or null"}
 
