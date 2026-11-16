@@ -16,22 +16,7 @@ Targeted documentation updates after code changes. Analyzes what changed, identi
 Use the argument as the change description.
 
 **If no argument provided:**
-Analyze recent git changes to infer what changed:
-
-```bash
-# Check for uncommitted changes first
-git diff --name-only
-git diff --cached --name-only
-
-# Then recent commits (check depth first)
-git log --oneline -5
-COMMIT_COUNT=$(git rev-list --count HEAD 2>/dev/null || echo 0)
-if [ "$COMMIT_COUNT" -ge 4 ]; then
-  git diff HEAD~3 --name-only
-elif [ "$COMMIT_COUNT" -ge 2 ]; then
-  git diff HEAD~$((COMMIT_COUNT - 1)) --name-only
-fi
-```
+Infer the change from git: uncommitted and staged changes first (`git diff --name-only`, `git diff --cached --name-only`), then the recent commits that belong to the same piece of work (read `git log --oneline` to decide where it starts) and the files they changed. The plan in step 4 shows the user what you inferred, so they can correct the range.
 
 If git history is unavailable (no commits, shallow clone, errors), ask the user to describe the change — the argument is required in this case.
 
