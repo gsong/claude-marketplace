@@ -18,7 +18,7 @@ Use the argument as the change description.
 **If no argument provided:**
 Infer the change from git: uncommitted and staged changes first (`git diff --name-only`, `git diff --cached --name-only`), then the recent commits that belong to the same piece of work (read `git log --oneline` to decide where it starts) and the files they changed. The plan in step 4 shows the user what you inferred, so they can correct the range.
 
-If git history is unavailable (no commits, shallow clone, errors), ask the user to describe the change — the argument is required in this case.
+If git history is unavailable (not a git repository, no commits yet, or a git error), ask the user to describe the change — the argument is required in this case.
 
 ### 2. Resolve Docs Directory
 
