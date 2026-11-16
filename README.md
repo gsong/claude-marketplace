@@ -29,7 +29,7 @@ Each plugin's README lists its skills, its hooks and its prerequisites. Read it 
 | [gh-tools](plugins/gh-tools/README.md)                 | GitHub CLI PR review, triage, comment posting, review replies, and project management skills.                                          |
 | [git-tools](plugins/git-tools/README.md)               | Git commit, worktree, and auto-squash skills.                                                                                          |
 | [repo-maintenance](plugins/repo-maintenance/README.md) | Dependency upgrades and CI/CD security auditing for project repositories.                                                              |
-| [typescript7-lsp](plugins/typescript7-lsp/README.md)   | TypeScript 7 code intelligence through the language server built into `tsc`. Use it in place of the official `typescript-lsp`.         |
+| [typescript7-lsp](plugins/typescript7-lsp/README.md)   | TypeScript 7 code intelligence through the language server built into tsc.                                                             |
 | [utilities](plugins/utilities/README.md)               | General-purpose utilities for Claude Code.                                                                                             |
 | [writing](plugins/writing/README.md)                   | Keep text an audience reads in your voice: a drafting pipeline, a send-time lint, a draft gate, and correction capture.                |
 

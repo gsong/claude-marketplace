@@ -4,7 +4,7 @@
     "name": "George Song"
   },
   "metadata": {
-    "description": "George Song's Claude Code plugins for git, GitHub, documentation, session memory, browser automation, Clef, Cloudflare access, Cowork, Codex integration, repo maintenance, writing, and utilities"
+    "description": "George Song's Claude Code plugins for git, GitHub, documentation, session memory, browser automation, Clef, Cloudflare access, Cowork, Codex integration, repo maintenance, TypeScript 7 code intelligence, writing, and utilities"
   },
   "allowCrossMarketplaceDependenciesOn": ["openai-codex"],
   "plugins": [
