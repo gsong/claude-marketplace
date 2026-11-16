@@ -112,4 +112,4 @@ Show:
 
 ## Execution Notes
 
-- The docs directory is the whole deliverable; the plugin's hook and lookup skill are the only wiring, so leave `.claude/` untouched
+- The docs directory is the whole deliverable; the plugin's hook and lookup skill are the only wiring, so create nothing under `.claude/agents/` and leave `.claude/CLAUDE.md` as it is. A docs directory at `.claude/docs/` is the one part of `.claude/` this skill writes
