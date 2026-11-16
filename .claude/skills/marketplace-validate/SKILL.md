@@ -40,19 +40,17 @@ Run these checks yourself. Each ends with its **Fix**, as in `plugin-checks.md`.
 
 ### Root README.md
 
-Each plugin has a `### {PLUGIN_NAME}` section with a blurb, an install block, and a **Skills:** line. It also has a **Hooks:** line when it ships hooks, and a **Requires:** line when it has requirements.
+The `## Plugins` section is a table with one row per plugin: the plugin name, linked to `plugins/{PLUGIN_NAME}/README.md`, and what it does. Skills, hooks, and prerequisites live only in each plugin's README, which `plugin-checks.md` section H covers.
 
-8. **Section coverage**: every marketplace entry has a section, and every section has an entry. **Fix:** add a missing section in the existing format, in alphabetical order; remove a section with no entry.
-9. **Blurb**: the blurb matches the `plugin.json` `description`, with a trailing period. **Fix:** copy the `plugin.json` value.
-10. **Skills line**: it lists `/{PLUGIN_NAME}:{skill}` for exactly the directories under `plugins/{PLUGIN_NAME}/skills/`. **Fix:** add or remove entries to match the directories.
-11. **Hooks line**: present exactly when `plugins/{PLUGIN_NAME}/hooks/hooks.json` exists, and it names every event in that file. **Fix:** rewrite the line from `hooks.json` and the hooks section of the plugin README.
-12. **Requires line**: it names the same tools and plugins as the requirements section of the plugin README (`Prerequisites` or `Requirements`). When the plugin README has no such section, use the skills' `compatibility` fields. A plugin with neither has no Requires line. The line lists names only and links to the plugin README section for details. **Fix:** rewrite the line from the plugin README.
+8. **Row coverage**: every marketplace entry has a row, and every row has an entry. **Fix:** add a missing row in the existing format, in alphabetical order; remove a row with no entry.
+9. **Link**: each row links to `plugins/{PLUGIN_NAME}/README.md`. **Fix:** rewrite the link.
+10. **Description**: the "What it does" cell matches the `plugin.json` `description`, with a trailing period. **Fix:** copy the `plugin.json` value.
 
 ### Security scan
 
-13. **Skill scan**: run `mise run scan:skills` once for the whole repo. The task installs the scanner on first run. Skip this check when mise is not installed or the scanner install fails, and say so in the report. Report each high or critical finding with its rule, skill, and file. **Fix: ask.** The user decides whether to fix the skill or add a suppression with a reason to `skill-scanner-policy.yaml`.
+11. **Skill scan**: run `mise run scan:skills` once for the whole repo. The task installs the scanner on first run. Skip this check when mise is not installed or the scanner install fails, and say so in the report. Report each high or critical finding with its rule, skill, and file. **Fix: ask.** The user decides whether to fix the skill or add a suppression with a reason to `skill-scanner-policy.yaml`.
 
-Done when checks 1–12 have a verdict for every plugin and check 13 has a verdict for the repo.
+Done when checks 1–10 have a verdict for every plugin and check 11 has a verdict for the repo.
 
 ## Phase 4 — Report
 
@@ -78,8 +76,8 @@ Marketplace Registry
 
 Root README
 ───────────
-[ ] Skills line: writing — lists /writing:foo, which has no skill directory
-[✓] Every plugin has a section
+[ ] Description mismatch: writing — README says "X", plugin.json says "Y"
+[✓] Every plugin has a row
 ...
 
 Security Scan
