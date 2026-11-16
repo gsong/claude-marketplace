@@ -14,7 +14,7 @@ You are tasked with committing changes in the current project repository. Follow
    - Fix any issues before proceeding
 3. Group into one commit per logical change, typed per the Examples. Only the changes the user asked for go in; leave unrelated changes staged or unstaged as they were — sweeping them in muddies history and surprises the user. Done when every changed hunk sits in exactly one group or is deliberately left out
 4. Create separate commits for each logical group
-   - If pre-commit hooks modify files, amend the commit to include those changes — otherwise the hooks' edits are left sitting uncommitted in the working tree
+   - If pre-commit hooks modify files, include those changes — otherwise the hooks' edits are left sitting uncommitted in the working tree. Check `git log -1` first: amend only when the commit landed. When the hook aborted the commit, stage the changes and commit again, because `--amend` would rewrite the previous commit
 5. Write clear, concise commit messages focusing on "why" not "what"
 6. Verify: `git status` shows only what you left out; `git log` shows one commit per group
 
